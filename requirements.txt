@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-dotenv
+qdrant-client
+groq
+pymupdf
+numpy
+requests
+rank-bm25
+pydantic>=2.7.0
