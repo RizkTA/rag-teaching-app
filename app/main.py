@@ -7,6 +7,22 @@ from app.retrieval.hybrid_search import hybrid_search
 print("🔥 IMPORTS SUCCESS")
 app = FastAPI()
 
+# =================================
+# ROOT HEALTH CHECK
+# =================================
+@app.get("/")
+def root():
+
+    return {
+        "status": "ok",
+        "message": "RIZK AI Backend Running"
+    }
+
+
+@app.head("/")
+def root_head():
+
+    return {}
 
 class QueryRequest(BaseModel):
     q: str
