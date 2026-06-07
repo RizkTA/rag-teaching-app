@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import base64
 
-
 #API_URL = "https://rag-teaching-app.onrender.com"
 import os
 
