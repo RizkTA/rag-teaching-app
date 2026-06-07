@@ -11,7 +11,7 @@ API_URL = "https://rag-teaching-app.onrender.com"
 
 UPLOAD_PASSWORD = os.getenv(
     "UPLOAD_PASSWORD",
-    "admin123"
+    "supersecret123"
 )
 
 
@@ -52,10 +52,10 @@ with col1:
 
 with col2:
 
-    st.title("RIZK AI Assistant")
+    st.title(" 📕 RIZK AI Assistant")
 
     st.markdown(
-        "AI-powered Teaching Assistant using RAG + Groq + Qdrant"
+        "AI-powered Teaching Assistant "
     )
 
 
@@ -197,9 +197,8 @@ if password == UPLOAD_PASSWORD:
                     if res.status_code == 200:
 
                         st.success(
-                            "✅ File uploaded successfully!"
+                            f"✅ {uploaded_file.name} uploaded and ingested successfully!"
                         )
-
                         st.json(res.json())
 
                     else:

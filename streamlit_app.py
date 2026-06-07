@@ -46,7 +46,6 @@ with col1:
             """,
             unsafe_allow_html=True
         )
-
     except:
         st.write("📕")
 
@@ -55,7 +54,7 @@ with col2:
     st.title(" 📕 RIZK AI Assistant")
 
     st.markdown(
-        "AI-powered Teaching Assistant using RAG + Groq + Qdrant"
+        "AI-powered Teaching Assistant "
     )
 
 
