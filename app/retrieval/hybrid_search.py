@@ -1,4 +1,4 @@
-git add .from app.config import (
+from app.config import (
     QDRANT_URL,
     QDRANT_COLLECTION,
     EMBED_DIM
