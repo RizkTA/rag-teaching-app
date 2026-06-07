@@ -156,7 +156,8 @@ def ingest_pdf(path: str):
             }
             for i, chunk in enumerate(chunks)
         ]
-
+        print("TOTAL CHUNKS:", len(chunks))
+        print("TOTAL VECTORS:", len(vectors))
         # upsert to qdrant
         store.upsert(ids, vectors, payloads)
 
@@ -180,7 +181,11 @@ def ingest_pdf(path: str):
             "error": str(e)
         }
 
+count = store.client.count(
+    collection_name=store.collection
+).count
 
+print("QDRANT COUNT:", count)
 # -----------------------------
 # INGEST ALL PDFs
 # -----------------------------

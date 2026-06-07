@@ -16,6 +16,57 @@ class QueryRequest(BaseModel):
 def root():
     return {"status": "ok", "message": "RAG SaaS v2 running"}
 
+from fastapi import UploadFile, File
+import shutil
+import os
+
+from app.ingestion.ingest import ingest_pdf
+
+
+# =================================
+# PDF UPLOAD + INGEST
+# =================================
+@app.post("/upload_pdf")
+async def upload_pdf(
+    file: UploadFile = File(...)
+):
+
+    try:
+
+        # create data folder
+        os.makedirs("data", exist_ok=True)
+
+        # save uploaded file
+        save_path = f"data/{file.filename}"
+        #save_path = f"/data/{file.filename}"
+        with open(save_path, "wb") as buffer:
+            shutil.copyfileobj(
+                file.file,
+                buffer
+            )
+
+        print(f"✅ File saved: {save_path}")
+
+        # ingest into qdrant
+        result = ingest_pdf(save_path)
+
+        print("🔥 INGEST RESULT:", result)
+
+        return {
+            "success": True,
+            "filename": file.filename,
+            "ingest_result": result
+        }
+
+    except Exception as e:
+
+        print("❌ Upload failed:", e)
+
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
 
 @app.post("/query")
 def query(req: QueryRequest):
