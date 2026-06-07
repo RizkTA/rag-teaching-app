@@ -1,9 +1,10 @@
+print("🔥 MAIN.PY STARTING")
 from fastapi import FastAPI
 from pydantic import BaseModel
 
 from app.llm.streaming import stream_answer
 from app.retrieval.hybrid_search import hybrid_search
-
+print("🔥 IMPORTS SUCCESS")
 app = FastAPI()
 
 
