@@ -2,13 +2,17 @@ import streamlit as st
 import requests
 import base64
 
-#API_URL = "https://rag-teaching-app.onrender.com"
+from test_query import question
+
+API_URL = "https://rag-teaching-app.onrender.com"
 import os
 
-API_URL = os.getenv(
-    "API_URL",
-    "http://localhost:8000"
+res = requests.post(
+    f"{API_URL}/query",
+    json={"q": question}
 )
+answer = res.json()["answer"]
+
 #UPLOAD_PASSWORD = "supersecret123"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD")
 # =================================

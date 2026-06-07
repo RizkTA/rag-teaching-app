@@ -5,6 +5,11 @@ qdrant-client
 groq
 pymupdf
 numpy
+streamlit
 requests
 rank-bm25
 pydantic>=2.7.0
+ollama
+sentence-transformers
+torch
+transformers

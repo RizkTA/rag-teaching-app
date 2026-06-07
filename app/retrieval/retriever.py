@@ -1,4 +1,6 @@
-from app.ingestion.ingest import store, embedder
+from app.ingestion.ingest import store
+from app.embeddings.api_embedder import embed_texts
+from test_query import question
 
 
 def retrieve(query: str, top_k=5):
@@ -6,8 +8,7 @@ def retrieve(query: str, top_k=5):
     # -----------------------------
     # EMBED QUERY
     # -----------------------------
-    query_vector = embedder.embed([query])[0]
-
+    query_vector = embed_texts([question])[0]
     # -----------------------------
     # QDRANT SEARCH (SAFE VERSION)
     # -----------------------------

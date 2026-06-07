@@ -1,97 +1,103 @@
-import ollama
+from app.config import (
+    QDRANT_URL,
+    QDRANT_COLLECTION,
+    EMBED_DIM,
+    GROQ_API_KEY
+)
 
-from app.embeddings.local_embedder import LocalEmbedder
+from app.embeddings.api_embedder import embed_texts
 from app.vectorstores.qdrant_store import QdrantStore
-from app.config import *
+from groq import Groq
 
-# -----------------------------
+# =============================
+# GROQ CLIENT (LLM)
+# =============================
+client = Groq(api_key=GROQ_API_KEY)
+
+
+def generate(prompt: str) -> str:
+    """
+    LLM generator using Groq (production safe)
+    """
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful teaching assistant. Use ONLY the provided context."
+                },
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response.choices[0].message.content
+
+    except Exception as e:
+        return f"LLM error: {str(e)}"
+
+
+# =============================
 # CONFIG
-# -----------------------------
-MAX_CONTEXT_CHARS = 6000  # increased for better answers
-MIN_SCORE = 0.15
-
-# -----------------------------
-# SINGLETONS
-# -----------------------------
-embedder = LocalEmbedder(EMBED_MODEL)
-store = QdrantStore(QDRANT_URL, QDRANT_COLLECTION, EMBED_DIM)
+# =============================
+MAX_CONTEXT_CHARS = 6000
 
 
-# -----------------------------
+# =============================
+# INIT VECTOR DB
+# =============================
+try:
+    store = QdrantStore(QDRANT_URL, QDRANT_COLLECTION, EMBED_DIM)
+except Exception as e:
+    print("⚠️ Qdrant disabled:", e)
+    store = None
+
+
+# =============================
 # RETRIEVAL
-# -----------------------------
-def retrieve(question, top_k=5, min_score=MIN_SCORE):
+# =============================
+def retrieve(question, top_k=5):
+    if store is None:
+        return "", []
 
-    query_vector = embedder.embed([question])[0]
-    results = store.search(query_vector, top_k=top_k)
+    try:
+        query_vector = embed_texts([question])[0]
+        results = store.search(query_vector, top_k=top_k)
 
-    contexts = []
-    citations = []
+        contexts = []
+        citations = []
 
-    for r in results:
+        for r in results:
+            payload = r.payload or {}
+            text = payload.get("text", "")
 
-        score = getattr(r, "score", 0)
+            if not text:
+                continue
 
-        payload = r.payload or {}
-        text = payload.get("text", "")
-        source = payload.get("source", "unknown")
-        chunk_id = payload.get("chunk_id", -1)
+            contexts.append(text)
 
-        # keep more recall (do NOT over-filter)
-        if not text:
-            continue
+            citations.append({
+                "source": payload.get("source", "unknown"),
+                "chunk_id": payload.get("chunk_id", -1),
+                "score": float(getattr(r, "score", 0)),
+                "preview": text[:200]
+            })
 
-        contexts.append(text)
+        context = "\n\n".join(contexts)[:MAX_CONTEXT_CHARS]
 
-        citations.append({
-            "source": source,
-            "chunk_id": chunk_id,
-            "score": float(score),
-            "preview": text[:200]
-        })
+        return context, citations
 
-    context = "\n\n".join(contexts)
-
-    # safer truncation (avoid breaking sentences too much)
-    context = context[:MAX_CONTEXT_CHARS]
-
-    return context, citations
+    except Exception as e:
+        print("❌ Retrieval error:", e)
+        return "", []
 
 
-# -----------------------------
-# LLM
-# -----------------------------
-def generate(prompt):
-
-    response = ollama.chat(
-        model="llama3",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a helpful teaching assistant. "
-                    "Answer ONLY using the provided context. "
-                    "If the context is insufficient, say you don't know."
-                )
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
-
-    return response["message"]["content"]
-
-
-# -----------------------------
+# =============================
 # MAIN ANSWER FUNCTION
-# -----------------------------
-def answer(question):
+# =============================
+def answer(question: str):
 
     context, citations = retrieve(question)
 
-    # 🚨 FIX: only ONE fallback rule (no confusion)
     if not context.strip():
         return {
             "answer": "I don't know based on the documents.",
@@ -100,22 +106,17 @@ def answer(question):
         }
 
     prompt = f"""
-Use the context below to answer the question.
-
 Context:
 {context}
 
 Question:
 {question}
 
-Provide a clear explanation.
-If the answer is partially in context, infer carefully.
+Answer clearly using ONLY the context above.
 """
 
-    answer_text = generate(prompt)
-
     return {
-        "answer": answer_text,
+        "answer": generate(prompt),
         "citations": citations,
         "context_length": len(context)
     }

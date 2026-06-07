@@ -1,166 +1,192 @@
 import streamlit as st
 import requests
+import base64
+import requests
 
-from app.rag.rag_service import answer
+from test_query import question
 
-#API_URL = "http://localhost:8000"
+API_URL = "https://rag-teaching-app.onrender.com"
+import os
 
-# -----------------------------
+res = requests.post(
+    f"{API_URL}/query",
+    json={"q": question}
+)
+answer = res.json()["answer"]
+
+#UPLOAD_PASSWORD = "supersecret123"
+UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD")
+# =================================
 # PAGE CONFIG
-# -----------------------------
+# =================================
 st.set_page_config(
-    page_title="RIZK Teaching Assistant",
+    page_title="RIZK AI Assistant",
     page_icon="📕",
     layout="wide"
 )
 
-st.title("📕 RIZK Teaching Assistant ")
+st.title("📕 RIZK AI Assistant")
 
-
-# upload with password
-#uploaded_file = st.file_uploader("📄 Upload PDF ...", type=["pdf"])
-
-import streamlit as st
-import requests
-
-API_URL = "http://localhost:8000"
-
-st.subheader("🔐 Upload Security")
-# -----------------------------
-# PASSWORD INPUT
-# -----------------------------
-password = st.text_input("Enter upload password", type="password")
-
-# -----------------------------
-# UPLOAD ONLY IF PASSWORD OK
-# -----------------------------
-if password:
-
-    uploaded_file = st.file_uploader("📄 Upload PDF (Auto Ingest)", type=["pdf"])
-
-    if uploaded_file is not None:
-
-        files = {
-            "file": (
-                uploaded_file.name,
-                uploaded_file.getvalue(),
-                "application/pdf"
-            )
-        }
-
-        headers = {
-            "X-API-Key": str(password).strip()
-        }
-
-       # st.write("DEBUG PASSWORD:", password)
-       # st.write("HEADERS:", headers)
-
-        with st.spinner("Indexing PDF... ⚡"):
-            res = requests.post(
-                f"{API_URL}/upload_pdf",
-                files=files,
-                headers=headers
-            )
-
-        if res.status_code == 200:
-            st.success("✅ PDF uploaded & indexed")
-        else:
-            st.error(f"❌ Upload failed: {res.text}")
-# -----------------------------
-# SESSION STATE (CHAT MEMORY)
-# -----------------------------
+# =================================
+# SESSION STATE
+# =================================
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# =================================
+# CHAT SECTION
+# =================================
+st.subheader("💬 Ask Questions")
 
-# -----------------------------
-# SIDEBAR (LIGHTWEIGHT)
-# -----------------------------
-with st.sidebar:
-    st.header("⚙️ Controls")
+query = st.text_input(
+    "Ask a question:",
+    key="query_input"
+)
 
-    if st.button("🧹 Clear Chat"):
-        st.session_state.messages = []
+if st.button("Ask", key="ask_button") and query:
 
-    st.markdown("---")
-  #  st.markdown("🧠 Local RAG System (Ollama + Qdrant)")
-    import base64
-    import streamlit as st
+    with st.spinner("Thinking... 🧠🧠🧠"):
 
-    with open("RIZKRED.png", "rb") as f:
-        data = base64.b64encode(f.read()).decode()
+        try:
 
-    st.markdown(
-        f"""
-        <div style="display:flex;align-items:center;">
-            <img src="data:image/png;base64,{data}" width="100">
-            <span style="margin-left:8px;"> Dr. Nouhad Rizk    Learning Companion ! </span>
-        </div>
-        """,
-        unsafe_allow_html=True,
+            res = requests.post(
+                f"{API_URL}/query",
+                json={"q": query},
+                timeout=120
+            )
+
+            if res.status_code == 200:
+
+                data = res.json()
+
+                answer = data.get(
+                    "answer",
+                    "No answer returned"
+                )
+
+                st.markdown("### 📘 Answer")
+                st.write(answer)
+
+                # Optional sources
+                sources = data.get("sources", [])
+
+                if sources:
+
+                    st.markdown("### 📚 Sources")
+
+                    for s in sources:
+                        st.write(f"- {s}")
+
+            else:
+
+                try:
+                    error_data = res.json()
+                    st.error(error_data.get("error", "Unknown error"))
+
+                except:
+                    st.error(res.text)
+
+        except Exception as e:
+            st.error(f"Connection Error: {str(e)}")
+
+# =================================
+# PDF UPLOAD
+# =================================
+st.divider()
+
+st.subheader("📄 Upload PDF (Admin Only)")
+
+password = st.text_input(
+    "Enter upload password",
+    type="password",
+    key="upload_password"
+)
+
+if password == UPLOAD_PASSWORD:
+
+    uploaded_file = st.file_uploader(
+        "Upload PDF",
+        type=["pdf"],
+        key="pdf_uploader"
     )
 
-# -----------------------------
-# CHAT DISPLAY
-# -----------------------------
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+    if uploaded_file and st.button(
+        "🚀 Upload & Ingest",
+        key="upload_button"
+    ):
 
+        with st.spinner("Uploading and ingesting PDF..."):
 
-# -----------------------------
-# QUERY INPUT
-# -----------------------------
-query = st.chat_input("Ask your documents...")
+            try:
 
-if query:
+                res = requests.post(
+                    f"{API_URL}/upload_pdf",
+                    files={
+                        "file": (
+                            uploaded_file.name,
+                            uploaded_file.getvalue(),
+                            "application/pdf"
+                        )
+                    },
+                    timeout=300
+                )
 
-    # show user message
-    st.chat_message("user").markdown(query)
+                if res.status_code == 200:
 
-    st.session_state.messages.append({
-        "role": "user",
-        "content": query
-    })
-## -----------------------------
-# FAST RAG CALL (NO CACHE = ALWAYS FRESH)
-# -----------------------------
-with st.chat_message("assistant"):
- with st.spinner("Thinking... Generating response...🧠"):
-    #   col1, col2 = st.columns([1, 20])
+                    st.success("✅ PDF uploaded successfully")
 
-   #    with col1:
-     #      st.image("Rizk.png", width=30)
+                    st.json(res.json())
 
-    #   with col2:
-    #       st.write("Thinking...")
+                else:
 
-     #  with st.spinner("Generating response..."):
-           try:
-                result = answer(query)
-                response_text = result.get("answer", "")
-                citations = result.get("citations", [])
-           except Exception as e:
-                response_text = f"❌ Error: {str(e)}"
-                citations = []
-           st.markdown(response_text)
+                    try:
+                        st.error(res.json())
 
-           # -----------------------------
-           # SOURCES (LIGHTWEIGHT)
-           # -----------------------------
-           if citations:
-                with st.expander("📚 Sources"):
-                    for c in citations[:5]:  # limit for speed
-                        st.markdown(
-                            f"""
-**📄 {c.get('source','unknown')}**  
-Chunk: {c.get('chunk_id','-')}  
-Score: {round(c.get('score',0),3)}
+                    except:
+                        st.error(res.text)
 
-> {c.get('preview','')[:200]}...
-"""
-                       )
-                st.session_state.messages.append({
-        "role": "assistant",
-        "content": response_text
-    })
+            except Exception as e:
+                st.error(str(e))
+
+else:
+
+    if password:
+        st.warning("Wrong password ❌")
+
+# =================================
+# SIDEBAR
+# =================================
+with st.sidebar:
+
+    st.header("⚙️ Controls")
+
+    if st.button(
+        "🧹 Clear Chat",
+        key="clear_chat_button"
+    ):
+
+        st.session_state.messages = []
+
+        st.rerun()
+
+    st.markdown("---")
+
+    try:
+
+        with open("RIZKRED.png", "rb") as f:
+            data = base64.b64encode(f.read()).decode()
+
+        st.markdown(
+            f"""
+            <div style="display:flex;align-items:center;">
+                <img src="data:image/png;base64,{data}" width="90">
+                <span style="margin-left:10px;">
+                    Dr. Nouhad Rizk AI Teaching Assistant
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    except:
+        pass
