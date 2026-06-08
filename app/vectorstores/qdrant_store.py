@@ -10,27 +10,20 @@ from app.config import QDRANT_API_KEY
 
 class QdrantStore:
 
-    def __init__(
-        self,
-        url,
-        collection,
-        dim
-    ):
+    def __init__(self, url, collection_name, embed_dim):
 
-        self.collection = collection
+        self.collection_name = collection_name
 
-        # =========================
-        # CONNECT CLIENT
-        # =========================
         self.client = QdrantClient(
             url=url,
-            api_key=QDRANT_API_KEY
+            api_key=QDRANT_API_KEY,
+            timeout=60
         )
 
         print("✅ Qdrant connected")
 
         # =========================
-        # CREATE COLLECTION
+        # CREATE COLLECTION IF MISSING
         # =========================
         collections = self.client.get_collections()
 
@@ -39,29 +32,22 @@ class QdrantStore:
             for c in collections.collections
         ]
 
-        if collection not in existing:
+        if collection_name not in existing:
 
             self.client.create_collection(
-                collection_name=collection,
+                collection_name=collection_name,
                 vectors_config=VectorParams(
-                    size=dim,
+                    size=embed_dim,
                     distance=Distance.COSINE
                 )
             )
 
-            print(
-                f"✅ Created collection: {collection}"
-            )
+            print(f"✅ Created collection: {collection_name}")
 
     # =========================
     # UPSERT
     # =========================
-    def upsert(
-        self,
-        ids,
-        vectors,
-        payloads
-    ):
+    def upsert(self, ids, vectors, payloads):
 
         points = []
 
@@ -76,21 +62,19 @@ class QdrantStore:
             )
 
         self.client.upsert(
-            collection_name=self.collection,
+            collection_name=self.collection_name,
             points=points
         )
 
     # =========================
     # SEARCH
     # =========================
-    def search(
-        self,
-        query_vector,
-        top_k=5
-    ):
+    def search(self, query_vector, top_k=5):
 
-        return self.client.search(
-            collection_name=self.collection,
+        results = self.client.search(
+            collection_name=self.collection_name,
             query_vector=query_vector,
             limit=top_k
         )
+
+        return results

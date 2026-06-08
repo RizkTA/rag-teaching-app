@@ -14,6 +14,11 @@ UPLOAD_PASSWORD = os.getenv(
     "supersecret123"
 )
 
+# =================================
+# SESSION STATE
+# =================================
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 # =================================
 # PAGE CONFIG
@@ -102,7 +107,10 @@ if st.button("🚀 Ask"):
                     st.markdown("## 📘 Answer")
 
                     st.write(answer)
-
+                    st.session_state.messages.append({
+                        "question": query,
+                        "answer": answer
+                    })
                     citations = data.get(
                         "citations",
                         []
@@ -149,6 +157,15 @@ if st.button("🚀 Ask"):
                 st.error(
                     f"Connection Error: {str(e)}"
                 )
+
+
+# =================================
+# CHAT HISTORY
+# =================================
+for msg in st.session_state.messages:
+
+    st.markdown(f"### ❓ {msg['question']}")
+    st.write(msg["answer"])
 
 
 # =================================
@@ -216,12 +233,120 @@ elif password:
 
     st.error("❌ Wrong password")
 
-
 # =================================
 # FOOTER
 # =================================
 st.divider()
 
-st.caption(
-    "Dr. Nouhad Rizk • AI Teaching Assistant"
+st.markdown(
+    """
+    <div style="
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:10px;
+        padding:10px;
+        font-size:16px;
+        color:gray;
+    ">
+        <div style="
+            font-size:28px;
+            animation: floatBook 2s ease-in-out infinite;
+        ">
+            📖
+        </div>
+
+        <div>
+            Dr. Nouhad Rizk • AI Teaching Assistant
+        </div>
+    </div>
+
+    <style>
+    @keyframes floatBook {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+        100% { transform: translateY(0px); }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
+
+# =================================
+# SIDEBAR
+# =================================
+with st.sidebar:
+
+    st.header("⚙️ Controls")
+
+    # =========================
+    # CLEAR CHAT
+    # =========================
+    if st.button(
+        "🧹 Clear Chat",
+        key="clear_chat_button"
+    ):
+
+        st.session_state.messages = []
+
+        st.rerun()
+
+    # =========================
+    # BACK BUTTON
+    # =========================
+    if st.button(
+        "⬅️ Back",
+        key="back_button"
+    ):
+
+        if len(st.session_state.messages) > 0:
+
+            st.session_state.messages.pop()
+
+            st.rerun()
+
+    st.markdown("---")
+
+    # =========================
+    # LOGO + TITLE
+    # =========================
+    try:
+
+        with open("RIZKRED.png", "rb") as f:
+            data = base64.b64encode(
+                f.read()
+            ).decode()
+
+        st.markdown(
+            f"""
+            <div style="
+                display:flex;
+                align-items:center;
+                gap:10px;
+            ">
+                <img
+                    src="data:image/png;base64,{data}"
+                    width="70"
+                >
+
+                <div>
+                    <h3 style="margin:0;">
+                        📘 RIZK AI Assistant
+                    </h3>
+
+                    <p style="
+                        margin:0;
+                        font-size:14px;
+                        color:gray;
+                    ">
+                        Dr. Nouhad Rizk
+                    </p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    except:
+        st.markdown("📘 RIZK AI Assistant")
+
