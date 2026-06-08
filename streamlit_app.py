@@ -20,6 +20,50 @@ UPLOAD_PASSWORD = os.getenv(
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if "pinned" not in st.session_state:
+    st.session_state.pinned = []
+
+# =================================
+# CUSTOM CSS
+# =================================
+st.markdown("""
+<style>
+
+/* Chat bubbles */
+.user-bubble {
+    background-color: #262730;
+    padding: 15px;
+    border-radius: 15px;
+    margin-bottom: 10px;
+}
+
+.bot-bubble {
+    background-color: #1E3A5F;
+    padding: 15px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+/* Footer */
+.footer {
+    text-align:center;
+    padding-top:20px;
+    color:gray;
+    font-size:14px;
+}
+
+/* Pin cards */
+.pin-card {
+    background:#1c1c1c;
+    border-left:4px solid #FFD700;
+    padding:12px;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 # =================================
 # PAGE CONFIG
 # =================================
@@ -69,6 +113,10 @@ st.divider()
 # =================================
 # ASK QUESTIONS
 # =================================
+
+# =================================
+# ASK QUESTIONS
+# =================================
 st.subheader("💬 Ask Questions")
 
 query = st.text_input(
@@ -76,48 +124,191 @@ query = st.text_input(
     placeholder="Example: What is data science?"
 )
 
+# =================================
+# ASK BUTTON
+# =================================
+if st.button("🚀 Ask"):
 
-if st.button("🚀 Ask") and query.strip():
+    if not query.strip():
 
-    with st.spinner("🧠...Thinking... 🧠"):
+        st.warning("Please enter a question.")
 
-        try:
-            res = requests.post(
-                f"{API_URL}/query",
-                json={"q": query},
-                timeout=120
-            )
+    else:
 
-            if res.status_code == 200:
-                data = res.json()
+        # Add user message
+        st.session_state.messages.append({
+            "role": "user",
+            "content": query
+        })
 
-                answer = data.get("answer", "No answer returned.")
-                citations = data.get("citations", [])
+        with st.spinner("Thinking... 🧠"):
 
-                # SAVE CHAT
+            try:
+
+                res = requests.post(
+                    f"{API_URL}/query",
+                    json={"q": query},
+                    timeout=120
+                )
+
+                if res.status_code == 200:
+
+                    data = res.json()
+
+                    answer = data.get(
+                        "answer",
+                        "No answer returned."
+                    )
+
+                    citations = data.get(
+                        "citations",
+                        []
+                    )
+
+                    # Store assistant answer
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": answer,
+                        "citations": citations
+                    })
+
+                else:
+
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": f"Backend Error: {res.text}",
+                        "citations": []
+                    })
+
+            except Exception as e:
+
                 st.session_state.messages.append({
-                    "question": query,
-                    "answer": answer
+                    "role": "assistant",
+                    "content": f"Connection Error: {str(e)}",
+                    "citations": []
                 })
 
-                st.rerun()
+# =================================
+# PINNED ANSWERS
+# =================================
+if st.session_state.pinned:
 
-            else:
-                st.error(res.text)
+    st.markdown("## 📌 Pinned Answers")
 
-        except Exception as e:
-            st.error(f"Connection Error: {str(e)}")
+    for pin in st.session_state.pinned:
+        st.markdown(
+            f"""
+            <div class="pin-card">
+                <b>❓ {pin['question']}</b><br><br>
+                📘 {pin['answer']}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+# =================================
+# CHAT HISTORY
+# =================================
 
 # =================================
 # CHAT HISTORY
 # =================================
-for msg in st.session_state.messages:
+for i, msg in enumerate(st.session_state.messages):
 
-    st.markdown(f"### ❓ {msg['question']}")
-    st.write(msg["answer"])
+    # =========================
+    # USER MESSAGE
+    # =========================
+    if msg["role"] == "user":
+
+        st.markdown(
+            f"""
+            <div class="user-bubble">
+                <b>❓ You:</b><br><br>
+                {msg['content']}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # =========================
+    # ASSISTANT MESSAGE
+    # =========================
+    else:
+
+        st.markdown(
+            f"""
+            <div class="bot-bubble">
+                <b>📘 RIZK AI Assistant:</b><br><br>
+                {msg['content']}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # Sources
+        citations = msg.get("citations", [])
+
+        if citations:
+
+            with st.expander("📚 Sources"):
+
+                for c in citations:
+                    source = c.get(
+                        "source",
+                        "unknown"
+                    )
+
+                    score = round(
+                        c.get("score", 0),
+                        3
+                    )
+
+                    st.write(
+                        f"• {source} (score: {score})"
+                    )
+
+        # Buttons row
+        col1, col2 = st.columns(2)
+
+        # Pin button
+        with col1:
+
+            if st.button(
+                    "📌 Pin",
+                    key=f"pin_{i}"
+            ):
+
+                previous_question = ""
+
+                # find previous user message
+                for j in range(i - 1, -1, -1):
+
+                    if st.session_state.messages[j]["role"] == "user":
+                        previous_question = st.session_state.messages[j]["content"]
+                        break
+
+                st.session_state.pinned.append({
+                    "question": previous_question,
+                    "answer": msg["content"]
+                })
+
+                st.success("Pinned!")
+
+        # Delete button
+        with col2:
+
+            if st.button(
+                    "🗑 Delete",
+                    key=f"delete_{i}"
+            ):
+                st.session_state.messages.pop(i)
+
+                st.rerun()
 
 
 # =================================
+#st.markdown(f"### ❓ {msg['question']}")
+#    st.markdown("## 📘 Answer")
+#    st.write(msg[" answer"])
 # PDF UPLOAD
 # =================================
 st.divider()
@@ -257,7 +448,13 @@ with st.sidebar:
                📕📗📘📙📚📓📒📕📗📘📚
               <p> Dr. Nouhad Rizk </p>
               <p> Computer Science Department </p>
-                </p>
+              <p>Piper Professor</p>
+              <p>Director of Undergraduate Studies</p>
+              <p>3551 Cullen Blvd</p>
+              <p>Houston, Tx 77204</p>
+              <p>Phone: 713-743-3710</p>
+              <p><a href="URL">https://www.uh.edu/nouhadrizk</a></p>
+              </p>
 
             </div>
             """,
@@ -265,4 +462,3 @@ with st.sidebar:
         )
     except:
         st.markdown("📘 RIZK AI Assistant")
-

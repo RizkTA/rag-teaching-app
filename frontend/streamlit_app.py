@@ -3,7 +3,6 @@ import requests
 import base64
 import os
 
-
 # =================================
 # CONFIG
 # =================================
@@ -14,6 +13,11 @@ UPLOAD_PASSWORD = os.getenv(
     "supersecret123"
 )
 
+# =================================
+# SESSION STATE
+# =================================
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 # =================================
 # PAGE CONFIG
@@ -24,14 +28,12 @@ st.set_page_config(
     layout="wide"
 )
 
-
 # =================================
 # HEADER
 # =================================
 col1, col2 = st.columns([1, 6])
 
 with col1:
-
     try:
 
         with open("RIZKRED.png", "rb") as f:
@@ -46,21 +48,17 @@ with col1:
             """,
             unsafe_allow_html=True
         )
-
     except:
         st.write("📕")
 
 with col2:
-
     st.title(" 📕 RIZK AI Assistant")
 
     st.markdown(
-        "AI-powered Teaching Assistant "
+        "       AI-powered Teaching Assistant "
     )
 
-
 st.divider()
-
 
 # =================================
 # ASK QUESTIONS
@@ -72,85 +70,44 @@ query = st.text_input(
     placeholder="Example: What is data science?"
 )
 
+if st.button("🚀 Ask") and query.strip():
 
-if st.button("🚀 Ask"):
+    with st.spinner("🧠...Thinking... 🧠"):
 
-    if not query.strip():
+        try:
+            res = requests.post(
+                f"{API_URL}/query",
+                json={"q": query},
+                timeout=120
+            )
 
-        st.warning("Please enter a question.")
+            if res.status_code == 200:
+                data = res.json()
 
-    else:
+                answer = data.get("answer", "No answer returned.")
+                citations = data.get("citations", [])
 
-        with st.spinner("Thinking... 🧠🧠🧠"):
+                # SAVE CHAT
+                st.session_state.messages.append({
+                    "question": query,
+                    "answer": answer
+                })
 
-            try:
+                st.rerun()
 
-                res = requests.post(
-                    f"{API_URL}/query",
-                    json={"q": query},
-                    timeout=120
-                )
+            else:
+                st.error(res.text)
 
-                if res.status_code == 200:
+        except Exception as e:
+            st.error(f"Connection Error: {str(e)}")
 
-                    data = res.json()
-
-                    answer = data.get(
-                        "answer",
-                        "No answer returned."
-                    )
-
-                    st.markdown("## 📘 Answer")
-
-                    st.write(answer)
-
-                    citations = data.get(
-                        "citations",
-                        []
-                    )
-
-                    if citations:
-
-                        st.markdown("## 📚 Sources")
-
-                        for c in citations:
-
-                            source = c.get(
-                                "source",
-                                "unknown"
-                            )
-
-                            score = round(
-                                c.get("score", 0),
-                                3
-                            )
-
-                            st.write(
-                                f"• {source} "
-                                f"(score: {score})"
-                            )
-
-                else:
-
-                    try:
-
-                        st.error(
-                            res.json().get(
-                                "error",
-                                "Backend error"
-                            )
-                        )
-
-                    except:
-
-                        st.error(res.text)
-
-            except Exception as e:
-
-                st.error(
-                    f"Connection Error: {str(e)}"
-                )
-
+# =================================
+# CHAT HISTORY
+# =================================
+for msg in st.session_state.messages:
+    st.markdown(f"### ❓ {msg['question']}")
+    st.markdown("## 📘 Answer")
+    st.write(msg[" answer"])
 
 # =================================
 # PDF UPLOAD
@@ -164,65 +121,137 @@ password = st.text_input(
     type="password"
 )
 
-
 if password == UPLOAD_PASSWORD:
 
-    uploaded_file = st.file_uploader(
-        "Choose PDF File",
-        type=["pdf"]
-    )
+    uploaded_file = st.file_uploader("Choose PDF File", type=["pdf"])
 
-    if uploaded_file:
+    if uploaded_file and st.button("📥 Upload & Ingest"):
 
-        if st.button("📥 Upload & Ingest"):
+        with st.spinner("Uploading and ingesting PDF..."):
 
-            with st.spinner(
-                "Uploading and ingesting PDF..."
-            ):
-
-                try:
-
-                    res = requests.post(
-                        f"{API_URL}/upload_pdf",
-                        files={
-                            "file": (
-                                uploaded_file.name,
-                                uploaded_file.getvalue(),
-                                "application/pdf"
-                            )
-                        },
-                        timeout=300
-                    )
-
-                    if res.status_code == 200:
-
-                        st.success(
-                            f"✅ {uploaded_file.name} uploaded and ingested successfully!"
+            try:
+                res = requests.post(
+                    f"{API_URL}/upload_pdf",
+                    files={
+                        "file": (
+                            uploaded_file.name,
+                            uploaded_file.getvalue(),
+                            "application/pdf"
                         )
-                        st.json(res.json())
+                    },
+                    timeout=300
+                )
 
-                    else:
+                if res.status_code == 200:
+                    st.success(f"✅ {uploaded_file.name} uploaded successfully!")
+                else:
+                    st.error(res.text)
 
-                        try:
-                            st.error(res.json())
-
-                        except:
-                            st.error(res.text)
-
-                except Exception as e:
-
-                    st.error(str(e))
+            except Exception as e:
+                st.error(str(e))
 
 elif password:
-
     st.error("❌ Wrong password")
-
 
 # =================================
 # FOOTER
 # =================================
 st.divider()
 
-st.caption(
-    "Dr. Nouhad Rizk • AI Teaching Assistant"
+st.markdown(
+    """
+    <div style="
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:10px;
+        padding:10px;
+        font-size:16px;
+        color:gray;
+    ">
+        <div style="
+            font-size:28px;
+            animation: floatBook 2s ease-in-out infinite;
+        ">
+            📖
+        </div>
+
+         Dr. Nouhad Rizk • AI Teaching Assistant
+
+    </div>
+
+    <style>
+    @keyframes floatBook {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+        100% { transform: translateY(0px); }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
+
+# =================================
+# SIDEBAR
+# =================================
+with st.sidebar:
+    st.header("⚙️ Controls")
+
+    # =========================
+    # CLEAR CHAT
+    # =========================
+    if st.button(
+            "🧹 Clear Chat",
+            key="clear_chat_button"
+    ):
+        st.session_state.messages = []
+
+        st.rerun()
+
+    # =========================
+    # BACK BUTTON
+    # =========================
+    if st.button(
+            "⬅️ Back",
+            key="back_button"
+    ):
+
+        if len(st.session_state.messages) > 0:
+            st.session_state.messages.pop()
+
+            st.rerun()
+
+    st.markdown("---")
+
+    # =========================
+    # LOGO + TITLE
+    # =========================
+    try:
+
+        with open("RIZKRED.png", "rb") as f:
+            data = base64.b64encode(
+                f.read()
+            ).decode()
+
+        st.markdown(
+            """
+            <div style="
+                display:flex;
+                flex-direction:column;
+                justify-content:center;
+                height:100%;
+                padding-left:10px;
+            ">
+
+               📕📗📘📙📚📓📒📕📗📘📚
+              <p> Dr. Nouhad Rizk </p>
+              <p> Computer Science Department </p>
+                </p>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    except:
+        st.markdown("📘 RIZK AI Assistant")
+
