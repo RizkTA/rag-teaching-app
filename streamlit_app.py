@@ -328,7 +328,7 @@ with st.sidebar:
 
                📕📗📘📙📚📓📒📕📗📘📚
                Dr. Nouhad Rizk 
-               Computer Science Department
+                               Computer Science Department
                 </p>
 
             </div>
