@@ -256,9 +256,8 @@ st.markdown(
             📖
         </div>
 
-        <div>
-            Dr. Nouhad Rizk • AI Teaching Assistant
-        </div>
+         Dr. Nouhad Rizk • AI Teaching Assistant
+        
     </div>
 
     <style>
@@ -318,35 +317,34 @@ with st.sidebar:
             ).decode()
 
         st.markdown(
-            f"""
+            """
             <div style="
                 display:flex;
-                align-items:center;
-                gap:10px;
+                flex-direction:column;
+                justify-content:center;
+                height:100%;
+                padding-left:10px;
             ">
-                <img
-                    src="data:image/png;base64,{data}"
-                    width="70"
-                >
 
-                <div>
-                    <h3 style="margin:0;">
-                        📘 RIZK AI Assistant
-                    </h3>
+                <h2 style="
+                    margin:0;
+                    color:#1f77b4;
+                ">
+                    📕📗📘📙📚📓📒RIZK AI Assistant
+                </h2>
 
-                    <p style="
-                        margin:0;
-                        font-size:14px;
-                        color:gray;
-                    ">
-                        Dr. Nouhad Rizk
-                    </p>
-                </div>
+                <p style="
+                    margin:0;
+                    font-size:14px;
+                    color:gray;
+                ">
+                    Dr. Nouhad Rizk • AI Teaching Assistant
+                </p>
+
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
-
     except:
         st.markdown("📘 RIZK AI Assistant")
 
