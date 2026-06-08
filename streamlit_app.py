@@ -326,19 +326,9 @@ with st.sidebar:
                 padding-left:10px;
             ">
 
-                <h2 style="
-                    margin:0;
-                    color:#1f77b4;
-                ">
-                    📕📗📘📙📚📓📒RIZK AI Assistant
-                </h2>
-
-                <p style="
-                    margin:0;
-                    font-size:14px;
-                    color:gray;
-                ">
-                    Dr. Nouhad Rizk • AI Teaching Assistant
+               📕📗📘📙📚📓📒
+               Dr. Nouhad Rizk 
+               AI Teaching Assistant
                 </p>
 
             </div>
