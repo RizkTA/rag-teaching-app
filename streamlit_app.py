@@ -28,39 +28,43 @@ if "pinned" not in st.session_state:
 # =================================
 st.markdown("""
 <style>
-
-/* Chat bubbles */
+/* USER MESSAGE */
 .user-bubble {
-    background-color: #262730;
+    background-color: #E8F0FE;
+    color: black;
     padding: 15px;
     border-radius: 15px;
     margin-bottom: 10px;
+    border-left: 5px solid #4285F4;
 }
 
+/* AI MESSAGE */
 .bot-bubble {
-    background-color: #1E3A5F;
+    background-color: #FFF8E1;
+    color: black;
     padding: 15px;
     border-radius: 15px;
     margin-bottom: 20px;
+    border-left: 5px solid #F4B400;
 }
 
-/* Footer */
+/* PINNED CARD */
+.pin-card {
+    background: #F5F5F5;
+    color: black;
+    border-left: 5px solid #FFD700;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+/* FOOTER */
 .footer {
     text-align:center;
     padding-top:20px;
     color:gray;
     font-size:14px;
 }
-
-/* Pin cards */
-.pin-card {
-    background:#1c1c1c;
-    border-left:4px solid #FFD700;
-    padding:12px;
-    border-radius:10px;
-    margin-bottom:10px;
-}
-
 </style>
 """, unsafe_allow_html=True)
 

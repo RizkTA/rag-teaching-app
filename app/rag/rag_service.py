@@ -74,7 +74,9 @@ def generate(prompt: str) -> str:
 
     except Exception as e:
 
-        return f"LLM error: {str(e)}"
+     #   return f"LLM error: {str(e)}"
+         print(e)
+         return "", []
 
 
 # =============================

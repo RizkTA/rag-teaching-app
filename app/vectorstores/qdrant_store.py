@@ -69,12 +69,17 @@ class QdrantStore:
     # =========================
     # SEARCH
     # =========================
-    def search(self, query_vector, top_k=5):
+    ```python
+    id = "vq2zqe"
 
-        results = self.client.search(
+    # =====================================
+    # SEARCH
+    # =====================================
+    def search(self, query_vector, top_k=5):
+        results = self.client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_vector,
+            query=query_vector,
             limit=top_k
         )
 
-        return results
+        return results.points
