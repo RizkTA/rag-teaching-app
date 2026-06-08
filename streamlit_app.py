@@ -326,9 +326,9 @@ with st.sidebar:
                 padding-left:10px;
             ">
 
-               📕📗📘📙📚📓📒
+               📕📗📘📙📚📓📒📕📗📘📚
                Dr. Nouhad Rizk 
-               AI Teaching Assistant
+               Computer Science Department
                 </p>
 
             </div>
