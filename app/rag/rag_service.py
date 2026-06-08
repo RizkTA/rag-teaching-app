@@ -73,26 +73,19 @@ def generate(prompt: str) -> str:
         return response.choices[0].message.content
 
     except Exception as e:
-
-     #   return f"LLM error: {str(e)}"
-         print(e)
-         return "", []
+        print("LLM ERROR:", e)
+        return "An internal AI error occurred."
 
 
 # =============================
 # RETRIEVAL
 # =============================
-def retrieve(question: str, top_k=TOP_K):
-
-    if store is None:
-        return "", []
+def retrieve(question, top_k=5):
 
     try:
 
-        # embed query
         query_vector = embed_texts([question])[0]
 
-        # vector search
         results = store.search(
             query_vector,
             top_k=top_k
@@ -110,26 +103,25 @@ def retrieve(question: str, top_k=TOP_K):
             if not text:
                 continue
 
-            score = float(getattr(r, "score", 0))
-
             contexts.append(text)
 
             citations.append({
-                "source": payload.get("source", "unknown"),
-                "chunk_id": payload.get("chunk_id", -1),
-                "score": score,
-                "preview": text[:200]
+                "source": payload.get(
+                    "source",
+                    "unknown"
+                ),
+                "score": float(
+                    getattr(r, "score", 0)
+                )
             })
 
         context = "\n\n".join(contexts)
-
-        context = context[:MAX_CONTEXT_CHARS]
 
         return context, citations
 
     except Exception as e:
 
-        print("❌ Retrieval error:", e)
+        print("❌ Retrieval Error:", e)
 
         return "", []
 

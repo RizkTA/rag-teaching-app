@@ -12,7 +12,7 @@ def retrieve(query: str, top_k=5):
     # -----------------------------
     # QDRANT SEARCH (SAFE VERSION)
     # -----------------------------
-    results = store.client.search(
+    results = store.search(
         collection_name=store.collection,
         query_vector=query_vector,
         limit=top_k,

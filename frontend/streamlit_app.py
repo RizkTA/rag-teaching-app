@@ -148,8 +148,8 @@ if password == UPLOAD_PASSWORD:
                     st.error(res.text)
 
             except Exception as e:
-                st.error(str(e))
-
+              print("LLM ERROR:", e)
+               
 elif password:
     st.error("❌ Wrong password")
 

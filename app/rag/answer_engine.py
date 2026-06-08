@@ -38,7 +38,9 @@ def generate_answer(prompt):
 
     except Exception as e:
 
-        return f"LLM Error: {str(e)}"
+       print("LLM ERROR:", e)
+
+       return "An internal AI error occurred."
 
 
 # -----------------------------
