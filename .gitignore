@@ -1,7 +1,36 @@
-.data/
+# Python
 __pycache__/
 *.pyc
-.env
-*.env
-venv/
+*.pyo
+*.pyd
+
+# Virtual env
 .venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Uploaded data
+data/
+
+# Logs
+*.log
+
+# Environment
+.env
+
+# Qdrant local
+qdrant_storage/
+
+# Build
+dist/
+build/

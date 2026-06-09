@@ -324,61 +324,143 @@ password = st.text_input(
     type="password"
 )
 
+```python
+# =================================
+# FILE UPLOAD
+# =================================
+st.divider()
+
+st.subheader("📄 Upload File (Admin Only)")
+
+password = st.text_input(
+    "Enter upload password",
+    type="password"
+)
+
 if password == UPLOAD_PASSWORD:
+
     uploaded_file = st.file_uploader(
         "Upload file",
         type=["pdf", "md", "txt"]
     )
 
-    if uploaded_file and st.button("📥 Upload & Ingest"):
+    if uploaded_file:
 
-        with st.spinner("Uploading and ingesting file..."):
+        # =========================
+        # DETECT FILE TYPE
+        # =========================
+        ext = uploaded_file.name.split(".")[-1].lower()
+
+        # =========================
+        # COLOR PER FILE TYPE
+        # =========================
+        if ext == "pdf":
+
+            progress_color = "#ff4b4b"
+            file_icon = "📕"
+
+        elif ext == "md":
+
+            progress_color = "#00c853"
+            file_icon = "🟢"
+
+        elif ext == "txt":
+
+            progress_color = "#2196f3"
+            file_icon = "🔵"
+
+        else:
+
+            progress_color = "#999999"
+            file_icon = "📄"
+
+        st.markdown(
+            f"""
+            <style>
+            .stProgress > div > div > div > div {{
+                background-color: {progress_color};
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if st.button("📥 Upload & Ingest"):
+
+            progress_bar = st.progress(0)
+
+            status = st.empty()
 
             try:
-                file_bytes = uploaded_file.getvalue()
 
-                # detect type
-                filename = uploaded_file.name
-                ext = filename.split(".")[-1].lower()
+                # =====================
+                # START
+                # =====================
+                status.markdown(
+                    f"{file_icon} Preparing upload..."
+                )
 
-                mime_map = {
-                    "pdf": "application/pdf",
-                    "md": "text/markdown",
-                    "txt": "text/plain"
-                }
+                progress_bar.progress(10)
+
+                # =====================
+                # UPLOAD
+                # =====================
+                status.markdown(
+                    f"{file_icon} Uploading file..."
+                )
+
+                progress_bar.progress(30)
 
                 res = requests.post(
-                    f"{API_URL}/upload_file",  # ✅ IMPORTANT FIX
+
+                    f"{API_URL}/upload_file",
+
                     files={
                         "file": (
-                            filename,
-                            file_bytes,
-                            mime_map.get(ext, "application/octet-stream")
+                            uploaded_file.name,
+                            uploaded_file.getvalue(),
+                            uploaded_file.type
                         )
                     },
-                    timeout=300
+
+                    timeout=1200
                 )
+
+                # =====================
+                # INGESTING
+                # =====================
+                status.markdown(
+                    f"{file_icon} Ingesting into Qdrant..."
+                )
+
+                progress_bar.progress(75)
 
                 if res.status_code == 200:
 
-                    data = res.json()
+                    progress_bar.progress(100)
+
+                    status.markdown(
+                        f"{file_icon} Ingestion completed!"
+                    )
 
                     st.success(
-                        f"✅ {uploaded_file.name} added to RIZK AI knowledge base!"
+                        f"✅ {uploaded_file.name} uploaded & ingested successfully!"
                     )
 
-                    st.caption(
-                        f"Indexed {data['details']['chunks']} chunks into Qdrant"
-                    )
+                    st.json(res.json())
 
                 else:
+
                     st.error(res.text)
 
             except Exception as e:
+
                 st.error(str(e))
 
-    elif password:
-        st.error("❌ Wrong password")
+elif password:
+
+    st.error("❌ Wrong password")
+
 # =================================
 # FOOTER
 # =================================

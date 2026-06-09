@@ -8,47 +8,138 @@ from app.vectorstores.qdrant_store import QdrantStore
 class VectorUpsert:
 
     def __init__(self, store: QdrantStore):
+
         self.store = store
 
-    # ==============================
+        # ==========================
+        # EMBEDDING BATCH SIZE
+        # ==========================
+        self.batch_size = 32
+
+    # ==========================================
     # MAIN UPSERT FUNCTION
-    # ==============================
-    def upsert_chunks(self, chunks: List[Dict]):
+    # ==========================================
+    def upsert_chunks(
+        self,
+        chunks: List[Dict]
+    ):
         """
-        Convert chunks → embeddings → store in Qdrant
+        Convert chunks → embeddings → Qdrant
+
+        Uses batching to avoid:
+        - RAM crashes
+        - Render timeouts
+        - embedding overload
         """
 
         if not chunks:
-            return {"inserted": 0}
 
-        texts = [c["text"] for c in chunks]
+            return {
+                "inserted": 0,
+                "status": "empty"
+            }
 
-        # 1. Embed all chunks in batch (FAST)
-        vectors = embed_texts(texts)
+        total_inserted = 0
 
-        ids = []
-        payloads = []
+        # ======================================
+        # PROCESS IN BATCHES
+        # ======================================
+        for start in range(
+            0,
+            len(chunks),
+            self.batch_size
+        ):
 
-        # 2. Build Qdrant payload
-        for i, chunk in enumerate(chunks):
+            end = start + self.batch_size
 
-            ids.append(chunk.get("id", str(uuid.uuid4())))
+            batch = chunks[start:end]
 
-            payloads.append({
-                "text": chunk["text"],
-                "source": chunk.get("source", "unknown"),
-                "language": chunk.get("language", "auto"),
-                "metadata": chunk.get("metadata", {}),
-            })
+            print(
+                f"🚀 Processing batch "
+                f"{start} → {end}"
+            )
 
-        # 3. Upsert into Qdrant
-        self.store.upsert(
-            ids=ids,
-            vectors=vectors,
-            payloads=payloads
-        )
+            # ==================================
+            # EXTRACT TEXTS
+            # ==================================
+            texts = [
+                c["text"]
+                for c in batch
+            ]
 
+            # ==================================
+            # EMBEDDINGS
+            # ==================================
+            vectors = embed_texts(texts)
+
+            ids = []
+
+            payloads = []
+
+            # ==================================
+            # BUILD PAYLOADS
+            # ==================================
+            for i, chunk in enumerate(batch):
+
+                ids.append(
+                    chunk.get(
+                        "id",
+                        str(uuid.uuid4())
+                    )
+                )
+
+                payloads.append({
+
+                    "text": chunk["text"],
+
+                    "source": chunk.get(
+                        "source",
+                        "unknown"
+                    ),
+
+                    "chunk_id": chunk.get(
+                        "chunk_id",
+                        i
+                    ),
+
+                    "language": chunk.get(
+                        "language",
+                        "text"
+                    ),
+
+                    "topic": chunk.get(
+                        "topic",
+                        "general"
+                    ),
+
+                    "metadata": chunk.get(
+                        "metadata",
+                        {}
+                    )
+                })
+
+            # ==================================
+            # UPSERT TO QDRANT
+            # ==================================
+            self.store.upsert(
+                ids=ids,
+                vectors=vectors,
+                payloads=payloads
+            )
+
+            total_inserted += len(batch)
+
+            print(
+                f"✅ Inserted batch "
+                f"({len(batch)} chunks)"
+            )
+
+        # ======================================
+        # FINAL RESULT
+        # ======================================
         return {
-            "inserted": len(chunks),
+
+            "inserted": total_inserted,
+
             "status": "success"
         }

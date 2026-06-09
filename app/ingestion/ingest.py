@@ -83,20 +83,42 @@ def detect_topic(chunk):
 # ==============================
 # READERS
 # ==============================
-def read_pdf(path):
+from pypdf import PdfReader
+
+
+# ==============================
+# SAFE PDF READER
+# ==============================
+def read_pdf(path: str) -> str:
+    """
+    Robust PDF text extraction.
+    Prevents crashes when extract_text()
+    returns None.
+    """
 
     reader = PdfReader(path)
 
     text = ""
 
-    for page in reader.pages:
+    for page_num, page in enumerate(reader.pages):
 
-        page_text = page.extract_text()
+        try:
 
-        if page_text:
-            text += page_text + "\n"
+            page_text = page.extract_text()
+
+            # SAFE HANDLING
+            text += (page_text or "") + "\n"
+
+        except Exception as e:
+
+            print(
+                f"⚠️ Failed reading page {page_num}: {e}"
+            )
+
+            continue
 
     return text
+
 
 
 def read_markdown(path):
@@ -114,52 +136,63 @@ def read_txt(path):
 # ==============================
 # CHUNKER
 # ==============================
+# ==============================
+# DETECT IF TEXT CONTAINS CODE
+# ==============================
 def is_code(text):
 
+    text_lower = text.lower()
+
     patterns = [
+
+        # C++
         "#include",
         "cout <<",
         "cin >>",
         "int main(",
+        "std::",
+
+        # Python
         "def ",
         "print(",
-        "class "
+        "import ",
+        "self.",
+        "class ",
+
+        # General code indicators
+        "{",
+        "}",
+        ";",
+        "()",
     ]
 
     for p in patterns:
-        if p in text:
+
+        if p.lower() in text_lower:
             return True
 
     return False
 
 
+
 def chunk_text(text):
 
-    # ==========================
-    # CODE CHUNKING
-    # ==========================
-    if is_code(text):
-
-        chunk_size = 400
-        overlap = 50
-
-    # ==========================
-    # THEORY CHUNKING
-    # ==========================
-    else:
-
-        chunk_size = 1200
-        overlap = 150
+    words = text.split()
 
     chunks = []
 
+    chunk_size = 220
+    overlap = 40
+
     start = 0
 
-    while start < len(text):
+    while start < len(words):
 
         end = start + chunk_size
 
-        chunk = text[start:end]
+        chunk_words = words[start:end]
+
+        chunk = " ".join(chunk_words)
 
         chunks.append(chunk)
 
