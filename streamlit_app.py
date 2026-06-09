@@ -361,9 +361,15 @@ if password == UPLOAD_PASSWORD:
 
                 if res.status_code == 200:
 
-                    st.success(f"✅ {filename} uploaded & ingested successfully!")
+                    data = res.json()
 
-                    st.json(res.json())
+                    st.success(
+                        f"✅ {uploaded_file.name} added to RIZK AI knowledge base!"
+                    )
+
+                    st.caption(
+                        f"Indexed {data['details']['chunks']} chunks into Qdrant"
+                    )
 
                 else:
                     st.error(res.text)
@@ -396,7 +402,7 @@ st.markdown(
             📖
         </div>
 
-         Dr. Nouhad Rizk • AI Teaching Assistant
+         Dr. Nouhad Rizk • AI Knowledge Base
         
     </div>
 

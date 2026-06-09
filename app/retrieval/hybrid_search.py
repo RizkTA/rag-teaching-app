@@ -31,7 +31,7 @@ except Exception as e:
 # =============================
 # HYBRID SEARCH
 # =============================
-def hybrid_search(query, top_k=5):
+def hybrid_search(query, top_k=10):
 
     # fallback mode
     if store is None:
