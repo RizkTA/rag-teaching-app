@@ -2,7 +2,10 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import (
     VectorParams,
     Distance,
-    PointStruct
+    PointStruct,
+    Filter,
+    FieldCondition,
+    MatchValue
 )
 
 from app.config import QDRANT_API_KEY
@@ -27,10 +30,7 @@ class QdrantStore:
         # =========================
         collections = self.client.get_collections()
 
-        existing = [
-            c.name
-            for c in collections.collections
-        ]
+        existing = [c.name for c in collections.collections]
 
         if collection_name not in existing:
 
@@ -67,16 +67,31 @@ class QdrantStore:
         )
 
     # =========================
-    # SEARCH
+    # SEARCH (WITH METADATA FILTER)
     # =========================
-    # =====================================
-    # SEARCH
-    # =====================================
-    def search(self, query_vector, top_k=5):
+    def search(self, query_vector, top_k=5, language=None):
+
+        query_filter = None
+
+        # =====================
+        # LANGUAGE FILTER (STEP 7)
+        # =====================
+        if language:
+
+            query_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="language",
+                        match=MatchValue(value=language)
+                    )
+                ]
+            )
+
         results = self.client.query_points(
             collection_name=self.collection_name,
             query=query_vector,
-            limit=top_k
+            limit=top_k,
+            query_filter=query_filter
         )
 
         return results.points

@@ -8,7 +8,7 @@ print("🔥 MAIN.PY STARTING")
 # ==============================
 # IMPORTS
 # ==============================
-from app.retrieval.hybrid_search import hybrid_search
+from app.retrieval.oldhybrid_search import hybrid_search
 from app.llm.streaming import stream_answer
 from app.ingestion.ingest import ingest_file
 

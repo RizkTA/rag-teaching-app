@@ -317,7 +317,7 @@ for i, msg in enumerate(st.session_state.messages):
 # =================================
 st.divider()
 
-st.subheader("📄 Upload PDF (Admin Only)")
+st.subheader("📄 Upload PDF or TXT or MD (Admin Only)")
 
 password = st.text_input(
     "Enter upload password",

@@ -1,82 +1,66 @@
-from app.config import (
-    QDRANT_URL,
-    QDRANT_COLLECTION,
-    EMBED_DIM
+from app.retrieval.vector_search import (
+    vector_search
 )
 
-from app.embeddings.api_embedder import embed_texts
-from app.vectorstores.qdrant_store import QdrantStore
+from app.retrieval.bm25_search import (
+    search_bm25
+)
+
+from app.retrieval.reranker import (
+    rerank_results
+)
 
 
-# =============================
-# INIT QDRANT
-# =============================
-try:
+# ==============================
+# HYBRID SEARCH
+# ==============================
+def hybrid_search(query):
 
-    store = QdrantStore(
-        QDRANT_URL,
-        QDRANT_COLLECTION,
-        EMBED_DIM
+    # ==========================
+    # VECTOR SEARCH
+    # ==========================
+    semantic = vector_search(
+        query,
+        top_k=8
     )
 
-    print("✅ Qdrant connected")
+    # ==========================
+    # BM25 SEARCH
+    # ==========================
+    keyword = search_bm25(
+        query,
+        top_k=8
+    )
 
-except Exception as e:
+    # ==========================
+    # MERGE
+    # ==========================
+    combined = semantic + keyword
 
-    print("⚠️ Qdrant connection failed:", e)
+    # ==========================
+    # REMOVE DUPLICATES
+    # ==========================
+    seen = set()
 
-    store = None
+    unique = []
 
+    for r in combined:
 
-# =============================
-# HYBRID SEARCH
-# =============================
-def hybrid_search(query, top_k=10):
+        text = r["text"]
 
-    # fallback mode
-    if store is None:
+        if text not in seen:
 
-        return [
-            {
-                "text": f"Fallback answer for: {query}",
-                "score": 1.0,
-                "source": "fallback"
-            }
-        ]
+            seen.add(text)
 
-    try:
+            unique.append(r)
 
-        # embed query
-        query_vector = embed_texts([query])[0]
+    # ==========================
+    # RERANK
+    # ==========================
+    reranked = rerank_results(
+        query,
+        unique,
+        top_k=5
+    )
 
-        # search qdrant
-        results = store.search(
-            query_vector,
-            top_k=top_k
-        )
-
-        output = []
-
-        for r in results:
-
-            payload = r.payload or {}
-
-            output.append({
-                "text": payload.get("text", ""),
-                "score": float(getattr(r, "score", 0)),
-                "source": payload.get("source", "unknown")
-            })
-
-        return output
-
-    except Exception as e:
-
-        print("❌ Hybrid search error:", e)
-
-        return [
-            {
-                "text": f"Search failed: {str(e)}",
-                "score": 1.0,
-                "source": "error"
-            }
-        ]
+    return reranked
