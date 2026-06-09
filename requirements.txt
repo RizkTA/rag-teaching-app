@@ -13,3 +13,4 @@ ollama
 sentence-transformers
 torch
 transformers
+pypdf==4.2.0
