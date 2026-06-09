@@ -114,7 +114,7 @@ for msg in st.session_state.messages:
 # =================================
 st.divider()
 
-st.subheader("📄 Upload PDF (Admin Only)")
+st.subheader("📄 Upload :PDF, TXT,MD) (Admin Only)")
 
 password = st.text_input(
     "Enter upload password",
@@ -123,35 +123,50 @@ password = st.text_input(
 
 if password == UPLOAD_PASSWORD:
 
-    uploaded_file = st.file_uploader("Choose PDF File", type=["pdf"])
+    uploaded_file = st.file_uploader(
+        "Upload File",
+        type=["pdf", "md", "txt"]
+    )
 
     if uploaded_file and st.button("📥 Upload & Ingest"):
 
-        with st.spinner("Uploading and ingesting PDF..."):
+        with st.spinner("Uploading and ingesting file..."):
 
             try:
+                file_bytes = uploaded_file.getvalue()
+                filename = uploaded_file.name
+                ext = filename.split(".")[-1].lower()
+
+                # MIME mapping
+                mime_map = {
+                    "pdf": "application/pdf",
+                    "md": "text/markdown",
+                    "txt": "text/plain"
+                }
+
                 res = requests.post(
-                    f"{API_URL}/upload_pdf",
+                    f"{API_URL}/upload_file",  # ✅ IMPORTANT FIX
                     files={
                         "file": (
-                            uploaded_file.name,
-                            uploaded_file.getvalue(),
-                            "application/pdf"
+                            filename,
+                            file_bytes,
+                            mime_map.get(ext, "application/octet-stream")
                         )
                     },
                     timeout=300
                 )
 
                 if res.status_code == 200:
-                    st.success(f"✅ {uploaded_file.name} uploaded successfully!")
+                    st.success(f"✅ {filename} uploaded & ingested successfully!")
+                    st.json(res.json())
                 else:
                     st.error(res.text)
 
             except Exception as e:
-              print("LLM ERROR:", e)
-               
-elif password:
-    st.error("❌ Wrong password")
+                st.error(f"Upload error: {str(e)}")
+
+    elif password:
+        st.error("❌ Wrong password")
 
 # =================================
 # FOOTER
