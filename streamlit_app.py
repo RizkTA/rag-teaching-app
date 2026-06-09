@@ -124,14 +124,14 @@ st.divider()
 st.subheader("💬 Ask Questions")
 
 query = st.text_input(
-    "Ask a question:",
-    placeholder="Example: What is data science?"
+    "Ask a question",
+    key="query_input_new"
 )
 
 # =================================
 # ASK BUTTON
 # =================================
-if st.button("🚀 Ask"):
+if st.button("🚀 Ask", key="asking"):
 
     if not query.strip():
 
@@ -316,148 +316,98 @@ for i, msg in enumerate(st.session_state.messages):
 # PDF UPLOAD
 # =================================
 st.divider()
-
 st.subheader("📄 Upload PDF or TXT or MD (Admin Only)")
 
-password = st.text_input(
-    "Enter upload password",
-    type="password"
-)
-# =================================
-# FILE UPLOAD
-# =================================
-st.divider()
-
-st.subheader("📄 Upload File (Admin Only)")
+# =========================
+# INIT AUTH STATE SAFELY
+# =========================
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
 password = st.text_input(
     "Enter upload password",
-    type="password"
+    type="password",
+    key="upload_password_new"
 )
 
 if password == UPLOAD_PASSWORD:
+    st.session_state.authenticated = True
+elif password:
+    st.session_state.authenticated = False
+    st.error("❌ Wrong password")
+
+
+# =========================
+# FILE UPLOAD SECTION
+# =========================
+if st.session_state.authenticated:
 
     uploaded_file = st.file_uploader(
         "Upload file",
-        type=["pdf", "md", "txt"]
+        type=["pdf", "md", "txt"],
+        key="file_uploader_mainn"
     )
 
     if uploaded_file:
 
-        # =========================
-        # DETECT FILE TYPE
-        # =========================
         ext = uploaded_file.name.split(".")[-1].lower()
 
+        progress_color = {
+            "pdf": "#ff4b4b",
+            "md": "#00c853",
+            "txt": "#2196f3"
+        }.get(ext, "#999999")
+
+        file_icon = {
+            "pdf": "📕",
+            "md": "🟢",
+            "txt": "🔵"
+        }.get(ext, "📄")
+
+        st.markdown(f"""
+        <style>
+        .stProgress > div > div > div > div {{
+            background-color: {progress_color};
+        }}
+        </style>
+        """, unsafe_allow_html=True)
+
         # =========================
-        # COLOR PER FILE TYPE
+        # SINGLE BUTTON ONLY (FIXED)
         # =========================
-        if ext == "pdf":
+        if st.button("📥 Upload & Ingest", key="upload_btn_mainn"):
 
-            progress_color = "#ff4b4b"
-            file_icon = "📕"
-
-        elif ext == "md":
-
-            progress_color = "#00c853"
-            file_icon = "🟢"
-
-        elif ext == "txt":
-
-            progress_color = "#2196f3"
-            file_icon = "🔵"
-
-        else:
-
-            progress_color = "#999999"
-            file_icon = "📄"
-
-        st.markdown(
-            f"""
-            <style>
-            .stProgress > div > div > div > div {{
-                background-color: {progress_color};
-            }}
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-
-        if st.button("📥 Upload & Ingest"):
-
-            progress_bar = st.progress(0)
-
+            progress = st.progress(0)
             status = st.empty()
 
             try:
-
-                # =====================
-                # START
-                # =====================
-                status.markdown(
-                    f"{file_icon} Preparing upload..."
-                )
-
-                progress_bar.progress(10)
-
-                # =====================
-                # UPLOAD
-                # =====================
-                status.markdown(
-                    f"{file_icon} Uploading file..."
-                )
-
-                progress_bar.progress(30)
+                status.write(f"{file_icon} Uploading...")
+                progress.progress(30)
 
                 res = requests.post(
-
                     f"{API_URL}/upload_file",
-
                     files={
                         "file": (
                             uploaded_file.name,
                             uploaded_file.getvalue(),
-                            uploaded_file.type
+                            "application/octet-stream"
                         )
                     },
-
                     timeout=1200
                 )
 
-                # =====================
-                # INGESTING
-                # =====================
-                status.markdown(
-                    f"{file_icon} Ingesting into Qdrant..."
-                )
-
-                progress_bar.progress(75)
+                status.write(f"{file_icon} Processing...")
+                progress.progress(70)
 
                 if res.status_code == 200:
-
-                    progress_bar.progress(100)
-
-                    status.markdown(
-                        f"{file_icon} Ingestion completed!"
-                    )
-
-                    st.success(
-                        f"✅ {uploaded_file.name} uploaded & ingested successfully!"
-                    )
-
+                    progress.progress(100)
+                    status.success("Done!")
                     st.json(res.json())
-
                 else:
-
                     st.error(res.text)
 
             except Exception as e:
-
                 st.error(str(e))
-
-elif password:
-
-    st.error("❌ Wrong password")
 
 # =================================
 # FOOTER
@@ -542,30 +492,37 @@ with st.sidebar:
                 f.read()
             ).decode()
 
-        st.markdown(
-            """
-            <div style="
-                display:flex;
-                flex-direction:column;
-                justify-content:center;
-                height:100%;
-                padding-left:10px;
-            ">
+        try:
+            st.markdown(
+                """
+                <div style="
+                    display:flex;
+                    flex-direction:column;
+                    justify-content:center;
+                    height:100%;
+                    padding-left:10px;
+                ">
 
-               📕📗📘📙📚📓📒📕📗📘📚
-              <p> Dr. Nouhad Rizk </p>
-              <p> Computer Science Department </p>
-              <p>Piper Professor</p>
-              <p>Director of Undergraduate Studies</p>
-              <p>3551 Cullen Blvd</p>
-              <p>Houston, Tx 77204</p>
-              <p>Phone: 713-743-3710</p>
-              <p><a href="URL">https://www.uh.edu/nouhadrizk</a></p>
-              </p>
+                  📕📗📘📙📚📓📒📕📗📘📚📕
 
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    except:
+                <div style="font-family: Arial, sans-serif; max-width: 400px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <h2 style="margin: 0 0 5px 0; color: #333;">Dr. Nouhad Rizk</h2>
+                <div style="font-weight: bold; color: #555; margin-bottom: 2px;">Piper Professor &amp; Director of Undergraduate Studies</div>
+                <div style="font-style: italic; color: #777; margin-bottom: 15px;">Computer Science Department</div>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+                <div style="line-height: 1.6; color: #444;">
+                    <div>📍 <strong>Address:</strong> 3551 Cullen Blvd, Houston, TX 77204</div>
+                    <div>📞 <strong>Phone:</strong> <a href="tel:7137433710" style="color: #0066cc; text-decoration: none;">713-743-3710</a></div>
+                    <div>🌐 <strong>Website:</strong> <a href="https://www.uh.edu/nouhadrizk" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">uh.edu/nouhadrizk</a></div>
+                </div>
+                </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        except Exception:
+            st.markdown("📘 RIZK AI Assistant")
+    except Exception:
         st.markdown("📘 RIZK AI Assistant")
