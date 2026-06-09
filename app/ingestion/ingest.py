@@ -56,7 +56,7 @@ def read_txt(path: str) -> str:
 # ==============================
 # CHUNKING
 # ==============================
-def chunk_text(text: str, chunk_size=300):
+def chunk_text(text: str, chunk_size=800):
     words = text.split()
     return [
         " ".join(words[i:i + chunk_size])
