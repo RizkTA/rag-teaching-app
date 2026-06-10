@@ -1,28 +1,36 @@
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
-import shutil
 import os
 
-print("🔥 MAIN.PY STARTING")
+print("🔥 MAIN STARTING")
 
-# ==============================
-# IMPORTS
-# ==============================
-from app.retrieval.oldhybrid_search import hybrid_search
-from app.llm.streaming import stream_answer
-from app.ingestion.ingest import ingest_file
-
-print("🔥 IMPORTS SUCCESS")
-
-# ==============================
-# APP
-# ==============================
+# ==========================
+# APP INIT (LIGHT)
+# ==========================
 app = FastAPI()
 
 
-# ==============================
+# ==========================
+# LAZY IMPORTS (IMPORTANT FIX)
+# ==========================
+def get_hybrid_search():
+    from app.retrieval.oldhybrid_search import hybrid_search
+    return hybrid_search
+
+
+def get_stream_answer():
+    from app.llm.streaming import stream_answer
+    return stream_answer
+
+
+def get_ingest():
+    from app.ingestion.ingest import ingest_file
+    return ingest_file
+
+
+# ==========================
 # HEALTH CHECK
-# ==============================
+# ==========================
 @app.get("/")
 def root():
     return {
@@ -36,34 +44,33 @@ def root_head():
     return {}
 
 
-# ==============================
+# ==========================
 # REQUEST MODEL
-# ==============================
+# ==========================
 class QueryRequest(BaseModel):
     q: str
 
 
-# ==============================
+# ==========================
 # QUERY ENDPOINT
-# ==============================
+# ==========================
 @app.post("/query")
 def query(req: QueryRequest):
 
     try:
-        # 1. retrieve
+        hybrid_search = get_hybrid_search()
+        stream_answer = get_stream_answer()
+
         results = hybrid_search(req.q)
 
-        # 2. build context
         context = "\n\n".join(
             [r.get("text", "") for r in results if r.get("text")]
-        )[:4000]
+        )[:3000]  # reduce memory
 
-        # 3. prompt
         prompt = f"""
-Use ONLY the context below to answer.
+Use ONLY the context below.
 
-If the answer is not in the context, say:
-"I don't know based on the documents."
+If not found, say "I don't know based on the documents."
 
 Context:
 {context}
@@ -74,7 +81,6 @@ Question:
 Answer:
 """
 
-        # 4. generate
         answer = "".join(stream_answer(prompt))
 
         return {
@@ -91,41 +97,23 @@ Answer:
         }
 
 
-# ==============================
-# UNIVERSAL INGEST (PDF/MD/TXT)
-# ==============================
-from fastapi import UploadFile, File
-import os
-
-from app.ingestion.ingest import ingest_file
-
-
+# ==========================
+# INGEST ENDPOINT
+# ==========================
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
 
     try:
-        # ==============================
-        # 1. GET FILE EXTENSION (FIX)
-        # ==============================
+        ingest_file = get_ingest()
+
         if not file.filename or "." not in file.filename:
-            return {
-                "success": False,
-                "error": "Invalid file name"
-            }
+            return {"success": False, "error": "Invalid filename"}
 
         ext = file.filename.split(".")[-1].lower()
 
-        allowed_ext = ["pdf", "md", "txt"]
+        if ext not in ["pdf", "md", "txt"]:
+            return {"success": False, "error": "Unsupported file"}
 
-        if ext not in allowed_ext:
-            return {
-                "success": False,
-                "error": f".{ext} files are not supported"
-            }
-
-        # ==============================
-        # 2. INGEST FILE (UNIVERSAL PIPELINE)
-        # ==============================
         result = await ingest_file(file)
 
         return {

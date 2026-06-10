@@ -320,21 +320,26 @@ st.subheader("📄 Upload PDF or TXT or MD (Admin Only)")
 # =========================
 # INIT AUTH STATE SAFELY
 # =========================
+# =========================
+# INIT AUTH STATE
+# =========================
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
+
+st.subheader("📄 Upload PDF or TXT or MD (Admin Only)")
 
 password = st.text_input(
     "Enter upload password",
     type="password",
-    key="upload_password_new"
+    key="upload_password_unique_main"
 )
 
-if password == UPLOAD_PASSWORD:
-    st.session_state.authenticated = True
-elif password:
-    st.session_state.authenticated = False
-    st.error("❌ Wrong password")
-
+if password:
+    if password == UPLOAD_PASSWORD:
+        st.session_state.authenticated = True
+    else:
+        st.session_state.authenticated = False
+        st.error("❌ Wrong password")
 
 # =========================
 # FILE UPLOAD SECTION
@@ -374,40 +379,39 @@ if st.session_state.authenticated:
         # =========================
         # SINGLE BUTTON ONLY (FIXED)
         # =========================
-        if st.button("📥 Upload & Ingest", key="upload_btn_mainn"):
+        if st.button("📥 Upload & Ingest", key="upload_btn_main_clean"):
 
-            progress = st.progress(0)
-            status = st.empty()
+                progress = st.progress(0)
+                status = st.empty()
 
-            try:
-                status.write(f"{file_icon} Uploading...")
-                progress.progress(30)
+                try:
+                    status.write("Uploading...")
+                    progress.progress(30)
 
-                res = requests.post(
-                    f"{API_URL}/upload_file",
-                    files={
-                        "file": (
-                            uploaded_file.name,
-                            uploaded_file.getvalue(),
-                            "application/octet-stream"
-                        )
-                    },
-                    timeout=1200
-                )
+                    res = requests.post(
+                        f"{API_URL}/upload_file",
+                        files={
+                            "file": (
+                                uploaded_file.name,
+                                uploaded_file.getvalue(),
+                                "application/octet-stream"
+                            )
+                        },
+                        timeout=1200
+                    )
 
-                status.write(f"{file_icon} Processing...")
-                progress.progress(70)
+                    status.write("Processing...")
+                    progress.progress(70)
 
-                if res.status_code == 200:
-                    progress.progress(100)
-                    status.success("Done!")
-                    st.json(res.json())
-                else:
-                    st.error(res.text)
+                    if res.status_code == 200:
+                        progress.progress(100)
+                        status.success("Done!")
+                        st.json(res.json())
+                    else:
+                        st.error(res.text)
 
-            except Exception as e:
-                st.error(str(e))
-
+                except Exception as e:
+                    st.error(str(e))
 # =================================
 # FOOTER
 # =================================

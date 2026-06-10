@@ -1,5 +1,4 @@
 import uuid
-import time
 import gc
 from typing import List, Dict
 
@@ -11,7 +10,7 @@ class VectorUpsert:
 
     def __init__(self, store: QdrantStore):
         self.store = store
-        self.batch_size = 16  # IMPORTANT: smaller for Render 512MB
+        self.batch_size = 8   # 🔥 smaller = safer for Render
 
     def upsert_chunks(self, chunks: List[Dict]):
 
@@ -20,32 +19,28 @@ class VectorUpsert:
 
         total_inserted = 0
 
-        # =========================
         # PROCESS IN SMALL BATCHES
-        # =========================
         for start in range(0, len(chunks), self.batch_size):
 
             batch = chunks[start:start + self.batch_size]
 
-            print(f"Processing batch {start}-{start + len(batch)}")
-
             texts = [c["text"] for c in batch]
 
-            # 🔥 SINGLE embedding call (NO nested loops)
+            # 🔥 embed ONLY this batch (no inner batching!)
             vectors = embed_texts(texts)
 
             ids = []
             payloads = []
 
-            for chunk in batch:
+            for i, chunk in enumerate(batch):
 
                 ids.append(chunk.get("id", str(uuid.uuid4())))
 
                 payloads.append({
                     "text": chunk["text"],
                     "source": chunk.get("source", "unknown"),
-                    "chunk_id": chunk.get("chunk_id", 0),
-                    "language": chunk.get("language", "text"),
+                    "chunk_id": chunk.get("chunk_id", i),
+                    "language": chunk.get("language", "auto"),
                     "topic": chunk.get("topic", "general"),
                     "metadata": chunk.get("metadata", {})
                 })
@@ -58,13 +53,9 @@ class VectorUpsert:
 
             total_inserted += len(batch)
 
-            # =========================
-            # MEMORY CLEANUP (CRITICAL)
-            # =========================
+            # 🔥 CRITICAL MEMORY FIX
             del texts, vectors, ids, payloads, batch
             gc.collect()
-
-            time.sleep(0.2)
 
         return {
             "inserted": total_inserted,

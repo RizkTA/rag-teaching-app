@@ -1,12 +1,5 @@
 from qdrant_client import QdrantClient
-from qdrant_client.models import (
-    VectorParams,
-    Distance,
-    PointStruct,
-    Filter,
-    FieldCondition,
-    MatchValue
-)
+from qdrant_client.models import VectorParams, Distance, PointStruct
 
 from app.config import QDRANT_API_KEY
 
@@ -23,60 +16,51 @@ class QdrantStore:
             timeout=60
         )
 
-        print("✅ Qdrant connected")
+        self.embed_dim = embed_dim
 
-        # =========================
-        # CREATE COLLECTION IF MISSING
-        # =========================
+        self._ensure_collection()
+
+    def _ensure_collection(self):
+
         collections = self.client.get_collections()
-
         existing = [c.name for c in collections.collections]
 
-        if collection_name not in existing:
+        if self.collection_name not in existing:
 
             self.client.create_collection(
-                collection_name=collection_name,
+                collection_name=self.collection_name,
                 vectors_config=VectorParams(
-                    size=embed_dim,
+                    size=self.embed_dim,
                     distance=Distance.COSINE
                 )
             )
 
-            print(f"✅ Created collection: {collection_name}")
+            print(f"✅ Created collection: {self.collection_name}")
 
-    # =========================
-    # UPSERT
-    # =========================
-    def upsert(self, ids, vectors, payloads):
+    def upsert(self, ids, vectors, payloads, batch_size=64):
 
-        points = []
+        for i in range(0, len(ids), batch_size):
 
-        for i in range(len(ids)):
-
-            points.append(
+            points = [
                 PointStruct(
-                    id=ids[i],
-                    vector=vectors[i],
-                    payload=payloads[i]
+                    id=ids[j],
+                    vector=vectors[j],
+                    payload=payloads[j]
                 )
+                for j in range(i, min(i + batch_size, len(ids)))
+            ]
+
+            self.client.upsert(
+                collection_name=self.collection_name,
+                points=points
             )
 
-        self.client.upsert(
-            collection_name=self.collection_name,
-            points=points
-        )
-
-    # =========================
-    # SEARCH (WITH METADATA FILTER)
-    # =========================
     def search(self, query_vector, top_k=5, language=None):
 
         query_filter = None
 
-        # =====================
-        # LANGUAGE FILTER (STEP 7)
-        # =====================
         if language:
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
 
             query_filter = Filter(
                 must=[
@@ -94,4 +78,4 @@ class QdrantStore:
             query_filter=query_filter
         )
 
-        return results.points
+        return results.points if hasattr(results, "points") else results
