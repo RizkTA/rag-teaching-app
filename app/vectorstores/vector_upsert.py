@@ -1,4 +1,5 @@
 import uuid
+import time
 from typing import List, Dict
 
 from app.embeddings.api_embedder import embed_texts
@@ -11,9 +12,7 @@ class VectorUpsert:
 
         self.store = store
 
-        # ==========================
-        # EMBEDDING BATCH SIZE
-        # ==========================
+        # Number of chunks processed at once
         self.batch_size = 32
 
     # ==========================================
@@ -23,13 +22,15 @@ class VectorUpsert:
         self,
         chunks: List[Dict]
     ):
+
         """
         Convert chunks → embeddings → Qdrant
 
-        Uses batching to avoid:
-        - RAM crashes
-        - Render timeouts
-        - embedding overload
+        Features:
+        - batching
+        - rate-limit protection
+        - memory-safe
+        - Render-safe
         """
 
         if not chunks:
@@ -42,7 +43,7 @@ class VectorUpsert:
         total_inserted = 0
 
         # ======================================
-        # PROCESS IN BATCHES
+        # PROCESS CHUNKS IN BATCHES
         # ======================================
         for start in range(
             0,
@@ -52,19 +53,19 @@ class VectorUpsert:
 
             end = start + self.batch_size
 
-            batch = chunks[start:end]
+            chunk_batch = chunks[start:end]
 
             print(
                 f"🚀 Processing batch "
-                f"{start} → {end}"
+                f"{start} -> {end}"
             )
 
             # ==================================
             # EXTRACT TEXTS
             # ==================================
             texts = [
-                c["text"]
-                for c in batch
+                chunk["text"]
+                for chunk in chunk_batch
             ]
 
             # ==================================
@@ -72,14 +73,17 @@ class VectorUpsert:
             # ==================================
             vectors = embed_texts(texts)
 
+            # Small delay to avoid rate limits
+            time.sleep(0.5)
+
+            # ==================================
+            # IDS + PAYLOADS
+            # ==================================
             ids = []
 
             payloads = []
 
-            # ==================================
-            # BUILD PAYLOADS
-            # ==================================
-            for i, chunk in enumerate(batch):
+            for i, chunk in enumerate(chunk_batch):
 
                 ids.append(
                     chunk.get(
@@ -127,11 +131,11 @@ class VectorUpsert:
                 payloads=payloads
             )
 
-            total_inserted += len(batch)
+            total_inserted += len(chunk_batch)
 
             print(
-                f"✅ Inserted batch "
-                f"({len(batch)} chunks)"
+                f"✅ Inserted "
+                f"{len(chunk_batch)} chunks"
             )
 
         # ======================================

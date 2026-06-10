@@ -220,9 +220,8 @@ def chunk_text(text):
     # -------------------------
     else:
 
-        chunk_size = 1200
-        overlap = 150
-
+        chunk_size = 700
+        overlap = 100
         chunks = []
 
         start = 0
