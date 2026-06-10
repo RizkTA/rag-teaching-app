@@ -315,7 +315,6 @@ for i, msg in enumerate(st.session_state.messages):
 # PDF UPLOAD
 # =================================
 st.divider()
-st.subheader("📄 Upload PDF or TXT or MD (Admin Only)")
 
 # =========================
 # INIT AUTH STATE SAFELY
@@ -326,7 +325,7 @@ st.subheader("📄 Upload PDF or TXT or MD (Admin Only)")
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-st.subheader("📄 Upload PDF or TXT or MD (Admin Only)")
+st.subheader("📄 Upload .pdf, .txt or .md (Admin Only)")
 
 password = st.text_input(
     "Enter upload password",
