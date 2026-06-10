@@ -138,14 +138,13 @@ if st.button("🚀 Ask", key="asking"):
         st.warning("Please enter a question.")
 
     else:
-
         # Add user message
         st.session_state.messages.append({
             "role": "user",
             "content": query
         })
 
-        with st.spinner("Thinking... 🧠"):
+        with st.spinner("🧠....Thinking... 🧠"):
 
             try:
 

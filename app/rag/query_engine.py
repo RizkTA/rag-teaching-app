@@ -11,7 +11,8 @@ from app.vectorstores.qdrant_store import QdrantStore
 # -----------------------------
 # INIT QDRANT
 # -----------------------------
-store = QdrantStore(
+def get_store():
+    return QdrantStore(
     QDRANT_URL,
     QDRANT_COLLECTION,
     EMBED_DIM

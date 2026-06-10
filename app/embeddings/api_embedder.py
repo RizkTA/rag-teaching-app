@@ -3,10 +3,14 @@ from sentence_transformers import SentenceTransformer
 # ==============================
 # LOAD MODEL ONCE
 # ==============================
-model = SentenceTransformer(
-    "BAAI/bge-base-en-v1.5"
-)
+embedder = None
 
+def get_embedder():
+    global embedder
+    if embedder is None:
+        from sentence_transformers import SentenceTransformer
+        embedder = SentenceTransformer("BAAI/bge-base-en-v1.5")
+    return embedder
 
 # ==============================
 # EMBED TEXTS

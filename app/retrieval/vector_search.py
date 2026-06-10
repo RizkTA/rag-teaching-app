@@ -12,7 +12,8 @@ from app.config import (
 # ==============================
 # INIT QDRANT
 # ==============================
-store = QdrantStore(
+def get_store():
+    return QdrantStore(
     QDRANT_URL,
     QDRANT_COLLECTION,
     EMBED_DIM

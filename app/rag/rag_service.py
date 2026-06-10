@@ -27,7 +27,8 @@ TOP_K = 5
 # INIT VECTOR DB
 # =============================
 try:
-    store = QdrantStore(
+    def get_store():
+        return QdrantStore(
         QDRANT_URL,
         QDRANT_COLLECTION,
         EMBED_DIM

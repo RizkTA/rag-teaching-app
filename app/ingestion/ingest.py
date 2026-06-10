@@ -18,13 +18,14 @@ from app.vectorstores.vector_upsert import VectorUpsert
 # ==============================
 # INIT
 # ==============================
-store = QdrantStore(
+def get_store():
+    return QdrantStore(
     QDRANT_URL,
     QDRANT_COLLECTION,
     EMBED_DIM
 )
 
-upserter = VectorUpsert(store)
+upserter = VectorUpsert(get_store())
 
 
 # ==============================

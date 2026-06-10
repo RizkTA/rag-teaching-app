@@ -1,5 +1,6 @@
 import uuid
 import time
+import gc
 from typing import List, Dict
 
 from app.embeddings.api_embedder import embed_texts
@@ -10,12 +11,8 @@ class VectorUpsert:
 
     def __init__(self, store: QdrantStore):
         self.store = store
-        self.embed_batch_size = 16   # safe for API
-        self.chunk_batch_size = 32   # safe for memory
+        self.batch_size = 16  # IMPORTANT: smaller for Render 512MB
 
-    # ======================================
-    # MAIN UPSERT (CLEAN + SAFE)
-    # ======================================
     def upsert_chunks(self, chunks: List[Dict]):
 
         if not chunks:
@@ -23,63 +20,51 @@ class VectorUpsert:
 
         total_inserted = 0
 
-        # ======================================
-        # STEP 1: PROCESS CHUNKS IN SMALL GROUPS
-        # ======================================
-        for start in range(0, len(chunks), self.chunk_batch_size):
+        # =========================
+        # PROCESS IN SMALL BATCHES
+        # =========================
+        for start in range(0, len(chunks), self.batch_size):
 
-            batch_chunks = chunks[start:start + self.chunk_batch_size]
+            batch = chunks[start:start + self.batch_size]
 
-            texts = [c["text"] for c in batch_chunks]
+            print(f"Processing batch {start}-{start + len(batch)}")
 
-            print(f"🚀 Embedding batch {start}-{start + len(batch_chunks)}")
+            texts = [c["text"] for c in batch]
 
-            # ======================================
-            # STEP 2: EMBEDDINGS (SAFE BATCHING)
-            # ======================================
-            vectors = []
+            # 🔥 SINGLE embedding call (NO nested loops)
+            vectors = embed_texts(texts)
 
-            for i in range(0, len(texts), self.embed_batch_size):
-
-                sub_batch = texts[i:i + self.embed_batch_size]
-
-                vecs = embed_texts(sub_batch)
-
-                vectors.extend(vecs)
-
-                time.sleep(0.2)  # avoid rate limits
-
-            # ======================================
-            # STEP 3: BUILD PAYLOADS
-            # ======================================
             ids = []
             payloads = []
 
-            for i, chunk in enumerate(batch_chunks):
+            for chunk in batch:
 
                 ids.append(chunk.get("id", str(uuid.uuid4())))
 
                 payloads.append({
                     "text": chunk["text"],
                     "source": chunk.get("source", "unknown"),
-                    "chunk_id": chunk.get("chunk_id", i),
+                    "chunk_id": chunk.get("chunk_id", 0),
                     "language": chunk.get("language", "text"),
                     "topic": chunk.get("topic", "general"),
                     "metadata": chunk.get("metadata", {})
                 })
 
-            # ======================================
-            # STEP 4: UPSERT TO QDRANT
-            # ======================================
             self.store.upsert(
                 ids=ids,
                 vectors=vectors,
                 payloads=payloads
             )
 
-            total_inserted += len(batch_chunks)
+            total_inserted += len(batch)
 
-            print(f"✅ Inserted {len(batch_chunks)} chunks")
+            # =========================
+            # MEMORY CLEANUP (CRITICAL)
+            # =========================
+            del texts, vectors, ids, payloads, batch
+            gc.collect()
+
+            time.sleep(0.2)
 
         return {
             "inserted": total_inserted,
