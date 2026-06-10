@@ -19,4 +19,4 @@ QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "docs")
 EMBED_DIM = int(os.getenv("EMBED_DIM", "384"))
 
 # embedding model name
-EMBED_MODEL = os.getenv("EMBED_MODEL", "all-MiniLM-L6-v2")
+EMBED_MODEL = os.getenv("EMBED_MODEL", "BAAI/bge-base-en-v1.5")

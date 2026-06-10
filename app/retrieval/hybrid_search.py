@@ -1,66 +1,52 @@
-from app.retrieval.vector_search import (
-    vector_search
-)
-
-from app.retrieval.bm25_search import (
-    search_bm25
-)
-
-from app.retrieval.reranker import (
-    rerank_results
-)
+from app.retrieval.bm25_search import search_bm25
+from app.retrieval.query_expansion import expand_query
+from app.retrieval.reranker import rerank_results
+from app.retrieval.vector_search import vector_search
 
 
-# ==============================
-# HYBRID SEARCH
-# ==============================
-def hybrid_search(query):
+def hybrid_search(query, top_k=5):
 
-    # ==========================
-    # VECTOR SEARCH
-    # ==========================
-    semantic = vector_search(
-        query,
-        top_k=8
+    expanded_query = expand_query(query)
+
+    vector_results = vector_search(
+        expanded_query,
+        top_k=10
     )
 
-    # ==========================
-    # BM25 SEARCH
-    # ==========================
-    keyword = search_bm25(
-        query,
-        top_k=8
+    bm25_results = search_bm25(
+        expanded_query,
+        top_k=10
     )
 
-    # ==========================
-    # MERGE
-    # ==========================
-    combined = semantic + keyword
+    # =========================
+    # MERGE + DEDUP
+    # =========================
+    combined = {}
 
-    # ==========================
-    # REMOVE DUPLICATES
-    # ==========================
-    seen = set()
-
-    unique = []
-
-    for r in combined:
+    for r in vector_results + bm25_results:
 
         text = r["text"]
 
-        if text not in seen:
+        if text not in combined:
 
-            seen.add(text)
+            combined[text] = r
 
-            unique.append(r)
+        else:
 
-    # ==========================
+            combined[text]["score"] = max(
+                combined[text]["score"],
+                r["score"]
+            )
+
+    combined_results = list(combined.values())
+
+    # =========================
     # RERANK
-    # ==========================
+    # =========================
     reranked = rerank_results(
-        query,
-        unique,
-        top_k=5
+        query=query,
+        results=combined_results,
+        top_k=top_k
     )
 
     return reranked

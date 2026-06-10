@@ -34,26 +34,32 @@ def detect_language(chunk):
 
     chunk_lower = chunk.lower()
 
-    # C++
-    if (
-        "#include" in chunk
-        or "cout <<" in chunk
-        or "cin >>" in chunk
-        or "int main(" in chunk
-    ):
+    cpp_keywords = [
+        "#include",
+        "cout",
+        "cin",
+        "std::",
+        "int main",
+        "using namespace std"
+    ]
+
+    python_keywords = [
+        "def ",
+        "print(",
+        "import ",
+        "self"
+    ]
+
+    cpp_score = sum(k in chunk_lower for k in cpp_keywords)
+    py_score = sum(k in chunk_lower for k in python_keywords)
+
+    if cpp_score >= 1:
         return "cpp"
 
-    # Python
-    elif (
-        "def " in chunk_lower
-        or "print(" in chunk_lower
-        or "import " in chunk_lower
-        or "self." in chunk_lower
-    ):
+    if py_score >= 1:
         return "python"
 
     return "text"
-
 
 # ==============================
 # TOPIC DETECTION
@@ -175,30 +181,63 @@ def is_code(text):
 
 
 
+import re
+
+
 def chunk_text(text):
 
-    words = text.split()
+    # -------------------------
+    # CODE DETECTION
+    # -------------------------
+    if is_code(text):
 
-    chunks = []
+        # split by blank lines
+        blocks = re.split(r"\n\s*\n", text)
 
-    chunk_size = 220
-    overlap = 40
+        chunks = []
 
-    start = 0
+        current = ""
 
-    while start < len(words):
+        for block in blocks:
 
-        end = start + chunk_size
+            if len(current) + len(block) < 1200:
 
-        chunk_words = words[start:end]
+                current += "\n\n" + block
 
-        chunk = " ".join(chunk_words)
+            else:
 
-        chunks.append(chunk)
+                chunks.append(current.strip())
 
-        start += chunk_size - overlap
+                current = block
 
-    return chunks
+        if current:
+            chunks.append(current.strip())
+
+        return chunks
+
+    # -------------------------
+    # NORMAL TEXT
+    # -------------------------
+    else:
+
+        chunk_size = 1200
+        overlap = 150
+
+        chunks = []
+
+        start = 0
+
+        while start < len(text):
+
+            end = start + chunk_size
+
+            chunk = text[start:end]
+
+            chunks.append(chunk)
+
+            start += chunk_size - overlap
+
+        return chunks
 
 
 # ==============================

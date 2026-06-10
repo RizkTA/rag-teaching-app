@@ -1,44 +1,36 @@
 from sentence_transformers import CrossEncoder
 
-
-# ==============================
-# LOAD MODEL
-# ==============================
-reranker = CrossEncoder(
+# =========================
+# LOAD MODEL ONCE
+# =========================
+reranker_model = CrossEncoder(
     "cross-encoder/ms-marco-MiniLM-L-6-v2"
 )
 
 
-# ==============================
-# RERANK
-# ==============================
-def rerank_results(
-    query,
-    results,
-    top_k=5
-):
+# =========================
+# RERANK FUNCTION
+# =========================
+def rerank_results(query, results, top_k=5):
 
     if not results:
         return []
 
-    pairs = []
+    # Build query-document pairs
+    pairs = [
+        (query, r["text"])
+        for r in results
+    ]
 
-    for r in results:
+    # Predict relevance
+    scores = reranker_model.predict(pairs)
 
-        pairs.append(
-            [query, r["text"]]
-        )
+    # Attach reranker scores
+    for r, score in zip(results, scores):
 
-    scores = reranker.predict(pairs)
+        r["rerank_score"] = float(score)
 
-    # attach scores
-    for i in range(len(results)):
-
-        results[i]["rerank_score"] = float(
-            scores[i]
-        )
-
-    # sort by rerank score
+    # Sort descending
     results.sort(
         key=lambda x: x["rerank_score"],
         reverse=True
