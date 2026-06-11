@@ -1,16 +1,14 @@
 from sentence_transformers import CrossEncoder
 
-reranker = CrossEncoder(
-    "cross-encoder/ms-marco-MiniLM-L-6-v2"
-)
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
 def rerank(query, docs):
 
-    pairs = [
-        (query, d["text"])
-        for d in docs
-    ]
+    if not docs:
+        return []
+
+    pairs = [(query, d["text"]) for d in docs]
 
     scores = reranker.predict(pairs)
 
@@ -20,4 +18,4 @@ def rerank(query, docs):
         reverse=True
     )
 
-    return [x[0] for x in ranked[:5]]
+    return [r[0] for r in ranked]

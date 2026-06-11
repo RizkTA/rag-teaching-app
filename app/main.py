@@ -1,18 +1,17 @@
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
-from app.retrieval.hybrid_search import hybrid_search
 import os
 
-print("🔥 MAIN STARTING")
+print("🔥 MAIN STARTING (LIGHT MODE)")
 
 # ==========================
-# APP INIT (LIGHT)
+# APP INIT (NO HEAVY IMPORTS)
 # ==========================
 app = FastAPI()
 
 
 # ==========================
-# LAZY IMPORTS (IMPORTANT FIX)
+# LAZY IMPORTS (SAFE)
 # ==========================
 def get_hybrid_search():
     from app.retrieval.hybrid_search import hybrid_search
@@ -30,7 +29,7 @@ def get_ingest():
 
 
 # ==========================
-# HEALTH CHECK
+# HEALTH CHECK (IMPORTANT FOR RENDER)
 # ==========================
 @app.get("/")
 def root():
@@ -42,7 +41,7 @@ def root():
 
 @app.head("/")
 def root_head():
-    return {}
+    return ""
 
 
 # ==========================
@@ -66,12 +65,13 @@ def query(req: QueryRequest):
 
         context = "\n\n".join(
             [r.get("text", "") for r in results if r.get("text")]
-        )[:2500]  # reduce memory
+        )[:2500]   # 🔥 REDUCED CONTEXT (IMPORTANT FOR 512MB)
 
         prompt = f"""
 Use ONLY the context below.
 
-If not found, say "I don't know based on the documents."
+If the answer is not in the context, say:
+"I don't know based on the documents."
 
 Context:
 {context}
@@ -99,7 +99,7 @@ Answer:
 
 
 # ==========================
-# INGEST ENDPOINT
+# INGEST ENDPOINT (SAFE)
 # ==========================
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
@@ -125,18 +125,26 @@ async def upload_file(file: UploadFile = File(...)):
         }
 
     except Exception as e:
+        print("❌ INGEST ERROR:", e)
+
         return {
             "success": False,
             "error": str(e)
         }
+
+
+# ==========================
+# RUN (RENDER SAFE)
+# ==========================
 if __name__ == "__main__":
-    import os
     import uvicorn
 
     port = int(os.environ.get("PORT", 10000))
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=port,
-        reload=False
+        reload=False,
+        workers=1  # 🔥 CRITICAL for 512MB Render
     )

@@ -1,25 +1,19 @@
 from rank_bm25 import BM25Okapi
 
 from app.embeddings.api_embedder import embed_texts
-from app.vectorstores.qdrant_store import QdrantStore
 from app.retrieval.query_expansion import expand_query
 from app.retrieval.reranker import rerank
-from app.config import *
 from app.vectorstores.store_provider import get_store
 
-def hybrid_search(query):
-    store = get_store()
-    
-def hybrid_search_impl(query):
 
-    # =========================
-    # 1. EXPAND QUERY
-    # =========================
+def hybrid_search(query):
+
+    store = get_store()
+
+    # 1. expand query
     expanded = expand_query(query)
 
-    # =========================
-    # 2. VECTOR SEARCH
-    # =========================
+    # 2. vector search
     query_vector = embed_texts([expanded])[0]
 
     vector_results = store.search(query_vector, top_k=15)
@@ -27,9 +21,6 @@ def hybrid_search_impl(query):
     if not vector_results:
         return []
 
-    # =========================
-    # 3. NORMALIZE DOCS
-    # =========================
     docs = []
 
     for r in vector_results:
@@ -46,34 +37,23 @@ def hybrid_search_impl(query):
     if not docs:
         return []
 
-    # =========================
-    # 4. BM25 LAYER
-    # =========================
-    tokenized_docs = [d["text"].split() for d in docs]
+    # 3. BM25
+    tokenized = [d["text"].split() for d in docs]
 
-    bm25 = BM25Okapi(tokenized_docs)
+    bm25 = BM25Okapi(tokenized)
     bm25_scores = bm25.get_scores(query.split())
 
     for i in range(len(docs)):
         docs[i]["bm25"] = float(bm25_scores[i])
 
-    # =========================
-    # 5. COMBINE SCORE
-    # =========================
+    # 4. merge scoring
     docs = sorted(
         docs,
         key=lambda x: x["score"] * 0.7 + x["bm25"] * 0.3,
         reverse=True
     )
-    if not docs:
-        return [
-            {
-                "text": "No relevant context found in documents."
-            }
-        ]
-    # =========================
-    # 6. FINAL RERANK
-    # =========================
+
+    # 5. rerank
     reranked = rerank(query, docs[:10])
 
     return reranked[:5]
