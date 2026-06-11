@@ -121,51 +121,49 @@ st.divider()
 # =================================
 # ASK QUESTIONS
 # =================================
+# ==============================
+# ASK QUESTIONS (INPUT + BUTTON)
+# ==============================
 st.subheader("💬 Ask Questions")
 
-query = st.chat_input("Ask something...")
+query = st.text_input("Type your question here", key="query_box")
 
-if query:
+if st.button("🚀 Ask", key="ask_button"):
 
-    # store user message
-    st.session_state.messages.append({
-        "role": "user",
-        "content": query
-    })
+    if not query.strip():
+        st.warning("Please enter a question.")
+    else:
 
-    with st.spinner("🧠 Thinking..."):
+        st.session_state.messages.append({
+            "role": "user",
+            "content": query
+        })
 
-        try:
-            res = requests.post(
-                f"{API_URL}/query",
-                json={"q": query},
-                timeout=120
-            )
-
-            if res.status_code == 200:
+        with st.spinner("🧠 Thinking..."):
+            try:
+                res = requests.post(
+                    f"{API_URL}/query",
+                    json={"q": query},
+                    timeout=120
+                )
 
                 data = res.json()
 
                 answer = data.get("answer", "No answer returned.")
-
-                # FIXED KEY HERE
                 citations = data.get("sources", [])
 
-            else:
-                answer = f"Backend Error: {res.text}"
-                citations = []
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": answer,
+                    "citations": citations
+                })
 
-        except Exception as e:
-            answer = f"Connection Error: {str(e)}"
-            citations = []
-
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": answer,
-        "citations": citations
-    })
-
-    st.rerun()
+            except Exception as e:
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": f"Error: {str(e)}",
+                    "citations": []
+                })
 # =================================
 # PINNED ANSWERS
 # =================================
