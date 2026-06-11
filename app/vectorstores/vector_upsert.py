@@ -1,10 +1,12 @@
 import uuid
 import gc
 
-class VectorUpsert:
 
-    def __init__(self, store):
-        self.store = store
+from app.vectorstores.store_provider import get_store
+
+class VectorUpsert:
+    def __init__(self):
+        self.store = get_store()
         self.batch_size = 16  # safe for Render
 
     def upsert_chunks(self, chunks):

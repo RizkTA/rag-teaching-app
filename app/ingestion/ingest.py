@@ -170,7 +170,13 @@ async def ingest_file(file: UploadFile):
             "metadata": {"type": suffix.replace(".", "")}
         })
 
-    upserter = get_upserter()
+    upserter = None
+
+    def get_upserter():
+        global upserter
+        if upserter is None:
+            upserter = VectorUpsert()
+        return upserter
 
     result = upserter.upsert_chunks(structured)
 

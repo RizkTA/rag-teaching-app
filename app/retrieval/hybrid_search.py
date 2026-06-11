@@ -5,11 +5,12 @@ from app.vectorstores.qdrant_store import QdrantStore
 from app.retrieval.query_expansion import expand_query
 from app.retrieval.reranker import rerank
 from app.config import *
-
-store = QdrantStore(QDRANT_URL, QDRANT_COLLECTION, EMBED_DIM)
-
+from app.vectorstores.store_provider import get_store
 
 def hybrid_search(query):
+    store = get_store()
+    
+def hybrid_search_impl(query):
 
     # =========================
     # 1. EXPAND QUERY

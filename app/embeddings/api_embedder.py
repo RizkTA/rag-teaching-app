@@ -1,18 +1,15 @@
 from sentence_transformers import SentenceTransformer
 
-embedder = None
+_embedder = None
 
 def get_embedder():
+    global _embedder
 
- global embedder
+    if _embedder is None:
+        from sentence_transformers import SentenceTransformer
+        _embedder = SentenceTransformer("BAAI/bge-small-en-v1.5")
 
- if embedder is None:
-
-    embedder = SentenceTransformer(
-        "jinaai/jina-embeddings-v2-base-code"
-    )
-
- return embedder
+    return _embedder
 
 def embed_texts(texts):
 
