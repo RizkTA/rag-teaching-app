@@ -8,7 +8,9 @@ from app.config import QDRANT_URL, QDRANT_COLLECTION, EMBED_DIM
 from app.vectorstores.qdrant_store import QdrantStore
 from app.vectorstores.vector_upsert import VectorUpsert
 
-
+# =========================================================
+# SINGLETON CACHE (CRITICAL FOR RENDER 512MB)
+# =========================================================
 _store = None
 _upserter = None
 
@@ -16,7 +18,11 @@ _upserter = None
 def get_store():
     global _store
     if _store is None:
-        _store = QdrantStore(QDRANT_URL, QDRANT_COLLECTION, EMBED_DIM)
+        _store = QdrantStore(
+            QDRANT_URL,
+            QDRANT_COLLECTION,
+            EMBED_DIM
+        )
     return _store
 
 
@@ -27,10 +33,17 @@ def get_upserter():
     return _upserter
 
 
-def chunk_text(text):
+# =========================================================
+# CHUNKING (SAFE + SIMPLE)
+# =========================================================
+def chunk_text(text: str):
 
+    # handle code blocks first
     if "```" in text:
-        return text.split("```")
+        return [t.strip() for t in text.split("```") if t.strip()]
+
+    # memory safe limit
+    text = text[:150_000]
 
     chunk_size = 500
     overlap = 100
@@ -46,6 +59,9 @@ def chunk_text(text):
     return chunks
 
 
+# =========================================================
+# FILE INGEST
+# =========================================================
 async def ingest_file(file: UploadFile):
 
     suffix = os.path.splitext(file.filename)[1].lower()
@@ -54,25 +70,43 @@ async def ingest_file(file: UploadFile):
         tmp.write(await file.read())
         path = tmp.name
 
+    # -------------------------
+    # READ FILE
+    # -------------------------
     if suffix == ".pdf":
         from pypdf import PdfReader
+
         text = "\n".join(
             page.extract_text() or ""
             for page in PdfReader(path).pages
         )
+
+    elif suffix in [".md", ".txt"]:
+        with open(path, "r", encoding="utf-8") as f:
+            text = f.read()
+
     else:
-        text = open(path, "r", encoding="utf-8").read()
+        os.remove(path)
+        return {"error": "unsupported file type"}
 
     os.remove(path)
 
-    text = text[:150000]
+    # -------------------------
+    # CLEAN TEXT
+    # -------------------------
+    text = text.strip()
 
+    if not text:
+        return {"error": "empty file"}
+
+    # -------------------------
+    # CHUNK
+    # -------------------------
     chunks = chunk_text(text)
 
     structured = []
 
     for i, chunk in enumerate(chunks):
-
         structured.append({
             "id": str(uuid.uuid4()),
             "text": chunk,
@@ -83,6 +117,9 @@ async def ingest_file(file: UploadFile):
             "metadata": {}
         })
 
+    # -------------------------
+    # UPSERT (FAST + SAFE)
+    # -------------------------
     upserter = get_upserter()
 
     result = upserter.upsert_chunks(structured)
