@@ -124,46 +124,57 @@ st.divider()
 # ==============================
 # ASK QUESTIONS (INPUT + BUTTON)
 # ==============================
-st.subheader("💬 Ask Questions")
+import time
 
-query = st.text_input("Type your question here", key="query_box")
+st.subheader("💬 Chat with RAG Assistant")
 
-if st.button("🚀 Ask", key="ask_button"):
+# =========================
+# CHAT INPUT (ChatGPT STYLE)
+# =========================
+with st.form("chat_form", clear_on_submit=True):
 
-    if not query.strip():
-        st.warning("Please enter a question.")
-    else:
+    query = st.text_input("Ask a question...", key="chat_input")
 
-        st.session_state.messages.append({
-            "role": "user",
-            "content": query
-        })
+    submitted = st.form_submit_button("🚀 Send")
 
-        with st.spinner("🧠 Thinking..."):
-            try:
-                res = requests.post(
-                    f"{API_URL}/query",
-                    json={"q": query},
-                    timeout=120
-                )
+if submitted and query.strip():
 
-                data = res.json()
+    st.session_state.messages.append({
+        "role": "user",
+        "content": query
+    })
 
-                answer = data.get("answer", "No answer returned.")
-                citations = data.get("sources", [])
+    with st.spinner("🧠 Thinking..."):
 
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": answer,
-                    "citations": citations
-                })
+        try:
+            res = requests.post(
+                f"{API_URL}/query",
+                json={"q": query},
+                timeout=120
+            )
 
-            except Exception as e:
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": f"Error: {str(e)}",
-                    "citations": []
-                })
+            data = res.json()
+            answer = data.get("answer", "")
+
+            # =========================
+            # STREAMING EFFECT (FAKE GPT STYLE)
+            # =========================
+            placeholder = st.empty()
+            streamed = ""
+
+            for word in answer.split():
+                streamed += word + " "
+                placeholder.markdown(streamed)
+                time.sleep(0.02)
+
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": answer,
+                "citations": data.get("sources", [])
+            })
+
+        except Exception as e:
+            st.error(str(e))
 # =================================
 # PINNED ANSWERS
 # =================================
@@ -294,6 +305,9 @@ st.divider()
 # =========================
 # INIT AUTH STATE
 # =========================
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 

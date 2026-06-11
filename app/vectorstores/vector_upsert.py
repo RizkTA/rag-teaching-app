@@ -1,13 +1,11 @@
 import uuid
 import gc
-from app.embeddings.api_embedder import embed_texts
-
 
 class VectorUpsert:
 
     def __init__(self, store):
         self.store = store
-        self.batch_size = 8   # safe for 512MB
+        self.batch_size = 16  # safe for Render
 
     def upsert_chunks(self, chunks):
 
@@ -16,37 +14,34 @@ class VectorUpsert:
 
         total = 0
 
+        # process small batches
         for i in range(0, len(chunks), self.batch_size):
 
             batch = chunks[i:i + self.batch_size]
 
             texts = [c["text"] for c in batch]
 
-            # 🔥 SINGLE EMBED CALL ONLY
             vectors = embed_texts(texts)
 
-            ids = []
-            payloads = []
+            ids = [c.get("id", str(uuid.uuid4())) for c in batch]
 
-            for j, c in enumerate(batch):
-
-                ids.append(c.get("id", str(uuid.uuid4())))
-
-                payloads.append({
+            payloads = [
+                {
                     "text": c["text"],
-                    "source": c.get("source", "unknown"),
-                    "chunk_id": c.get("chunk_id", j),
-                    "language": c.get("language", "text"),
+                    "source": c.get("source", ""),
+                    "chunk_id": c.get("chunk_id", 0),
+                    "language": c.get("language", "auto"),
                     "topic": c.get("topic", "general"),
-                    "metadata": c.get("metadata", {})
-                })
+                }
+                for c in batch
+            ]
 
             self.store.upsert(ids, vectors, payloads)
 
             total += len(batch)
 
-            # 🔥 MEMORY CONTROL (CRITICAL FOR RENDER)
-            del texts, vectors, ids, payloads, batch
+            # 🔥 CRITICAL MEMORY CLEANUP
+            del batch, texts, vectors, ids, payloads
             gc.collect()
 
         return {"inserted": total}

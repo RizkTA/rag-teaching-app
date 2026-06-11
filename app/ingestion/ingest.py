@@ -84,47 +84,49 @@ def detect_topic(text):
 # ==========================
 def read_pdf(path):
 
+    from pypdf import PdfReader
+
     reader = PdfReader(path)
 
-    pages_text = []
+    text = []
 
     for page in reader.pages:
+
         try:
-            pages_text.append(page.extract_text() or "")
+            t = page.extract_text()
+            if t:
+                text.append(t)
+
         except:
             continue
 
-    return "\n".join(pages_text)
-
+    return "\n".join(text)
 
 # ==========================
 # CHUNKING
 # ==========================
 def chunk_text(text):
 
-    blocks = re.split(r"\n\s*\n", text)
+    # 🔥 REMOVE BIG TEXT CRASHES
+    if len(text) > 50_000:
+        text = text[:50_000]
+
+    # simple safe chunking
+    chunk_size = 500
+    overlap = 100
 
     chunks = []
-    current = ""
 
-    for block in blocks:
+    start = 0
 
-        block = block.strip()
-        if not block:
-            continue
+    while start < len(text):
 
-        if len(current) + len(block) < 1000:
-            current += "\n\n" + block
-        else:
-            if current:
-                chunks.append(current)
-            current = block
+        end = start + chunk_size
+        chunks.append(text[start:end])
 
-    if current:
-        chunks.append(current)
+        start += chunk_size - overlap
 
     return chunks
-
 
 # ==========================
 # INGEST FILE
