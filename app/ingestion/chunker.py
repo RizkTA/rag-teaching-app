@@ -23,21 +23,8 @@ def is_code(text):
 
 def chunk_text(text):
 
-    # =========================
-    # CODE CHUNKING
-    # =========================
-    if is_code(text):
-
-        chunk_size = 400
-        overlap = 50
-
-    # =========================
-    # THEORY / LECTURE NOTES
-    # =========================
-    else:
-
-        chunk_size = 1200
-        overlap = 150
+    chunk_size = 500
+    overlap = 100
 
     chunks = []
 

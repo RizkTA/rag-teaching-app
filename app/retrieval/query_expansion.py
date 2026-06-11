@@ -4,27 +4,18 @@ def expand_query(query):
 
     expansions = [query]
 
-    # =========================
-    # RECURSION
-    # =========================
     if "recursive array" in q:
-
         expansions.extend([
-            "recursion in c++",
+            "recursion apip install rank-bm25rray traversal",
             "recursive array printing",
-            "print array recursively",
-            "recursive function array",
-            "array recursion cpp"
+            "print array recursively in cpp",
+            "recursive function array"
         ])
 
-    # =========================
-    # POINTERS
-    # =========================
     if "pointer" in q:
-
         expansions.extend([
-            "pointer arithmetic",
             "memory address",
+            "pointer arithmetic",
             "cpp pointers"
         ])
 

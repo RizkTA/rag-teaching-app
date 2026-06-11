@@ -123,74 +123,49 @@ st.divider()
 # =================================
 st.subheader("💬 Ask Questions")
 
-query = st.text_input(
-    "Ask a question",
-    key="query_input_new"
-)
+query = st.chat_input("Ask something...")
 
-# =================================
-# ASK BUTTON
-# =================================
-if st.button("🚀 Ask", key="asking"):
+if query:
 
-    if not query.strip():
+    # store user message
+    st.session_state.messages.append({
+        "role": "user",
+        "content": query
+    })
 
-        st.warning("Please enter a question.")
+    with st.spinner("🧠 Thinking..."):
 
-    else:
-        # Add user message
-        st.session_state.messages.append({
-            "role": "user",
-            "content": query
-        })
+        try:
+            res = requests.post(
+                f"{API_URL}/query",
+                json={"q": query},
+                timeout=120
+            )
 
-        with st.spinner("🧠....Thinking... 🧠"):
+            if res.status_code == 200:
 
-            try:
+                data = res.json()
 
-                res = requests.post(
-                    f"{API_URL}/query",
-                    json={"q": query},
-                    timeout=120
-                )
+                answer = data.get("answer", "No answer returned.")
 
-                if res.status_code == 200:
+                # FIXED KEY HERE
+                citations = data.get("sources", [])
 
-                    data = res.json()
+            else:
+                answer = f"Backend Error: {res.text}"
+                citations = []
 
-                    answer = data.get(
-                        "answer",
-                        "No answer returned."
-                    )
+        except Exception as e:
+            answer = f"Connection Error: {str(e)}"
+            citations = []
 
-                    citations = data.get(
-                        "citations",
-                        []
-                    )
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": answer,
+        "citations": citations
+    })
 
-                    # Store assistant answer
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": answer,
-                        "citations": citations
-                    })
-
-                else:
-
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": f"Backend Error: {res.text}",
-                        "citations": []
-                    })
-
-            except Exception as e:
-
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": f"Connection Error: {str(e)}",
-                    "citations": []
-                })
-
+    st.rerun()
 # =================================
 # PINNED ANSWERS
 # =================================
@@ -307,11 +282,10 @@ for i, msg in enumerate(st.session_state.messages):
 
                 st.rerun()
 
-
+st.markdown("<div id='end'></div>", unsafe_allow_html=True)
+st.markdown("<script>document.getElementById('end').scrollIntoView();</script>", unsafe_allow_html=True)
 # =================================
-#st.markdown(f"### ❓ {msg['question']}")
-#    st.markdown("## 📘 Answer")
-#    st.write(msg[" answer"])
+
 # PDF UPLOAD
 # =================================
 st.divider()

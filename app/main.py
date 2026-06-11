@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
+from app.retrieval.hybrid_search import hybrid_search
 import os
 
 print("🔥 MAIN STARTING")
@@ -14,7 +15,7 @@ app = FastAPI()
 # LAZY IMPORTS (IMPORTANT FIX)
 # ==========================
 def get_hybrid_search():
-    from app.retrieval.oldhybrid_search import hybrid_search
+    from app.retrieval.hybrid_search import hybrid_search
     return hybrid_search
 
 
@@ -65,7 +66,7 @@ def query(req: QueryRequest):
 
         context = "\n\n".join(
             [r.get("text", "") for r in results if r.get("text")]
-        )[:3000]  # reduce memory
+        )[:2500]  # reduce memory
 
         prompt = f"""
 Use ONLY the context below.

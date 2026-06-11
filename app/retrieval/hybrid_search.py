@@ -1,52 +1,78 @@
-from app.retrieval.bm25_search import search_bm25
+from rank_bm25 import BM25Okapi
+
+from app.embeddings.api_embedder import embed_texts
+from app.vectorstores.qdrant_store import QdrantStore
 from app.retrieval.query_expansion import expand_query
-from app.retrieval.reranker import rerank_results
-from app.retrieval.vector_search import vector_search
+from app.retrieval.reranker import rerank
+from app.config import *
+
+store = QdrantStore(QDRANT_URL, QDRANT_COLLECTION, EMBED_DIM)
 
 
-def hybrid_search(query, top_k=5):
+def hybrid_search(query):
 
-    expanded_query = expand_query(query)
+    # =========================
+    # 1. EXPAND QUERY
+    # =========================
+    expanded = expand_query(query)
 
-    vector_results = vector_search(
-        expanded_query,
-        top_k=10
+    # =========================
+    # 2. VECTOR SEARCH
+    # =========================
+    query_vector = embed_texts([expanded])[0]
+
+    vector_results = store.search(query_vector, top_k=15)
+
+    if not vector_results:
+        return []
+
+    # =========================
+    # 3. NORMALIZE DOCS
+    # =========================
+    docs = []
+
+    for r in vector_results:
+
+        score = r.get("score", 0.0)
+        payload = r.get("payload", {})
+
+        if score < 0.45:
+            continue
+
+        payload["score"] = score
+        docs.append(payload)
+
+    if not docs:
+        return []
+
+    # =========================
+    # 4. BM25 LAYER
+    # =========================
+    tokenized_docs = [d["text"].split() for d in docs]
+
+    bm25 = BM25Okapi(tokenized_docs)
+    bm25_scores = bm25.get_scores(query.split())
+
+    for i in range(len(docs)):
+        docs[i]["bm25"] = float(bm25_scores[i])
+
+    # =========================
+    # 5. COMBINE SCORE
+    # =========================
+    docs = sorted(
+        docs,
+        key=lambda x: x["score"] * 0.7 + x["bm25"] * 0.3,
+        reverse=True
     )
-
-    bm25_results = search_bm25(
-        expanded_query,
-        top_k=10
-    )
-
+    if not docs:
+        return [
+            {
+                "text": "No relevant context found in documents."
+            }
+        ]
     # =========================
-    # MERGE + DEDUP
+    # 6. FINAL RERANK
     # =========================
-    combined = {}
+    reranked = rerank(query, docs[:10])
 
-    for r in vector_results + bm25_results:
-
-        text = r["text"]
-
-        if text not in combined:
-
-            combined[text] = r
-
-        else:
-
-            combined[text]["score"] = max(
-                combined[text]["score"],
-                r["score"]
-            )
-
-    combined_results = list(combined.values())
-
-    # =========================
-    # RERANK
-    # =========================
-    reranked = rerank_results(
-        query=query,
-        results=combined_results,
-        top_k=top_k
-    )
-
-    return reranked
+    return reranked[:5]

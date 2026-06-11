@@ -18,23 +18,21 @@ def build_bm25(chunks):
 
     bm25 = BM25Okapi(tokenized)
 
+from rank_bm25 import BM25Okapi
 
-def search_bm25(query, top_k=5):
 
-    global bm25
-    global documents
+def bm25_search(query, docs, top_k=5):
 
-    if bm25 is None:
-        return []
+    tokenized_docs = [d["text"].split() for d in docs]
 
-    scores = bm25.get_scores(
-        query.lower().split()
-    )
+    bm25 = BM25Okapi(tokenized_docs)
+
+    scores = bm25.get_scores(query.split())
 
     ranked = sorted(
-        zip(documents, scores),
+        zip(docs, scores),
         key=lambda x: x[1],
         reverse=True
     )
 
-    return ranked[:top_k]
+    return [x[0] for x in ranked[:top_k]]

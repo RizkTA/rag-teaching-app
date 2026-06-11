@@ -1,63 +1,52 @@
 import uuid
 import gc
-from typing import List, Dict
-
 from app.embeddings.api_embedder import embed_texts
-from app.vectorstores.qdrant_store import QdrantStore
 
 
 class VectorUpsert:
 
-    def __init__(self, store: QdrantStore):
+    def __init__(self, store):
         self.store = store
-        self.batch_size = 8   # 🔥 smaller = safer for Render
+        self.batch_size = 8   # safe for 512MB
 
-    def upsert_chunks(self, chunks: List[Dict]):
+    def upsert_chunks(self, chunks):
 
         if not chunks:
-            return {"inserted": 0, "status": "empty"}
+            return {"inserted": 0}
 
-        total_inserted = 0
+        total = 0
 
-        # PROCESS IN SMALL BATCHES
-        for start in range(0, len(chunks), self.batch_size):
+        for i in range(0, len(chunks), self.batch_size):
 
-            batch = chunks[start:start + self.batch_size]
+            batch = chunks[i:i + self.batch_size]
 
             texts = [c["text"] for c in batch]
 
-            # 🔥 embed ONLY this batch (no inner batching!)
+            # 🔥 SINGLE EMBED CALL ONLY
             vectors = embed_texts(texts)
 
             ids = []
             payloads = []
 
-            for i, chunk in enumerate(batch):
+            for j, c in enumerate(batch):
 
-                ids.append(chunk.get("id", str(uuid.uuid4())))
+                ids.append(c.get("id", str(uuid.uuid4())))
 
                 payloads.append({
-                    "text": chunk["text"],
-                    "source": chunk.get("source", "unknown"),
-                    "chunk_id": chunk.get("chunk_id", i),
-                    "language": chunk.get("language", "auto"),
-                    "topic": chunk.get("topic", "general"),
-                    "metadata": chunk.get("metadata", {})
+                    "text": c["text"],
+                    "source": c.get("source", "unknown"),
+                    "chunk_id": c.get("chunk_id", j),
+                    "language": c.get("language", "text"),
+                    "topic": c.get("topic", "general"),
+                    "metadata": c.get("metadata", {})
                 })
 
-            self.store.upsert(
-                ids=ids,
-                vectors=vectors,
-                payloads=payloads
-            )
+            self.store.upsert(ids, vectors, payloads)
 
-            total_inserted += len(batch)
+            total += len(batch)
 
-            # 🔥 CRITICAL MEMORY FIX
+            # 🔥 MEMORY CONTROL (CRITICAL FOR RENDER)
             del texts, vectors, ids, payloads, batch
             gc.collect()
 
-        return {
-            "inserted": total_inserted,
-            "status": "success"
-        }
+        return {"inserted": total}

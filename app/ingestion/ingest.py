@@ -25,6 +25,12 @@ def get_store():
 def get_upserter():
     return VectorUpsert(get_store())
 
+def chunk_text(text):
+
+ if "```" in text:
+    return text.split("```")
+
+
 
 # ==========================
 # DETECT CODE
