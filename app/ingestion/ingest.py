@@ -54,7 +54,7 @@ def chunk_text(text: str):
     # memory safe limit
     text = text[:40000]
 
-    chunk_size = 800
+    chunk_size = 350
     overlap = 50
 
     chunks = []
