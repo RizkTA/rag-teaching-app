@@ -57,30 +57,44 @@ def query(req: QueryRequest):
     except Exception as e:
         return {"error": str(e)}
 
+from threading import Thread
+from fastapi import UploadFile, File
+import os
 
-# =========================
-# INGEST (ASYNC SAFE)
-# =========================
 @app.post("/upload_file")
-async def upload_file(
-    file: UploadFile = File(...),
-    background_tasks: BackgroundTasks = None
-):
+async def upload_file(file: UploadFile = File(...)):
 
-    ingest_file = get_ingest()
+    try:
+        ingest_file = get_ingest()
 
-    content = await file.read()
+        content = await file.read()
 
-    path = f"/tmp/{file.filename}"
-    with open(path, "wb") as f:
-        f.write(content)
+        path = f"/tmp/{file.filename}"
+        with open(path, "wb") as f:
+            f.write(content)
 
-    background_tasks.add_task(ingest_file, path, file.filename)
+        # 🔥 RUN IN SEPARATE THREAD (CRITICAL FIX)
+        def run():
+            try:
+                import asyncio
 
-    return {
-        "success": True,
-        "message": "Processing started in background"
-    }
+                asyncio.run(ingest_file(path, file.filename))
+                print("🔥 ingestion complete")
+            except Exception as e:
+                print("❌ ingestion failed:", e)
+
+        Thread(target=run).start()
+
+        return {
+            "success": True,
+            "message": "Upload received. Processing started."
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 # =========================

@@ -1,8 +1,5 @@
 import os
 import uuid
-import tempfile
-
-from fastapi import UploadFile
 from pypdf import PdfReader
 
 from app.config import (
@@ -23,11 +20,9 @@ _upserter = None
 
 
 def get_store():
-
     global _store
 
     if _store is None:
-
         _store = QdrantStore(
             QDRANT_URL,
             QDRANT_COLLECTION,
@@ -38,22 +33,18 @@ def get_store():
 
 
 def get_upserter():
-
     global _upserter
 
     if _upserter is None:
-
-        _upserter = VectorUpsert(
-            get_store()
-        )
+        _upserter = VectorUpsert(get_store())
 
     return _upserter
 
 
 # ==========================================
-# SAFE CHUNKING
+# CHUNKING (SAFE)
 # ==========================================
-def chunk_text(text):
+def chunk_text(text: str):
 
     text = text[:20000]
 
@@ -67,7 +58,6 @@ def chunk_text(text):
     while start < len(text):
 
         end = start + chunk_size
-
         chunks.append(text[start:end])
 
         start += chunk_size - overlap
@@ -76,87 +66,60 @@ def chunk_text(text):
 
 
 # ==========================================
-# SAFE PDF READER
+# PDF READER
 # ==========================================
-def read_pdf(path):
+def read_pdf(path: str):
 
     reader = PdfReader(path)
 
-    pages = []
+    text = []
 
     for page in reader.pages:
 
         try:
-
-            txt = page.extract_text()
-
-            if txt:
-                pages.append(txt)
-
+            t = page.extract_text()
+            if t:
+                text.append(t)
         except:
             continue
 
-    return "\n".join(pages)
+    return "\n".join(text)
 
 
 # ==========================================
-# INGEST
+# MAIN INGEST (FIXED)
 # ==========================================
-async def ingest_file(file: UploadFile):
+def ingest_file(path: str, filename: str):
 
-    print("🔥 ingest start")
+    print("🔥 ingest start:", filename)
 
-    suffix = os.path.splitext(
-        file.filename
-    )[1].lower()
+    suffix = os.path.splitext(filename)[1].lower()
 
-    with tempfile.NamedTemporaryFile(
-        delete=False,
-        suffix=suffix
-    ) as tmp:
-
-        content = await file.read()
-
-        tmp.write(content)
-
-        path = tmp.name
-
-    print("🔥 temp file saved")
-
-    # ======================================
+    # =========================
     # READ FILE
-    # ======================================
+    # =========================
     if suffix == ".pdf":
-
         text = read_pdf(path)
 
     elif suffix in [".txt", ".md"]:
-
         with open(path, "r", encoding="utf-8") as f:
-
             text = f.read()
 
     else:
+        return {"error": "unsupported file type"}
 
+    # cleanup
+    try:
         os.remove(path)
+    except:
+        pass
 
-        return {
-            "error": "unsupported file"
-        }
+    if not text or not text.strip():
+        return {"error": "empty file"}
 
-    os.remove(path)
-
-    print("🔥 file parsed")
-
-    if not text.strip():
-
-        return {
-            "error": "empty text"
-        }
-
-    # ======================================
+    # =========================
     # CHUNK
-    # ======================================
+    # =========================
     chunks = chunk_text(text)
 
     print("🔥 chunks:", len(chunks))
@@ -166,35 +129,26 @@ async def ingest_file(file: UploadFile):
     for i, chunk in enumerate(chunks):
 
         structured.append({
-
             "id": str(uuid.uuid4()),
-
             "text": chunk,
-
-            "source": file.filename,
-
+            "source": filename,
             "chunk_id": i,
-
             "language": "text",
-
             "topic": "general",
-
             "metadata": {}
         })
 
-    # ======================================
+    # =========================
     # UPSERT
-    # ======================================
+    # =========================
     upserter = get_upserter()
 
-    result = upserter.upsert_chunks(
-        structured
-    )
+    result = upserter.upsert_chunks(structured)
 
     print("🔥 upsert done")
 
     return {
-        "filename": file.filename,
+        "filename": filename,
         "chunks": len(structured),
         "status": "ok",
         "qdrant": result
