@@ -11,27 +11,36 @@ from app.vectorstores.vector_upsert import VectorUpsert
 # =========================================================
 # SINGLETON CACHE (CRITICAL FOR RENDER 512MB)
 # =========================================================
-_store = None
-_upserter = None
+from typing import Optional
 
+from app.vectorstores.qdrant_store import QdrantStore
+from app.vectorstores.vector_upsert import VectorUpsert
+
+_store: Optional[QdrantStore] = None
+_upserter: Optional[VectorUpsert] = None
 
 def get_store():
     global _store
+
     if _store is None:
         _store = QdrantStore(
             QDRANT_URL,
             QDRANT_COLLECTION,
             EMBED_DIM
         )
+
     return _store
 
 
 def get_upserter():
     global _upserter
-    if _upserter is None:
-        _upserter = VectorUpsert(get_store())
-    return _upserter
 
+    if _upserter is None:
+        _upserter = VectorUpsert(
+            get_store()
+        )
+
+    return _upserter
 
 # =========================================================
 # CHUNKING (SAFE + SIMPLE)
@@ -43,10 +52,10 @@ def chunk_text(text: str):
         return [t.strip() for t in text.split("```") if t.strip()]
 
     # memory safe limit
-    text = text[:150_000]
+    text = text[:40000]
 
-    chunk_size = 500
-    overlap = 100
+    chunk_size = 800
+    overlap = 50
 
     chunks = []
     start = 0
@@ -102,6 +111,7 @@ async def ingest_file(file: UploadFile):
     # -------------------------
     # CHUNK
     # -------------------------
+    print("🔥 chunking")
     chunks = chunk_text(text)
 
     structured = []
@@ -120,7 +130,10 @@ async def ingest_file(file: UploadFile):
     # -------------------------
     # UPSERT (FAST + SAFE)
     # -------------------------
+    print("🔥 embedding/upsert")
     upserter = get_upserter()
+
+    print("🔥 embedding/upsert")
 
     result = upserter.upsert_chunks(structured)
 

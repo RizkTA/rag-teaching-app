@@ -54,6 +54,7 @@ def hybrid_search(query):
     )
 
     # 5. rerank
-    reranked = rerank(query, docs[:10])
+    #reranked = rerank(query, docs[:10])
 
-    return reranked[:5]
+    #return reranked[:5]
+    return docs[:5]

@@ -6,6 +6,7 @@ class VectorUpsert:
     def __init__(self, store):
         self.store = store
 
+    
     def upsert_chunks(self, chunks):
 
         texts = [c["text"] for c in chunks]

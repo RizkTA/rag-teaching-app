@@ -1,13 +1,16 @@
-from sentence_transformers import SentenceTransformer
-
 _embedder = None
 
-
 def get_embedder():
+
     global _embedder
 
     if _embedder is None:
-        _embedder = SentenceTransformer("BAAI/bge-small-en-v1.5")
+
+        from sentence_transformers import SentenceTransformer
+
+        _embedder = SentenceTransformer(
+            "all-MiniLM-L6-v2"
+        )
 
     return _embedder
 
@@ -19,7 +22,8 @@ def embed_texts(texts):
     embeddings = model.encode(
         texts,
         normalize_embeddings=True,
-        show_progress_bar=False
+        show_progress_bar=False,
+        batch_size=2
     )
 
     return embeddings.tolist()
