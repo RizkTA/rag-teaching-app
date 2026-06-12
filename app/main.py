@@ -1,8 +1,6 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from pydantic import BaseModel
 import os
-
-print("🔥 RAG v4 STARTING (CLEAN BOOT)")
 
 app = FastAPI()
 
@@ -21,11 +19,11 @@ def get_ingest():
 
 
 # =========================
-# HEALTH CHECK
+# HEALTH CHECK (CRITICAL FOR RENDER)
 # =========================
 @app.get("/")
 def root():
-    return {"status": "ok", "version": "v4"}
+    return {"status": "ok"}
 
 
 @app.head("/")
@@ -34,99 +32,69 @@ def head():
 
 
 # =========================
-# QUERY MODEL
+# QUERY
 # =========================
 class QueryRequest(BaseModel):
     q: str
 
 
-# =========================
-# QUERY ENDPOINT
-# =========================
 @app.post("/query")
 def query(req: QueryRequest):
 
     try:
         hybrid_search = get_hybrid_search()
-
         docs = hybrid_search(req.q)
 
         context = "\n\n".join(
-            [d.get("text", "") for d in docs]
+            d.get("text", "") for d in docs
         )[:2500]
 
-        answer = f"Context:\n{context}\n\nQ:{req.q}"
-
         return {
-            "answer": answer,
+            "answer": context,
             "sources": docs
         }
 
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        return {"error": str(e)}
 
-def run_ingestion(path: str, filename: str):
-
-    try:
-        ingest_file = get_ingest()
-
-        import asyncio
-
-        class FakeUpload:
-            def __init__(self, path, filename):
-                self.filename = filename
-                self.path = path
-
-            async def read(self):
-                with open(self.path, "rb") as f:
-                    return f.read()
-
-        file = FakeUpload(path, filename)
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        loop.run_until_complete(ingest_file(file))
-
-        print("🔥 ingestion complete:", filename)
-
-    except Exception as e:
-        print("❌ ingestion error:", e)
 
 # =========================
 # INGEST (ASYNC SAFE)
 # =========================
-
-from fastapi import BackgroundTasks
 @app.post("/upload_file")
 async def upload_file(
     file: UploadFile = File(...),
     background_tasks: BackgroundTasks = None
 ):
 
-    try:
-        ingest_file = get_ingest()
+    ingest_file = get_ingest()
 
-        # SAVE FILE FIRST (FAST)
-        temp_path = f"/tmp/{file.filename}"
+    content = await file.read()
 
-        content = await file.read()
+    path = f"/tmp/{file.filename}"
+    with open(path, "wb") as f:
+        f.write(content)
 
-        with open(temp_path, "wb") as f:
-            f.write(content)
+    background_tasks.add_task(ingest_file, path, file.filename)
 
-        # 🔥 RETURN IMMEDIATELY (IMPORTANT FIX)
-        background_tasks.add_task(run_ingestion, temp_path, file.filename)
+    return {
+        "success": True,
+        "message": "Processing started in background"
+    }
 
-        return {
-            "success": True,
-            "message": "File received. Processing in background."
-        }
 
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+# =========================
+# RUN
+# =========================
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 10000))
+
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=False,
+        workers=1
+    )
