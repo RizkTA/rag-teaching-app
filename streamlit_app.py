@@ -364,42 +364,45 @@ if st.session_state.authenticated:
         # =========================
         # SINGLE BUTTON ONLY (FIXED)
         # =========================
-        if st.button("📥 Upload & Ingest", key="upload_btn_main_clean"):
+        id = "3wltxy"
+        if st.button("📥 Upload & Ingest"):
 
-                progress = st.progress(0)
-                status = st.empty()
+            progress = st.progress(0)
 
-                try:
-                    status.write("Uploading...")
-                    progress.progress(30)
-                    st.write("🔥 Sending request...")
-                    res = requests.post(
-                        f"{API_URL}/upload_file",
-                        files={
-                            "file": (
-                                uploaded_file.name,
-                                uploaded_file,
-                                "application/pdf"
-                            )
-                        },
-                        timeout=300
+            try:
+
+                st.write("🔥 Sending request...")
+
+                progress.progress(20)
+
+                files = {
+                    "file": (
+                        uploaded_file.name,
+                        uploaded_file.getvalue(),
+                        "application/pdf"
                     )
+                }
 
+                res = requests.post(
+                    f"{API_URL}/upload_file",
+                    files=files,
+                    timeout=60
+                )
 
-                    st.write("🔥 Request returned")
+                st.write("🔥 Request returned")
 
-                    status.write("Processing...")
-                    progress.progress(70)
+                progress.progress(80)
 
-                    if res.status_code == 200:
-                        progress.progress(100)
-                        status.success("Done!")
-                        st.json(res.json())
-                    else:
-                        st.error(res.text)
+                st.write("STATUS:", res.status_code)
 
-                except Exception as e:
-                    st.error(str(e))
+                st.write("TEXT:", res.text)
+
+                progress.progress(100)
+
+            except Exception as e:
+
+                st.error(str(e))
+
 # =================================
 # FOOTER
 # =================================

@@ -10,6 +10,9 @@ print("🔥 MAIN STARTING (ULTRA LIGHT MODE)")
 app = FastAPI()
 
 
+print("🔥 APP IMPORTED - NO HEAVY LOAD DONE")
+
+
 # =====================================================
 # LAZY IMPORTS (CRITICAL FOR RENDER 512MB)
 # =====================================================
@@ -159,3 +162,17 @@ if __name__ == "__main__":
         reload=False,
         workers=1
     )
+@app.get("/reset")
+def reset():
+
+    from app.vectorstores.store_provider import get_store
+
+    store = get_store()
+
+    store.client.delete_collection(
+        collection_name=store.collection_name
+    )
+
+    store._ensure_collection()
+
+    return {"status": "reset"}

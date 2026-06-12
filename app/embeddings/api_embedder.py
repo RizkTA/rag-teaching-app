@@ -1,5 +1,6 @@
-_embedder = None
+from sentence_transformers import SentenceTransformer
 
+_embedder = None
 
 def get_embedder():
 
@@ -7,10 +8,8 @@ def get_embedder():
 
     if _embedder is None:
 
-        from sentence_transformers import SentenceTransformer
-
         _embedder = SentenceTransformer(
-            "BAAI/bge-small-en-v1.5"
+            "sentence-transformers/all-MiniLM-L6-v2"
         )
 
     return _embedder
