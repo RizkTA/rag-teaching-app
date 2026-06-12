@@ -386,7 +386,7 @@ if st.session_state.authenticated:
                 res = requests.post(
                     f"{API_URL}/upload_file",
                     files=files,
-                    timeout=60
+                    timeout=10
                 )
 
                 st.write("🔥 Request returned")

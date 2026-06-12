@@ -67,21 +67,62 @@ def query(req: QueryRequest):
             "error": str(e)
         }
 
-
-# =========================
-# INGEST (ASYNC SAFE)
-# =========================
-@app.post("/upload_file")
-async def upload_file(file: UploadFile = File(...)):
+def run_ingestion(path: str, filename: str):
 
     try:
         ingest_file = get_ingest()
 
-        result = await ingest_file(file)
+        import asyncio
+
+        class FakeUpload:
+            def __init__(self, path, filename):
+                self.filename = filename
+                self.path = path
+
+            async def read(self):
+                with open(self.path, "rb") as f:
+                    return f.read()
+
+        file = FakeUpload(path, filename)
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        loop.run_until_complete(ingest_file(file))
+
+        print("🔥 ingestion complete:", filename)
+
+    except Exception as e:
+        print("❌ ingestion error:", e)
+
+# =========================
+# INGEST (ASYNC SAFE)
+# =========================
+
+from fastapi import BackgroundTasks
+@app.post("/upload_file")
+async def upload_file(
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None
+):
+
+    try:
+        ingest_file = get_ingest()
+
+        # SAVE FILE FIRST (FAST)
+        temp_path = f"/tmp/{file.filename}"
+
+        content = await file.read()
+
+        with open(temp_path, "wb") as f:
+            f.write(content)
+
+        # 🔥 RETURN IMMEDIATELY (IMPORTANT FIX)
+        background_tasks.add_task(run_ingestion, temp_path, file.filename)
 
         return {
             "success": True,
-            "result": result
+            "message": "File received. Processing in background."
         }
 
     except Exception as e:
