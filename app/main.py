@@ -2,28 +2,17 @@ from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 import os
 
-print("🔥 MAIN STARTING (ULTRA LIGHT MODE)")
+print("🔥 RAG v4 STARTING (CLEAN BOOT)")
 
-# =====================================================
-# FASTAPI APP
-# =====================================================
 app = FastAPI()
 
 
-print("🔥 APP IMPORTED - NO HEAVY LOAD DONE")
-
-
-# =====================================================
-# LAZY IMPORTS (CRITICAL FOR RENDER 512MB)
-# =====================================================
+# =========================
+# LAZY IMPORTS ONLY
+# =========================
 def get_hybrid_search():
-    from app.retrieval.hybrid_search import hybrid_search
-    return hybrid_search
-
-
-def get_stream_answer():
-    from app.llm.streaming import stream_answer
-    return stream_answer
+    from app.retrieval.hybrid_search import hybrid_search_impl
+    return hybrid_search_impl
 
 
 def get_ingest():
@@ -31,148 +20,72 @@ def get_ingest():
     return ingest_file
 
 
-# =====================================================
+# =========================
 # HEALTH CHECK
-# =====================================================
+# =========================
 @app.get("/")
 def root():
-    return {
-        "status": "ok",
-        "message": "RIZK AI Backend Running"
-    }
+    return {"status": "ok", "version": "v4"}
 
 
 @app.head("/")
-def root_head():
+def head():
     return ""
 
 
-# =====================================================
-# REQUEST MODEL
-# =====================================================
+# =========================
+# QUERY MODEL
+# =========================
 class QueryRequest(BaseModel):
     q: str
 
 
-# =====================================================
+# =========================
 # QUERY ENDPOINT
-# =====================================================
+# =========================
 @app.post("/query")
 def query(req: QueryRequest):
 
     try:
-
-        print("🔥 query received")
-
         hybrid_search = get_hybrid_search()
-        stream_answer = get_stream_answer()
 
-        results = hybrid_search(req.q)
+        docs = hybrid_search(req.q)
 
         context = "\n\n".join(
-            [
-                r.get("text", "")
-                for r in results
-                if r.get("text")
-            ]
+            [d.get("text", "") for d in docs]
         )[:2500]
 
-        prompt = f"""
-Use ONLY the context below.
-
-If the answer is not found, say:
-"I don't know based on the documents."
-
-Context:
-{context}
-
-Question:
-{req.q}
-
-Answer:
-"""
-
-        answer = "".join(
-            stream_answer(prompt)
-        )
+        answer = f"Context:\n{context}\n\nQ:{req.q}"
 
         return {
             "answer": answer,
-            "sources": results
+            "sources": docs
         }
 
     except Exception as e:
-
-        print("❌ QUERY ERROR:", str(e))
-
         return {
-            "answer": f"System error: {str(e)}",
-            "sources": []
-        }
-
-
-# =====================================================
-# INGEST ENDPOINT
-# =====================================================
-@app.post("/upload_file")
-async def upload_file(file: UploadFile = File(...)):
-
-    print("🔥 upload endpoint hit")
-
-    try:
-
-        print("🔥 filename:", file.filename)
-
-        ingest_file = get_ingest()
-
-        result = await ingest_file(file)
-
-        print("🔥 ingest complete")
-
-        return {
-            "success": True,
-            "details": result
-        }
-
-    except Exception as e:
-
-        print("❌ upload error:", str(e))
-
-        return {
-            "success": False,
             "error": str(e)
         }
 
 
-# =====================================================
-# LOCAL RUN ONLY
-# =====================================================
-if __name__ == "__main__":
+# =========================
+# INGEST (ASYNC SAFE)
+# =========================
+@app.post("/upload_file")
+async def upload_file(file: UploadFile = File(...)):
 
-    import uvicorn
+    try:
+        ingest_file = get_ingest()
 
-    port = int(
-        os.environ.get("PORT", 10000)
-    )
+        result = await ingest_file(file)
 
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=port,
-        reload=False,
-        workers=1
-    )
-@app.get("/reset")
-def reset():
+        return {
+            "success": True,
+            "result": result
+        }
 
-    from app.vectorstores.store_provider import get_store
-
-    store = get_store()
-
-    store.client.delete_collection(
-        collection_name=store.collection_name
-    )
-
-    store._ensure_collection()
-
-    return {"status": "reset"}
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
