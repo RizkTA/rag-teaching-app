@@ -1,9 +1,9 @@
 import os
 import uuid
 import tempfile
-import gc
 
 from fastapi import UploadFile
+from pypdf import PdfReader
 
 from app.config import (
     QDRANT_URL,
@@ -15,14 +15,15 @@ from app.vectorstores.qdrant_store import QdrantStore
 from app.vectorstores.vector_upsert import VectorUpsert
 
 
-# =========================================================
-# SINGLETON CACHE
-# =========================================================
+# ==========================================
+# SINGLETONS
+# ==========================================
 _store = None
 _upserter = None
 
 
 def get_store():
+
     global _store
 
     if _store is None:
@@ -37,6 +38,7 @@ def get_store():
 
 
 def get_upserter():
+
     global _upserter
 
     if _upserter is None:
@@ -48,27 +50,15 @@ def get_upserter():
     return _upserter
 
 
-# =========================================================
-# CHUNKING
-# =========================================================
-def chunk_text(text: str):
+# ==========================================
+# SAFE CHUNKING
+# ==========================================
+def chunk_text(text):
 
-    # CODE BLOCK PRESERVATION
-    if "```" in text:
-
-        chunks = [
-            t.strip()
-            for t in text.split("```")
-            if t.strip()
-        ]
-
-        return chunks[:40]
-
-    # MEMORY LIMIT
-    text = text[:30000]
+    text = text[:20000]
 
     chunk_size = 300
-    overlap = 40
+    overlap = 50
 
     chunks = []
 
@@ -78,21 +68,17 @@ def chunk_text(text: str):
 
         end = start + chunk_size
 
-        chunks.append(
-            text[start:end]
-        )
+        chunks.append(text[start:end])
 
         start += chunk_size - overlap
 
-    return chunks[:60]
+    return chunks
 
 
-# =========================================================
+# ==========================================
 # SAFE PDF READER
-# =========================================================
+# ==========================================
 def read_pdf(path):
-
-    from pypdf import PdfReader
 
     reader = PdfReader(path)
 
@@ -113,21 +99,17 @@ def read_pdf(path):
     return "\n".join(pages)
 
 
-# =========================================================
-# INGEST FILE
-# =========================================================
+# ==========================================
+# INGEST
+# ==========================================
 async def ingest_file(file: UploadFile):
 
-    if not file.filename:
-        return {"error": "missing filename"}
+    print("🔥 ingest start")
 
     suffix = os.path.splitext(
         file.filename
     )[1].lower()
 
-    # =====================================================
-    # SAVE TEMP FILE
-    # =====================================================
     with tempfile.NamedTemporaryFile(
         delete=False,
         suffix=suffix
@@ -139,74 +121,46 @@ async def ingest_file(file: UploadFile):
 
         path = tmp.name
 
-    # FREE MEMORY IMMEDIATELY
-    del content
-    gc.collect()
+    print("🔥 temp file saved")
 
-    # =====================================================
+    # ======================================
     # READ FILE
-    # =====================================================
-    try:
+    # ======================================
+    if suffix == ".pdf":
 
-        if suffix == ".pdf":
+        text = read_pdf(path)
 
-            text = read_pdf(path)
+    elif suffix in [".txt", ".md"]:
 
-        elif suffix in [".txt", ".md"]:
+        with open(path, "r", encoding="utf-8") as f:
 
-            with open(
-                path,
-                "r",
-                encoding="utf-8",
-                errors="ignore"
-            ) as f:
+            text = f.read()
 
-                text = f.read()
-
-        else:
-
-            os.remove(path)
-
-            return {
-                "error": "unsupported file type"
-            }
-
-    except Exception as e:
+    else:
 
         os.remove(path)
 
         return {
-            "error": f"read error: {str(e)}"
+            "error": "unsupported file"
         }
 
-    # CLEANUP TEMP FILE
     os.remove(path)
 
-    # =====================================================
-    # CLEAN TEXT
-    # =====================================================
-    text = text.strip()
+    print("🔥 file parsed")
 
-    if not text:
+    if not text.strip():
 
         return {
-            "error": "empty file"
+            "error": "empty text"
         }
 
-    # =====================================================
+    # ======================================
     # CHUNK
-    # =====================================================
-    print("🔥 chunking")
-
+    # ======================================
     chunks = chunk_text(text)
 
-    # FREE MEMORY
-    del text
-    gc.collect()
+    print("🔥 chunks:", len(chunks))
 
-    # =====================================================
-    # STRUCTURE CHUNKS
-    # =====================================================
     structured = []
 
     for i, chunk in enumerate(chunks):
@@ -228,26 +182,20 @@ async def ingest_file(file: UploadFile):
             "metadata": {}
         })
 
-    # =====================================================
+    # ======================================
     # UPSERT
-    # =====================================================
-    print("🔥 embedding/upsert")
-
+    # ======================================
     upserter = get_upserter()
 
     result = upserter.upsert_chunks(
         structured
     )
 
-    # FINAL CLEANUP
-    del structured
-    del chunks
-
-    gc.collect()
+    print("🔥 upsert done")
 
     return {
         "filename": file.filename,
-        "chunks": len(chunks),
+        "chunks": len(structured),
         "status": "ok",
         "qdrant": result
     }

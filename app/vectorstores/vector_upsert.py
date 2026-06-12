@@ -11,65 +11,38 @@ class VectorUpsert:
 
         self.batch_size = 4
 
+
     def upsert_chunks(self, chunks):
+        print("🔥 embedding start")
 
-        inserted = 0
+        texts = [c["text"] for c in chunks]
 
-        for start in range(0, len(chunks), self.batch_size):
+        vectors = embed_texts(texts)
 
-            batch = chunks[
-                start:start + self.batch_size
-            ]
+        print("🔥 embedding DONE")
 
-            texts = [
-                c["text"]
-                for c in batch
-            ]
+        ids = [c["id"] for c in chunks]
 
-            vectors = embed_texts(texts)
+        payloads = [
+            {
+                "text": c["text"],
+                "source": c.get("source"),
+                "chunk_id": c.get("chunk_id"),
+                "language": c.get("language"),
+                "topic": c.get("topic"),
+                "metadata": c.get("metadata", {})
+            }
+            for c in chunks
+        ]
 
-            ids = [
-                c["id"]
-                for c in batch
-            ]
+        print("🔥 qdrant upsert start")
 
-            payloads = []
+        self.store.upsert(ids, vectors, payloads)
 
-            for c in batch:
-
-                payloads.append({
-
-                    "text": c["text"],
-
-                    "source": c.get("source"),
-
-                    "chunk_id": c.get("chunk_id"),
-
-                    "language": c.get("language"),
-
-                    "topic": c.get("topic"),
-
-                    "metadata": c.get("metadata", {})
-                })
-
-            self.store.upsert(
-                ids,
-                vectors,
-                payloads
-            )
-
-            inserted += len(batch)
-
-            # MEMORY CLEANUP
-            del texts
-            del vectors
-            del ids
-            del payloads
-            del batch
-
-            gc.collect()
+        print("🔥 qdrant upsert DONE")
 
         return {
-            "inserted": inserted,
+            "inserted": len(chunks),
             "status": "ok"
         }
+

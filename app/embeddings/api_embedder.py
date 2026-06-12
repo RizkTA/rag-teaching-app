@@ -9,10 +9,8 @@ def get_embedder():
 
         from sentence_transformers import SentenceTransformer
 
-        print("🔥 Loading lightweight embedder...")
-
         _embedder = SentenceTransformer(
-            "sentence-transformers/all-MiniLM-L6-v2"
+            "BAAI/bge-small-en-v1.5"
         )
 
     return _embedder

@@ -1,21 +1,24 @@
-# app/vectorstores/store_provider.py
+from app.config import (
+    QDRANT_URL,
+    QDRANT_COLLECTION,
+    EMBED_DIM
+)
 
-from functools import lru_cache
-from app.config import QDRANT_URL, QDRANT_COLLECTION, EMBED_DIM
+from app.vectorstores.qdrant_store import QdrantStore
+
+_store = None
 
 
-@lru_cache(maxsize=1)
 def get_store():
-    """
-    Lazy singleton Qdrant store.
-    Only created when first used (NOT at startup).
-    Prevents Render OOM crashes.
-    """
 
-    from app.vectorstores.qdrant_store import QdrantStore
+    global _store
 
-    return QdrantStore(
-        url=QDRANT_URL,
-        collection_name=QDRANT_COLLECTION,
-        embed_dim=EMBED_DIM
-    )
+    if _store is None:
+
+        _store = QdrantStore(
+            QDRANT_URL,
+            QDRANT_COLLECTION,
+            EMBED_DIM
+        )
+
+    return _store

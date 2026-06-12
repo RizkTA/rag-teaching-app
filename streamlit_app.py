@@ -372,18 +372,21 @@ if st.session_state.authenticated:
                 try:
                     status.write("Uploading...")
                     progress.progress(30)
-
+                    st.write("🔥 Sending request...")
                     res = requests.post(
                         f"{API_URL}/upload_file",
                         files={
                             "file": (
                                 uploaded_file.name,
-                                uploaded_file.getvalue(),
-                                "application/octet-stream"
+                                uploaded_file,
+                                "application/pdf"
                             )
                         },
-                        timeout=1200
+                        timeout=300
                     )
+
+
+                    st.write("🔥 Request returned")
 
                     status.write("Processing...")
                     progress.progress(70)
