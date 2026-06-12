@@ -19,4 +19,4 @@ QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "docs")
 EMBED_DIM = int(os.getenv("EMBED_DIM", "384"))
 
 # embedding model name
-EMBED_MODEL = 768
+EMBED_MODEL = 384

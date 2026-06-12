@@ -1,5 +1,6 @@
 _embedder = None
 
+
 def get_embedder():
 
     global _embedder
@@ -8,8 +9,10 @@ def get_embedder():
 
         from sentence_transformers import SentenceTransformer
 
+        print("🔥 Loading lightweight embedder...")
+
         _embedder = SentenceTransformer(
-            "all-MiniLM-L6-v2"
+            "sentence-transformers/all-MiniLM-L6-v2"
         )
 
     return _embedder
