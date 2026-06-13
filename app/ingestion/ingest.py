@@ -83,6 +83,17 @@ def read_pdf(path: str):
         except:
             continue
 
+    def clean_text(text: str):
+        return (
+            text.encode("utf-8", errors="ignore")
+            .decode("utf-8", errors="ignore")
+            .replace("â", "-")
+            .replace("Â", "")
+            .replace("\n", " ")
+            .strip()
+        )
+
+    text = clean_text(text)
     return "\n".join(text)
 
 

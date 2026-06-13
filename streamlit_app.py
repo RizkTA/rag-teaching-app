@@ -8,6 +8,7 @@ import os
 # CONFIG
 # =================================
 API_URL = "https://rag-teaching-app.onrender.com"
+#API_URL = "http://localhost:8000"
 
 UPLOAD_PASSWORD = os.getenv(
     "UPLOAD_PASSWORD",
@@ -126,7 +127,7 @@ st.divider()
 # ==============================
 import time
 
-st.subheader("💬 Chat with RAG Assistant")
+st.subheader("💬 Chat with Rizk AI Assistant")
 
 # =========================
 # CHAT INPUT (ChatGPT STYLE)
@@ -153,11 +154,28 @@ if submitted and query.strip():
                 timeout=120
             )
 
-            data = res.json()
+            # =========================
+            # SAFE STATUS CHECK
+            # =========================
+            if res.status_code != 200:
+                st.error("Backend error")
+                st.code(res.text)
+                st.stop()
+
+            # =========================
+            # SAFE JSON PARSE (ONLY ONCE)
+            # =========================
+            try:
+                data = res.json()
+            except Exception:
+                st.error("Invalid JSON from backend")
+                st.code(res.text)
+                st.stop()
+
             answer = data.get("answer", "")
 
             # =========================
-            # STREAMING EFFECT (FAKE GPT STYLE)
+            # STREAMING EFFECT
             # =========================
             placeholder = st.empty()
             streamed = ""
@@ -174,7 +192,8 @@ if submitted and query.strip():
             })
 
         except Exception as e:
-            st.error(str(e))
+            st.error(f"Request failed: {str(e)}")
+            st.stop()
 # =================================
 # PINNED ANSWERS
 # =================================
@@ -364,7 +383,7 @@ if st.session_state.authenticated:
         # =========================
         # SINGLE BUTTON ONLY (FIXED)
         # =========================
-        id = "3wltxy"
+
         if st.button("📥 Upload & Ingest"):
 
             progress = st.progress(0)

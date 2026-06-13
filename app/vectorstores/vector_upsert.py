@@ -1,25 +1,22 @@
-import gc
-
 from app.embeddings.api_embedder import embed_texts
 
 
 class VectorUpsert:
 
     def __init__(self, store):
-
         self.store = store
 
-        self.batch_size = 4
-
-
     def upsert_chunks(self, chunks):
-        print("🔥 embedding start")
+
+        print("🔥 upsert_chunks start")
 
         texts = [c["text"] for c in chunks]
 
+        print("🔥 embedding texts:", len(texts))
+
         vectors = embed_texts(texts)
 
-        print("🔥 embedding DONE")
+        print("🔥 embeddings done")
 
         ids = [c["id"] for c in chunks]
 
@@ -35,14 +32,13 @@ class VectorUpsert:
             for c in chunks
         ]
 
-        print("🔥 qdrant upsert start")
+        print("🔥 qdrant upsert")
 
         self.store.upsert(ids, vectors, payloads)
 
-        print("🔥 qdrant upsert DONE")
+        print("🔥 qdrant complete")
 
         return {
             "inserted": len(chunks),
             "status": "ok"
         }
-
