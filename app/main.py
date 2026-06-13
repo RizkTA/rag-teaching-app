@@ -1,82 +1,44 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI
 from pydantic import BaseModel
-import tempfile
-import os
 
-PORT = int(os.getenv("PORT", 8000))
-from app.llm.streaming import stream_answer
 from app.retrieval.hybrid_search import hybrid_search_impl
+from app.llm.streaming import stream_answer
 
-def clean_text(text: str):
-    return (
-        text.replace("â", "-")
-            .replace("Â", "")
-            .replace("\n", " ")
-            .strip()
-    )
 app = FastAPI()
 
 
-# =========================
-# MODELS
-# =========================
 class QueryRequest(BaseModel):
     q: str
 
 
-# =========================
-# HEALTH
-# =========================
 @app.get("/")
 def root():
-    return {"status": "ok", "message": "RAG v6 running"}
+
+    return {
+        "status": "ok",
+        "version": "RAG v7"
+    }
 
 
-# =========================
-# QUERY ENDPOINT (SAFE)
-# =========================
 @app.post("/query")
 def query(req: QueryRequest):
 
     try:
+
         results = hybrid_search_impl(req.q)
 
         if not results:
+
             return {
-                "answer": "I don't know based on the documents.",
+                "answer":
+                "I don't know based on the documents.",
                 "sources": []
             }
 
-        # =========================
-        # SAFE CONTEXT BUILDING
-        # =========================
-        safe_texts = []
-        safe_sources = []
+        context = "\n\n".join(
+            [r["text"] for r in results]
+        )[:2500]
 
-        for r in results:
-            if not isinstance(r, dict):
-                continue
-
-            text = r.get("text") or ""
-            if not text:
-                continue
-
-            cleaned = clean_text(text)
-            safe_texts.append(cleaned)
-
-            safe_sources.append({
-                "text": cleaned,
-                "score": float(r.get("score") or 0.0),
-                "source": r.get("source") or "unknown"
-            })
-
-        context = "\n\n".join(safe_texts)
-
-        # optional safety limit (not character cut mid-sentence)
-        if len(context) > 3500:
-            context = context[:3500].rsplit(" ", 1)[0]
-
-        context = context.replace("\n", " ")
         prompt = f"""
         You are a helpful teaching assistant.
 
@@ -101,71 +63,37 @@ def query(req: QueryRequest):
         Answer:
         """
 
-        # =========================
-        # SINGLE LLM CALL (FIXED)
-        # =========================
-        raw_answer = stream_answer(prompt)
-
         answer = ""
 
-        # CASE 1: string output
-        if isinstance(raw_answer, str):
-            answer = raw_answer
+        for chunk in stream_answer(prompt):
 
-        # CASE 2: dict output
-        elif isinstance(raw_answer, dict):
-            answer = raw_answer.get("response", "")
-
-        # CASE 3: list output
-        elif isinstance(raw_answer, list):
-            answer = "".join(str(x) for x in raw_answer)
-
-        # CASE 4: generator
-        else:
-            try:
-                for chunk in raw_answer:
-                    if isinstance(chunk, dict):
-                        answer += chunk.get("response", "")
-                    else:
-                        answer += str(chunk)
-            except Exception:
-                answer = str(raw_answer)
+            if isinstance(chunk, dict):
+                answer += chunk.get(
+                    "response",
+                    ""
+                )
+            else:
+                answer += str(chunk)
 
         answer = answer.strip()
 
         if not answer:
-            answer = "I don't know based on the documents."
+            answer = (
+                "I don't know based on the documents."
+            )
 
         return {
             "answer": answer,
-            "sources": safe_sources
+            "sources": results
         }
 
     except Exception as e:
+
         import traceback
+
         traceback.print_exc()
 
         return {
             "answer": f"System error: {str(e)}",
             "sources": []
         }
-# =========================
-# UPLOAD (SAFE + SIMPLE)
-# =========================
-@app.post("/upload_file")
-async def upload_file(file: UploadFile = File(...)):
-
-    from app.ingestion.ingest import ingest_file
-
-    suffix = os.path.splitext(file.filename)[1]
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(await file.read())
-        path = tmp.name
-
-    result = ingest_file(path, file.filename)
-
-    return {
-        "success": True,
-        "details": result
-    }

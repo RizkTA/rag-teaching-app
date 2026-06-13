@@ -145,7 +145,7 @@ if submitted and query.strip():
         "content": query
     })
 
-    with st.spinner("🧠 Thinking..."):
+    with st.spinner("🧠 Thinking...🧠"):
 
         try:
             res = requests.post(
