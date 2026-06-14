@@ -26,9 +26,10 @@ class QueryRequest(BaseModel):
 def root():
 
     return {
-        "status": "ok",
-        "version": "RAG v7"
+        "status": "RIZK AI backend running"
     }
+
+
 @app.post("/query")
 def query(req: QueryRequest):
 
