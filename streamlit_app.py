@@ -9,10 +9,9 @@ from datetime import datetime
 # =================================
 # CONFIG
 # =================================
-API_URL = "http://localhost:8000"
-
+API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
-
+st.write("API_URL =", API_URL)
 # =================================
 # SESSION STATE
 # =================================
