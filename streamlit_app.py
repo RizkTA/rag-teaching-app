@@ -2,18 +2,16 @@ import streamlit as st
 import requests
 import base64
 import os
-
+import time
+import re
+from datetime import datetime
 
 # =================================
 # CONFIG
 # =================================
-API_URL = "https://rag-teaching-app.onrender.com"
-#API_URL = "http://localhost:8000"
+API_URL = "http://localhost:8000"
 
-UPLOAD_PASSWORD = os.getenv(
-    "UPLOAD_PASSWORD",
-    "supersecret123"
-)
+UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
 
 # =================================
 # SESSION STATE
@@ -24,47 +22,48 @@ if "messages" not in st.session_state:
 if "pinned" not in st.session_state:
     st.session_state.pinned = []
 
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if "favorites" not in st.session_state:
+    st.session_state.favorites = []
 # =================================
-# CUSTOM CSS
+# CSS
 # =================================
 st.markdown("""
 <style>
-/* USER MESSAGE */
 .user-bubble {
-    background-color: #E8F0FE;
-    color: black;
-    padding: 15px;
-    border-radius: 15px;
-    margin-bottom: 10px;
-    border-left: 5px solid #4285F4;
+    background: #E8F0FE;
+    padding: 14px;
+    border-radius: 12px;
+    margin: 8px 0;
+    border-left: 3px solid #4CAF50;
 }
 
-/* AI MESSAGE */
 .bot-bubble {
-    background-color: #FFF8E1;
-    color: black;
-    padding: 15px;
-    border-radius: 15px;
-    margin-bottom: 20px;
-    border-left: 5px solid #F4B400;
+    background: #FFFFE0;
+    padding: 14px;
+    border-radius: 12px;
+    margin: 8px 0;
+    border-left: 3px solid #4CAF50;
 }
 
-/* PINNED CARD */
 .pin-card {
     background: #F5F5F5;
-    color: black;
     border-left: 5px solid #FFD700;
     padding: 12px;
     border-radius: 10px;
     margin-bottom: 10px;
 }
+.pinned-container {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
 
-/* FOOTER */
-.footer {
-    text-align:center;
-    padding-top:20px;
-    color:gray;
-    font-size:14px;
+.favorite-star {
+    color: gold;
+    font-size: 22px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -72,12 +71,7 @@ st.markdown("""
 # =================================
 # PAGE CONFIG
 # =================================
-st.set_page_config(
-    page_title="RIZK AI Assistant",
-    page_icon="📕",
-    layout="wide"
-)
-
+st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 
 # =================================
 # HEADER
@@ -85,67 +79,53 @@ st.set_page_config(
 col1, col2 = st.columns([1, 6])
 
 with col1:
-
     try:
-
         with open("RIZKRED.png", "rb") as f:
-
-            data = base64.b64encode(
-                f.read()
-            ).decode()
-
-        st.markdown(
-            f"""
-            <img src="data:image/png;base64,{data}" width="120">
-            """,
-            unsafe_allow_html=True
-        )
+            data = base64.b64encode(f.read()).decode()
+        st.markdown(f"<img src='data:image/png;base64,{data}' width='120'>", unsafe_allow_html=True)
     except:
         st.write("📕")
 
 with col2:
-
-    st.title(" 📕 RIZK AI Assistant")
-
-    st.markdown(
-        "       AI-powered Teaching Assistant "
-    )
-
+    st.title("📕 RIZK AI Assistant")
+    st.markdown("AI-powered Teaching Assistant")
 
 st.divider()
 
+# =================================
+# LOTTIE ICON
+# =================================
+def load_lottie(url):
+    try:
+        r = requests.get(url, timeout=10)
+        return r.json() if r.status_code == 200 else None
+    except:
+        return None
+
+lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsrox.json")
 
 # =================================
-# ASK QUESTIONS
+# CHAT INPUT
 # =================================
+st.subheader("💬 Chat with RIZK AI")
 
-# =================================
-# ASK QUESTIONS
-# =================================
-# ==============================
-# ASK QUESTIONS (INPUT + BUTTON)
-# ==============================
-import time
-
-st.subheader("💬 Chat with Rizk AI Assistant")
-
-# =========================
-# CHAT INPUT (ChatGPT STYLE)
-# =========================
 with st.form("chat_form", clear_on_submit=True):
+    col1, col2 = st.columns([8, 1])
 
-    query = st.text_input("Ask a question...", key="chat_input")
+    with col1:
+        query = st.text_input("Ask a question...", label_visibility="collapsed")
 
-    submitted = st.form_submit_button("🚀 Send")
+    with col2:
+        submitted = st.form_submit_button("➤")
 
+# =================================
+# CALL BACKEND
+# =================================
 if submitted and query.strip():
 
-    st.session_state.messages.append({
-        "role": "user",
-        "content": query
-    })
+    st.session_state.messages.append({"role": "user", "content": query})
 
-    with st.spinner("🧠 Thinking...🧠"):
+    with st.spinner("🧠 Thinking..."):
 
         try:
             res = requests.post(
@@ -154,29 +134,19 @@ if submitted and query.strip():
                 timeout=120
             )
 
-            # =========================
-            # SAFE STATUS CHECK
-            # =========================
             if res.status_code != 200:
                 st.error("Backend error")
                 st.code(res.text)
                 st.stop()
 
-            # =========================
-            # SAFE JSON PARSE (ONLY ONCE)
-            # =========================
-            try:
-                data = res.json()
-            except Exception:
-                st.error("Invalid JSON from backend")
-                st.code(res.text)
-                st.stop()
+            data = res.json()
 
             answer = data.get("answer", "")
 
-            # =========================
-            # STREAMING EFFECT
-            # =========================
+            # CLEAN
+            answer = re.sub(r"dlab\d+_\d+", "", answer).strip()
+
+            # STREAM
             placeholder = st.empty()
             streamed = ""
 
@@ -192,235 +162,569 @@ if submitted and query.strip():
             })
 
         except Exception as e:
-            st.error(f"Request failed: {str(e)}")
-            st.stop()
+            st.error(str(e))
+
+    st.rerun()
 # =================================
-# PINNED ANSWERS
+# PINNED NOTEBOOK V2
 # =================================
 if st.session_state.pinned:
 
-    st.markdown("## 📌 Pinned Answers")
+    st.markdown("## 📚 AI Study Notebook")
 
-    for pin in st.session_state.pinned:
+    # =========================
+    # SEARCH
+    # =========================
+    search_pin = st.text_input(
+        "🔍 Search pinned notes"
+    )
+
+    # =========================
+    # EXPORT
+    # =========================
+    export_text = ""
+
+    for p in st.session_state.pinned:
+        export_text += (
+            f"QUESTION:\n{p['question']}\n\n"
+            f"ANSWER:\n{p['answer']}\n\n"
+            f"{'-'*50}\n"
+        )
+
+    st.download_button(
+        "📥 Export Notes",
+        export_text,
+        file_name="rizk_ai_notes.txt"
+    )
+
+    # =========================
+    # DELETE ALL
+    # =========================
+    if st.button("🗑 Clear All Notes"):
+
+        st.session_state.pinned = []
+        st.rerun()
+
+    st.markdown("---")
+
+    st.markdown(
+        "<div class='pinned-container'>",
+        unsafe_allow_html=True
+    )
+
+    for idx, pin in enumerate(st.session_state.pinned):
+
+        # search filter
+        if search_pin:
+
+            if (
+                search_pin.lower()
+                not in pin["question"].lower()
+                and
+                search_pin.lower()
+                not in pin["answer"].lower()
+            ):
+                continue
+
+        favorite = pin.get("favorite", False)
+
+        star = "⭐" if favorite else "☆"
+
         st.markdown(
             f"""
             <div class="pin-card">
-                <b>❓ {pin['question']}</b><br><br>
-                📘 {pin['answer']}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-# =================================
-# CHAT HISTORY
-# =================================
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                ">
 
-# =================================
-# CHAT HISTORY
-# =================================
-for i, msg in enumerate(st.session_state.messages):
+                    <b>💡 {pin['question']}</b>
 
-    # =========================
-    # USER MESSAGE
-    # =========================
-    if msg["role"] == "user":
+                    <span class="favorite-star">
+                        {star}
+                    </span>
 
-        st.markdown(
-            f"""
-            <div class="user-bubble">
-                <b>❓ You:</b><br><br>
-                {msg['content']}
+                </div>
+
+                <br>
+
+                {pin['answer']}
             </div>
             """,
             unsafe_allow_html=True
         )
 
-    # =========================
-    # ASSISTANT MESSAGE
-    # =========================
-    else:
-
-        st.markdown(
-            f"""
-            <div class="bot-bubble">
-                <b>📘 RIZK AI Assistant:</b><br><br>
-                {msg['content']}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        # Sources
-        citations = msg.get("citations", [])
-
-        if citations:
-
-            with st.expander("📚 Sources"):
-
-                for c in citations:
-                    source = c.get(
-                        "source",
-                        "unknown"
-                    )
-
-                    score = round(
-                        c.get("score", 0),
-                        3
-                    )
-
-                    st.write(
-                        f"• {source} (score: {score})"
-                    )
-
-        # Buttons row
         col1, col2 = st.columns(2)
 
-        # Pin button
+        # FAVORITE
         with col1:
 
             if st.button(
-                    "📌 Pin",
-                    key=f"pin_{i}"
+                "⭐ Favorite",
+                key=f"fav_{idx}"
             ):
 
-                previous_question = ""
-
-                # find previous user message
-                for j in range(i - 1, -1, -1):
-
-                    if st.session_state.messages[j]["role"] == "user":
-                        previous_question = st.session_state.messages[j]["content"]
-                        break
-
-                st.session_state.pinned.append({
-                    "question": previous_question,
-                    "answer": msg["content"]
-                })
-
-                st.success("Pinned!")
-
-        # Delete button
-        with col2:
-
-            if st.button(
-                    "🗑 Delete",
-                    key=f"delete_{i}"
-            ):
-                st.session_state.messages.pop(i)
+                st.session_state.pinned[idx]["favorite"] = (
+                    not favorite
+                )
 
                 st.rerun()
 
-st.markdown("<div id='end'></div>", unsafe_allow_html=True)
-st.markdown("<script>document.getElementById('end').scrollIntoView();</script>", unsafe_allow_html=True)
-# =================================
+        # UNPIN
+        with col2:
 
-# PDF UPLOAD
+            if st.button(
+                "❌ Remove",
+                key=f"remove_{idx}"
+            ):
+
+                st.session_state.pinned.pop(idx)
+
+                st.rerun()
+
+        st.markdown("---")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+# =================================
+# CHAT HISTORY (CLEAN)
+# =================================
+for i, msg in enumerate(st.session_state.messages):
+
+    # USER
+    if msg["role"] == "user":
+  #      col1, col2 = st.columns([0.01, 10])  # almost no space for icon
+
+   #     with col2:
+            st.markdown(
+                f"""
+                <div class="user-bubble">
+                    <b>💡You:</b><br><br>
+                    {msg['content']}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+    # ASSISTANT
+    else:
+        # =================================
+        # PIN BUTTON
+        # =================================
+        if st.button(
+                "📌 Save to Notes (Press ⬅️ Back to export saved notes)",
+                key=f"pin_{i}"
+        ):
+
+            previous_question = ""
+
+            for j in range(i - 1, -1, -1):
+
+                if st.session_state.messages[j]["role"] == "user":
+                    previous_question = (
+                        st.session_state.messages[j]["content"]
+                    )
+
+                    break
+
+            # prevent duplicates
+            already_exists = any(
+                p["question"] == previous_question
+                for p in st.session_state.pinned
+            )
+
+            if already_exists:
+
+                st.warning("Already saved")
+
+            else:
+
+                st.session_state.pinned.append({
+                    "question": previous_question,
+                    "answer": msg["content"],
+                    "favorite": False
+                })
+
+                st.success("Saved to notebook")
+        st.markdown(f"""
+        <div class="bot-bubble">
+            <b>📘 RIZK AI Assistant:</b><br><br>
+            {msg['content']}
+        </div>
+        """, unsafe_allow_html=True)
+
+        citations = msg.get("citations", [])
+
+        if citations:
+           # best = max(citations, key=lambda x: x.get("score", 0))
+
+            best = citations[0]
+
+
+            with st.expander("📚 Sources"):
+
+                st.markdown("**Best Source**")
+
+                st.write(
+                    f"• {best.get('source')} "
+                    f"({round(best.get('score', 0), 3)})"
+                )
+
+                st.caption(
+                    best.get("text", "")[:250]
+                )
+
+
+# =================================
+# UPLOAD SECTION
+# =================================
+# ============================================
+# 🚀 RIZK AI Upload System v3
+# ============================================
+
+import hashlib
+import pandas as pd
+
+# =================================
+# SESSION STATE
+# =================================
+if "upload_history" not in st.session_state:
+    st.session_state.upload_history = []
+
+# =================================
+# HEADER
 # =================================
 st.divider()
-
-# =========================
-# INIT AUTH STATE SAFELY
-# =========================
-# =========================
-# INIT AUTH STATE
-# =========================
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-st.subheader("📄 Upload .pdf, .txt or .md (Admin Only)")
+st.subheader("📄 Upload Knowledge Files (Admin)")
 
 password = st.text_input(
     "Enter upload password",
     type="password",
-    key="upload_password_unique_main"
+    key="upload_password"
 )
 
 if password:
-    if password == UPLOAD_PASSWORD:
-        st.session_state.authenticated = True
-    else:
-        st.session_state.authenticated = False
-        st.error("❌ Wrong password")
-
-# =========================
-# FILE UPLOAD SECTION
-# =========================
-if st.session_state.authenticated:
-
-    uploaded_file = st.file_uploader(
-        "Upload file",
-        type=["pdf", "md", "txt"],
-        key="file_uploader_mainn"
+    st.session_state.authenticated = (
+        password == UPLOAD_PASSWORD
     )
 
-    if uploaded_file:
+# =================================
+# FILE COLORS
+# =================================
+progress_color = {
+    "pdf": "#ff4b4b",
+    "md": "#00c853",
+    "txt": "#2196f3"
+}
 
-        ext = uploaded_file.name.split(".")[-1].lower()
+file_icon = {
+    "pdf": "📕",
+    "md": "🟢",
+    "txt": "🔵"
+}
 
-        progress_color = {
-            "pdf": "#ff4b4b",
-            "md": "#00c853",
-            "txt": "#2196f3"
-        }.get(ext, "#999999")
+# =================================
+# HASH FUNCTION
+# =================================
+def compute_hash(file_bytes):
+    return hashlib.md5(file_bytes).hexdigest()
 
-        file_icon = {
-            "pdf": "📕",
-            "md": "🟢",
-            "txt": "🔵"
-        }.get(ext, "📄")
+# =================================
+# MAIN UPLOAD UI
+# =================================
+if st.session_state.authenticated:
 
-        st.markdown(f"""
-        <style>
-        .stProgress > div > div > div > div {{
-            background-color: {progress_color};
-        }}
-        </style>
-        """, unsafe_allow_html=True)
+    uploaded_files = st.file_uploader(
+        "Drag & Drop files here",
+        type=["pdf", "md", "txt"],
+        accept_multiple_files=True
+    )
 
-        # =========================
-        # SINGLE BUTTON ONLY (FIXED)
-        # =========================
+    if uploaded_files:
 
-        if st.button("📥 Upload & Ingest"):
+        st.markdown("### 📦 Files Ready")
 
-            progress = st.progress(0)
+        for file in uploaded_files:
 
-            try:
+            ext = file.name.split(".")[-1].lower()
 
-                st.write("🔥 Sending request...")
+            icon = file_icon.get(ext, "📄")
 
-                progress.progress(20)
+            st.info(f"{icon} {file.name}")
 
-                files = {
-                    "file": (
-                        uploaded_file.name,
-                        uploaded_file.getvalue(),
-                        "application/pdf"
-                    )
-                }
+        # =================================
+        # REPLACE OPTION
+        # =================================
+        replace_existing = st.checkbox(
+            "♻ Replace existing files if duplicates found"
+        )
 
-                res = requests.post(
-                    f"{API_URL}/upload_file",
-                    files=files,
-                    timeout=10
+        # =================================
+        # UPLOAD BUTTON
+        # =================================
+        if st.button("🚀 Upload & Ingest All"):
+
+            overall_progress = st.progress(0)
+
+            total_files = len(uploaded_files)
+
+
+            for idx, uploaded_file in enumerate(uploaded_files):
+
+                ext = uploaded_file.name.split(".")[-1].lower()
+
+                color = progress_color.get(ext, "#999")
+
+                st.markdown(
+                    f"""
+                    <style>
+                    .stProgress > div > div > div > div {{
+                        background-color: {color};
+                    }}
+                    </style>
+                    """,
+                    unsafe_allow_html=True
                 )
 
-                st.write("🔥 Request returned")
+                # =================================
+                # FRONTEND HASHING
+                # =================================
+                file_bytes = uploaded_file.getvalue()
 
-                progress.progress(80)
+                file_hash = compute_hash(file_bytes)
 
-                st.write("STATUS:", res.status_code)
+                # SAFE EXT
+                ext = uploaded_file.name.split(".")[-1].lower()
 
-                st.write("TEXT:", res.text)
+                with st.expander(f"📄 {uploaded_file.name}"):
 
-                progress.progress(100)
+                    st.write(f"Hash: `{file_hash}`")
+                    print("UPLOADING:", uploaded_file.name)
+                    progress = st.progress(5)
 
-            except Exception as e:
+                    try:
+                        import pandas as pd
+                        import os
+                        from datetime import datetime
 
-                st.error(str(e))
+                        HISTORY_FILE = "upload_history.csv"
+
+
+                        def load_history():
+
+                            if os.path.exists(HISTORY_FILE):
+                                return pd.read_csv(HISTORY_FILE)
+
+                            return pd.DataFrame(
+                                columns=[
+                                    "date",
+                                    "time",
+                                    "file",
+                                    "type",
+                                    "status"
+                                ]
+                            )
+
+
+                        def save_history(df):
+
+                            df.to_csv(
+                                HISTORY_FILE,
+                                index=False
+                            )
+                        # =========================
+                        # INIT HISTORY
+                        # =========================
+                        from datetime import datetime
+
+
+                        def add_history(date,time,filename, filetype, status):
+
+                            history = load_history()
+
+                            new_row = pd.DataFrame([{
+                                "date": datetime.now().strftime("%Y-%m-%d"),
+                                "time": datetime.now().strftime("%H:%M:%S"),
+                                "file": filename,
+                                "type": filetype,
+                                "status": status
+                            }])
+
+                            history = pd.concat(
+                                [history, new_row],
+                                ignore_index=True
+                            )
+
+                            save_history(history)
+
+                        # =========================
+                        # PREPARE REQUEST
+                        # =========================
+                        files = {
+                            "file": (
+                                uploaded_file.name,
+                                file_bytes,
+                                "application/octet-stream"
+                            )
+                        }
+
+                        data = {
+                            "replace_existing": str(replace_existing),
+                            "file_hash": file_hash
+                        }
+
+                        progress.progress(25)
+
+                        # =========================
+                        # API REQUEST
+                        # =========================
+                        res = requests.post(
+                            f"{API_URL}/upload_file",
+                            files=files,
+                            data=data,
+                            timeout=300
+                        )
+
+                        progress.progress(60)
+
+                        # =========================
+                        # SAFE JSON
+                        # =========================
+                        try:
+
+                            result = res.json()
+
+                        except Exception:
+
+                            st.error("❌ Backend returned invalid JSON")
+
+                            st.code(res.text)
+
+                            progress.empty()
+
+                            st.stop()
+
+                        progress.progress(80)
+
+                        # =========================
+                        # STATUS
+                        # =========================
+                        status = result.get("status", "unknown")
+                        from datetime import datetime
+
+                        now = datetime.now()
+                        # =========================
+                        # SKIPPED
+                        # =========================
+                        if status == "skipped":
+
+                            st.warning(
+                                f"⚠️ {uploaded_file.name} already exists — skipped"
+                            )
+
+                            add_history(
+                                now.strftime("%Y-%m-%d"),
+                                now.strftime("%H:%M:%S"),
+                                uploaded_file.name,
+                                ext.upper(),
+                                "⚠️ Skipped"
+                            )
+
+                        # =========================
+                        # SUCCESS
+                        # =========================
+                        elif status == "ok":
+
+                            inserted = result.get("chunks", 0)
+
+                            st.success(
+                                f"✅ {uploaded_file.name} uploaded successfully "
+                                f"({inserted} chunks)"
+                            )
+
+                            add_history(
+                                now.strftime("%Y-%m-%d"),  # date
+                                now.strftime("%H:%M:%S"),  # time
+                                uploaded_file.name,  # filename
+                                ext.upper(),  # filetype
+                                "✅ Uploaded"  # status
+                            )
+
+                        # =========================
+                        # ERROR
+                        # =========================
+                        else:
+
+                            st.error(
+                                f"❌ Upload failed for {uploaded_file.name}"
+                            )
+
+                            st.json(result)
+
+                            add_history(
+                                now.strftime("%Y-%m-%d"),
+                                now.strftime("%H:%M:%S"),
+                                uploaded_file.name,
+                                ext.upper(),
+                                "❌ Failed"
+                            )
+                        progress.progress(100)
+
+                    except Exception as e:
+
+                        st.error(
+                            f"❌ Upload failed for {uploaded_file.name}"
+                        )
+
+                        st.code(str(e))
+
+                        st.session_state.upload_history.append({
+
+                            "file":
+                                uploaded_file.name,
+
+                            "type":
+                                ext.upper(),
+
+                            "status":
+                                "❌ Exception"
+                        })
+            if st.session_state.upload_history:
+                    st.subheader("History")
+
+            history_df = pd.DataFrame(
+                        st.session_state.upload_history
+                    )
+            st.dataframe(
+                        history_df,
+                        use_container_width=True
+                    )
+            history_df = load_history()
+            if not history_df.empty:
+                csv = history_df.to_csv(index=False)
+
+                st.download_button(
+                    label="📥 Download Upload History",
+                    data=csv,
+                    file_name="upload_history.csv",
+                    mime="text/csv"
+                )
+            if not history_df.empty:
+                st.subheader("Upload History..........")
+
+                st.dataframe(
+                    history_df.sort_values(
+                        by=["date", "time"],
+                        ascending=False
+                    ),
+                    use_container_width=True
+                )
+        # =================================
+        # OVERALL PROGRESS
+        # =================================
+        #overall_progress.progress(
+        #         int(((idx + 1) / total_files) * 100)  )
+
 
 # =================================
 # FOOTER
@@ -446,7 +750,7 @@ st.markdown(
         </div>
 
          Dr. Nouhad Rizk • AI Knowledge Base
-        
+
     </div>
 
     <style>

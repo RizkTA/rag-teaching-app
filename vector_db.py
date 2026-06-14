@@ -10,7 +10,7 @@ except ImportError:
     raise ImportError("Please install: pip install sentence-transformers")
 
 # Load embedding model once
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = SentenceTransformer("BAAI/bge-small-en-v1.5")
 
 
 class VectorDB:

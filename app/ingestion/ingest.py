@@ -10,7 +10,11 @@ from app.config import (
 
 from app.vectorstores.qdrant_store import QdrantStore
 from app.vectorstores.vector_upsert import VectorUpsert
+import hashlib
 
+def get_file_hash(path: str):
+    with open(path, "rb") as f:
+        return hashlib.md5(f.read()).hexdigest()
 
 # ==========================================
 # SINGLETONS
@@ -58,8 +62,8 @@ def chunk_text(text: str):
     while start < len(text):
 
         end = start + chunk_size
-        chunks.append(text[start:end])
-
+       # chunks.append(text[start:end])
+        chunks.append(str(text[start:end]))
         start += chunk_size - overlap
 
     return chunks
@@ -72,45 +76,117 @@ def read_pdf(path: str):
 
     reader = PdfReader(path)
 
-    text = []
+    pages = []
 
     for page in reader.pages:
 
         try:
             t = page.extract_text()
+
             if t:
-                text.append(t)
+                pages.append(str(t))
+
         except:
             continue
 
-    def clean_text(text: str):
-        return (
-            text.encode("utf-8", errors="ignore")
-            .decode("utf-8", errors="ignore")
-            .replace("â", "-")
-            .replace("Â", "")
-            .replace("\n", " ")
-            .strip()
-        )
+    # ✅ IMPORTANT: return STRING not list
+    return "\n".join(pages)
+def clean_text(text: str):
 
-    text = clean_text(text)
-    return "\n".join(text)
+    # 🔥 THIS IS THE FIX LOCATION
+    if isinstance(text, list):
+        text = " ".join(map(str, text))
+
+    return (
+        str(text)
+        .replace("â", "-")
+        .replace("Â", "")
+        .replace("\n", " ")
+        .strip()
+    )
 
 
+def is_code_chunk(text: str) -> bool:
+
+    code_indicators = [
+        "include <iostream>",
+        "int main",
+        "cout",
+        "printf",
+        "def ",
+        "function",
+        "{",
+        "}",
+        "print(",
+        "return 0"
+    ]
+
+    text_lower = text.lower()
+
+    return any(ind.lower() in text_lower for ind in code_indicators)
 # ==========================================
 # MAIN INGEST (FIXED)
 # ==========================================
 def ingest_file(path: str, filename: str):
 
     print("🔥 ingest start:", filename)
+    print("🔥 ingest_file called")
+    print("🔥 path =", path)
+    print("🔥 filename =", filename)
+    store = get_store()
+
+    file_hash = get_file_hash(path)
+
+    from qdrant_client.models import (
+        Filter,
+        FieldCondition,
+        MatchValue
+    )
+
+    from qdrant_client.models import (
+        Filter,
+        FieldCondition,
+        MatchValue
+    )
+
+    records, _ = store.client.scroll(
+        collection_name=QDRANT_COLLECTION,
+        scroll_filter=Filter(
+            must=[
+                FieldCondition(
+                    key="file_hash",
+                    match=MatchValue(value=file_hash)
+                )
+            ]
+        ),
+        limit=1,
+        with_payload=True
+    )
+
+    print("🔥 RECORDS FOUND:", len(records))
+
+    if records:
+        return {
+            "status": "skipped",
+            "message": f"{filename} already exists"
+        }
+    # DEBUG
+    print("🔥 EXISTING:", records)
+
+    print("🔥 RECORDS FOUND:", len(records))
+
+    if len(records) > 0:
+        return {
+            "status": "skipped",
+            "message": f"{filename} already exists"
+        }
+
+
 
     suffix = os.path.splitext(filename)[1].lower()
 
-    # =========================
-    # READ FILE
-    # =========================
     if suffix == ".pdf":
-        text = read_pdf(path)
+        text = clean_text(read_pdf(path))
 
     elif suffix in [".txt", ".md"]:
         with open(path, "r", encoding="utf-8") as f:
@@ -119,7 +195,6 @@ def ingest_file(path: str, filename: str):
     else:
         return {"error": "unsupported file type"}
 
-    # cleanup
     try:
         os.remove(path)
     except:
@@ -128,17 +203,11 @@ def ingest_file(path: str, filename: str):
     if not text or not text.strip():
         return {"error": "empty file"}
 
-    # =========================
-    # CHUNK
-    # =========================
     chunks = chunk_text(text)
-
-    print("🔥 chunks:", len(chunks))
 
     structured = []
 
     for i, chunk in enumerate(chunks):
-
         structured.append({
             "id": str(uuid.uuid4()),
             "text": chunk,
@@ -146,17 +215,22 @@ def ingest_file(path: str, filename: str):
             "chunk_id": i,
             "language": "text",
             "topic": "general",
-            "metadata": {}
+
+            "metadata": {
+                "file_hash": file_hash,
+
+                # optional upgrade
+                "is_code": (
+                        "include" in chunk or
+                        "def " in chunk or
+                        "#include" in chunk or
+                        "class " in chunk
+                )
+            }
         })
 
-    # =========================
-    # UPSERT
-    # =========================
     upserter = get_upserter()
-
     result = upserter.upsert_chunks(structured)
-
-    print("🔥 upsert done")
 
     return {
         "filename": filename,

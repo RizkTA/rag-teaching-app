@@ -12,17 +12,18 @@ def clean_text(text: str):
             .replace("\n", " ")
             .strip()
     )
-
-
 def hybrid_search_impl(query: str):
 
     store = get_store()
 
+    # =====================
+    # FAST EMBEDDING
+    # =====================
     query_vector = embed_texts([query])[0]
 
     vector_results = store.search(
         query_vector,
-        top_k=10
+        top_k=5   # 🔥 FAST LIMIT
     )
 
     if not vector_results:
@@ -30,10 +31,12 @@ def hybrid_search_impl(query: str):
 
     docs = []
 
+    # =====================
+    # BUILD DOCS (LIGHTWEIGHT)
+    # =====================
     for r in vector_results:
 
         payload = r.get("payload", {})
-
         text = payload.get("text", "")
 
         if not text:
@@ -42,37 +45,40 @@ def hybrid_search_impl(query: str):
         docs.append({
             "text": clean_text(text),
             "score": float(r.get("score", 0)),
-            "source": payload.get(
-                "source",
-                "unknown"
-            ),
-            "chunk_id": payload.get(
-                "chunk_id",
-                -1
-            )
+            "source": payload.get("source", "unknown"),
+            "chunk_id": payload.get("chunk_id", -1),
+            "is_code": payload.get("is_code", False)
         })
 
     if not docs:
         return []
 
-    tokenized = [
-        d["text"].split()
-        for d in docs
-    ]
+    # =====================
+    # BM25 (FAST ON SMALL SET ONLY)
+    # =====================
+    tokenized = [d["text"].split() for d in docs]
 
     bm25 = BM25Okapi(tokenized)
+    bm25_scores = bm25.get_scores(query.split())
 
-    scores = bm25.get_scores(
-        query.split()
-    )
+    # =====================
+    # FINAL SCORE (OPTIMIZED)
+    # =====================
+    for i, d in enumerate(docs):
 
-    for i in range(len(docs)):
-        docs[i]["bm25"] = float(scores[i])
+        code_boost = 0.2 if d.get("is_code") else 0.0
 
+        d["final_score"] = (
+            d["score"] * 0.7 +
+            float(bm25_scores[i]) * 0.3 +
+            code_boost
+        )
+
+    # =====================
+    # SORT FAST
+    # =====================
     docs.sort(
-        key=lambda x:
-        x["score"] * 0.7 +
-        x["bm25"] * 0.3,
+        key=lambda x: x["final_score"],
         reverse=True
     )
 
