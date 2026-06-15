@@ -570,7 +570,7 @@ if st.session_state.authenticated:
                             files=files,
                             data=data,
                             timeout=300
-
+                        )
 
                         # -------------------
                         # HTTP ERROR
