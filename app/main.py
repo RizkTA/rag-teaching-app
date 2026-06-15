@@ -127,7 +127,6 @@ async def upload_test():
     return {
         "message": "upload route server alive"
     }
-
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
 
@@ -135,11 +134,23 @@ async def upload_file(file: UploadFile = File(...)):
 
     try:
 
-        print("🔥 filename:", file.filename)
+        suffix = os.path.splitext(file.filename)[1]
+
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        ) as tmp:
+
+            contents = await file.read()
+
+            tmp.write(contents)
+
+            temp_path = tmp.name
+
+        print("🔥 temp file:", temp_path)
 
         return {
-            "status": "ok",
-            "filename": file.filename
+            "status": "ok"
         }
 
     except Exception as e:
