@@ -189,69 +189,18 @@ import tempfile
 import os
 
 from app.ingestion.ingest import ingest_file
-
-
 @app.post("/upload_file")
-async def upload_file(
-    file: UploadFile = File(...)
-):
+async def upload_file(file: UploadFile = File(...)):
 
     print("🔥 ENDPOINT HIT")
     print("🔥 filename:", file.filename)
 
-    temp_path = None
+    contents = await file.read()
 
-    try:
+    print("🔥 bytes:", len(contents))
 
-        suffix = os.path.splitext(
-            file.filename
-        )[1]
-
-        with tempfile.NamedTemporaryFile(
-            delete=False,
-            suffix=suffix
-        ) as tmp:
-
-            contents = await file.read()
-
-            tmp.write(contents)
-
-            temp_path = tmp.name
-
-        print("🔥 temp file:", temp_path)
-
-        print("🔥 BEFORE INGEST")
-
-        result = ingest_file(
-            temp_path,
-            file.filename
-        )
-
-        print("🔥 AFTER INGEST")
-        print("RESULT =", result)
-
-        return result
-
-    except Exception as e:
-
-        import traceback
-        traceback.print_exc()
-
-        return {
-            "status": "error",
-            "message": str(e)
-        }
-
-    finally:
-
-        try:
-
-            if temp_path and os.path.exists(temp_path):
-                os.remove(temp_path)
-
-        except Exception as cleanup_error:
-
-            print(
-                "⚠️ temp file cleanup failed:",
-                cleanup_error
-            )
+    return {
+        "status": "ok",
+        "filename": file.filename,
+        "size": len(contents)
+    }
