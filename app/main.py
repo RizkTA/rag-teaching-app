@@ -24,9 +24,14 @@ app = FastAPI()
 def root():
 
     return {
-        "status": "RIZK AI backend running"
+        "status": "ok"
     }
 
+
+@app.head("/")
+def root_head():
+
+    return
 
 @app.post("/query")
 def query(req: QueryRequest):

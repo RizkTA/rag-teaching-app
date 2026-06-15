@@ -1,5 +1,10 @@
+import os
 from functools import lru_cache
 
+# =================================
+# FORCE CPU ONLY (IMPORTANT FOR RENDER)
+# =================================
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 # =================================
 # LOAD EMBEDDING MODEL ONCE
@@ -9,9 +14,16 @@ def get_embedder():
 
     from sentence_transformers import SentenceTransformer
 
-    return SentenceTransformer(
-        "BAAI/bge-small-en-v1.5"
+    print("🔥 Loading embedding model...")
+
+    model = SentenceTransformer(
+        "sentence-transformers/all-MiniLM-L6-v2",
+        device="cpu"
     )
+
+    print("✅ Embedding model loaded")
+
+    return model
 
 
 # =================================
@@ -24,7 +36,7 @@ def sanitize_text(x):
 
     # already string
     if isinstance(x, str):
-        return x
+        return x.strip()
 
     # nested lists
     if isinstance(x, list):
@@ -34,17 +46,18 @@ def sanitize_text(x):
         for item in x:
 
             if isinstance(item, list):
+
                 cleaned.extend(
-                    [str(v) for v in item]
+                    [str(v) for v in item if v is not None]
                 )
 
             else:
                 cleaned.append(str(item))
 
-        return " ".join(cleaned)
+        return " ".join(cleaned).strip()
 
     # fallback
-    return str(x)
+    return str(x).strip()
 
 
 # =================================
@@ -52,12 +65,24 @@ def sanitize_text(x):
 # =================================
 def embed_texts(texts):
 
+    # single string
     if isinstance(texts, str):
         texts = [texts]
 
+    # sanitize
     cleaned_texts = [
+
         sanitize_text(t)
+
         for t in texts
+
+        if t is not None
+    ]
+
+    # remove empty strings
+    cleaned_texts = [
+        t for t in cleaned_texts
+        if t.strip()
     ]
 
     if not cleaned_texts:
@@ -68,7 +93,9 @@ def embed_texts(texts):
     vectors = model.encode(
         cleaned_texts,
         normalize_embeddings=True,
-        convert_to_numpy=True
+        convert_to_numpy=True,
+        show_progress_bar=False,
+        batch_size=16
     )
 
     return vectors.tolist()

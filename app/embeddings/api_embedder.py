@@ -16,7 +16,7 @@ def get_embedder():
  if _embedder is None:
 
     _embedder = SentenceTransformer(
-        "sentence-transformers/BAAI/bge-small-en-v1.5"
+        "sentence-transformers/all-MiniLM-L6-v2"
     )
 
  return _embedder
