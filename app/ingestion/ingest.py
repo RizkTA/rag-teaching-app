@@ -1,7 +1,7 @@
 import os
 import uuid
 import hashlib
-import traceback
+
 
 from pypdf import PdfReader
 
@@ -207,10 +207,10 @@ def file_exists(store, file_hash):
 # MAIN INGEST
 # ==========================================
 def ingest_file(path: str, filename: str):
-    print("🔥 ingest start:", filename)
-    try:
 
-        print(f"🔥 ingest start: {filename}")
+    print("🔥 ingest start:", filename)
+
+    try:
 
         store = get_store()
 
@@ -218,27 +218,15 @@ def ingest_file(path: str, filename: str):
 
         print("🔥 file hash:", file_hash)
 
-        # ==================================
-        # DUPLICATE CHECK
-        # ==================================
         if file_exists(store, file_hash):
+
             return {
-
                 "status": "skipped",
-
-                "message":
-                    f"{filename} already exists",
-
-                "file_hash":
-                    file_hash
+                "message": f"{filename} already exists",
+                "file_hash": file_hash
             }
 
-        # ==================================
-        # READ FILE
-        # ==================================
-        suffix = os.path.splitext(
-            filename
-        )[1].lower()
+        suffix = os.path.splitext(filename)[1].lower()
 
         if suffix == ".pdf":
 
@@ -249,10 +237,10 @@ def ingest_file(path: str, filename: str):
         elif suffix in [".txt", ".md"]:
 
             with open(
-                    path,
-                    "r",
-                    encoding="utf-8",
-                    errors="ignore"
+                path,
+                "r",
+                encoding="utf-8",
+                errors="ignore"
             ) as f:
 
                 text = clean_text(
@@ -262,82 +250,46 @@ def ingest_file(path: str, filename: str):
         else:
 
             return {
-
                 "status": "error",
-
-                "message":
-                    f"Unsupported file type: {suffix}"
+                "message": f"Unsupported file type: {suffix}"
             }
 
-        # ==================================
-        # EMPTY CHECK
-        # ==================================
         if not text:
+
             return {
-
                 "status": "error",
-
-                "message":
-                    "File contains no text"
+                "message": "File contains no text"
             }
 
-        # ==================================
-        # CHUNK
-        # ==================================
         chunks = chunk_text(text)
 
         if not chunks:
+
             return {
-
                 "status": "error",
-
-                "message":
-                    "No chunks generated"
+                "message": "No chunks generated"
             }
 
         structured = []
 
         for i, chunk in enumerate(chunks):
+
             structured.append({
-
-                "id":
-                    str(uuid.uuid4()),
-
-                "text":
-                    chunk,
-
-                "source":
-                    filename,
-
-                "chunk_id":
-                    i,
-
-                "language":
-                    "text",
-
-                "topic":
-                    "general",
-
+                "id": str(uuid.uuid4()),
+                "text": chunk,
+                "source": filename,
+                "chunk_id": i,
+                "language": "text",
+                "topic": "general",
                 "metadata": {
-
-                    "file_hash":
-                        file_hash,
-
-                    "filename":
-                        filename,
-
-                    "is_code":
-                        is_code_chunk(chunk)
+                    "file_hash": file_hash,
+                    "filename": filename,
+                    "is_code": is_code_chunk(chunk)
                 }
             })
 
-        print(
-            f"🔥 generated {len(structured)} chunks"
-        )
+        print(f"🔥 generated {len(structured)} chunks")
 
-        # ==================================
-        # UPSERT
-        # ==================================
         result = get_upserter().upsert_chunks(
             structured
         )
@@ -345,28 +297,31 @@ def ingest_file(path: str, filename: str):
         print("🔥 upsert complete")
 
         return {
-
-            # FRONTEND EXPECTS THIS
             "status": "ok",
+            "filename": filename,
+            "chunks": len(structured),
+            "file_hash": file_hash,
+            "qdrant": result
+        }
 
-            "filename":
-                filename,
+    except Exception as e:
 
-            "chunks":
-                len(structured),
+        print("❌ INGEST ERROR:", str(e))
 
-            "file_hash":
-                file_hash,
+        import traceback
+        traceback.print_exc()
 
-            "qdrant":
-                result   }
-
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
     finally:
 
         try:
 
-             if os.path.exists(path):
-                     os.remove(path)
+            if os.path.exists(path):
+                os.remove(path)
+
         except Exception:
             pass
