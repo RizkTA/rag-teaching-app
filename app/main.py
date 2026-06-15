@@ -14,7 +14,15 @@ print("🔥 MAIN.PY LOADED")
 
 from app.rag.fusion_rag import fusion_search
 from app.llm.streaming import stream_answer
+try:
+    import multipart
 
+    print("🔥 MULTIPART OK")
+    print("🔥 VERSION:", multipart.__version__)
+
+except Exception as e:
+    print("❌ MULTIPART FAILED")
+    print(e)
 # =====================================
 # FASTAPI
 # =====================================
