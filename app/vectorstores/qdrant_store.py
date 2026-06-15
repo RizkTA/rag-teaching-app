@@ -20,18 +20,22 @@ def ensure_indexes(client, collection_name):
     try:
 
         client.create_payload_index(
+
             collection_name=collection_name,
 
-            field_name="metadata.file_hash",
+            field_name="file_hash",
 
             field_schema=PayloadSchemaType.KEYWORD
         )
 
-        print("✅ file_hash index created")
+        print("✅ file_hash index ready")
 
     except Exception as e:
 
-        print("⚠️ index may already exist:", e)
+        print(
+            "⚠️ file_hash index already exists "
+            f"or could not be created: {e}"
+        )
 
 
 # =========================================
@@ -39,10 +43,19 @@ def ensure_indexes(client, collection_name):
 # =========================================
 class QdrantStore:
 
-    def __init__(self, url, collection_name, embed_dim):
+    def __init__(
+        self,
+        url,
+        collection_name,
+        embed_dim
+    ):
 
         self.collection_name = collection_name
         self.embed_dim = embed_dim
+
+        print("🔥 QDRANT INIT")
+        print("🔥 COLLECTION:", collection_name)
+        print("🔥 EMBED DIM:", embed_dim)
 
         self.client = QdrantClient(
             url=url,
@@ -50,14 +63,56 @@ class QdrantStore:
             timeout=120
         )
 
-        # create collection if needed
         self._ensure_collection()
 
-        # create indexes
         ensure_indexes(
             self.client,
             self.collection_name
         )
+
+        self._verify_collection()
+
+    # =====================================
+    # VERIFY COLLECTION
+    # =====================================
+    def _verify_collection(self):
+
+        try:
+
+            info = self.client.get_collection(
+                self.collection_name
+            )
+
+            vector_size = (
+                info.config.params.vectors.size
+            )
+
+            print(
+                "🔥 COLLECTION VECTOR SIZE:",
+                vector_size
+            )
+
+            print(
+                "🔥 EXPECTED VECTOR SIZE:",
+                self.embed_dim
+            )
+
+            if vector_size != self.embed_dim:
+
+                raise Exception(
+                    f"Vector size mismatch. "
+                    f"Collection={vector_size}, "
+                    f"Expected={self.embed_dim}"
+                )
+
+        except Exception as e:
+
+            print(
+                "❌ COLLECTION VERIFICATION FAILED:",
+                e
+            )
+
+            raise
 
     # =====================================
     # CREATE COLLECTION
@@ -67,13 +122,16 @@ class QdrantStore:
         collections = self.client.get_collections()
 
         existing = [
+
             c.name
+
             for c in collections.collections
         ]
 
         if self.collection_name not in existing:
 
             self.client.create_collection(
+
                 collection_name=self.collection_name,
 
                 vectors_config=VectorParams(
@@ -82,17 +140,71 @@ class QdrantStore:
                 )
             )
 
-            print("✅ Collection created")
+            print(
+                f"✅ Created collection: "
+                f"{self.collection_name}"
+            )
 
         else:
-            print("✅ Collection already exists")
+
+            print(
+                f"✅ Collection exists: "
+                f"{self.collection_name}"
+            )
 
     # =====================================
     # UPSERT
     # =====================================
-    def upsert(self, ids, vectors, payloads, batch_size=32):
+    def upsert(
+        self,
+        ids,
+        vectors,
+        payloads,
+        batch_size=32
+    ):
 
-        for i in range(0, len(ids), batch_size):
+        if not ids:
+
+            print("⚠️ No IDs supplied")
+
+            return
+
+        if not vectors:
+
+            raise Exception(
+                "No vectors supplied"
+            )
+
+        if len(ids) != len(vectors):
+
+            raise Exception(
+                f"ID/vector mismatch: "
+                f"{len(ids)} vs {len(vectors)}"
+            )
+
+        if len(ids) != len(payloads):
+
+            raise Exception(
+                f"ID/payload mismatch: "
+                f"{len(ids)} vs {len(payloads)}"
+            )
+
+        total = len(ids)
+
+        print(
+            f"🔥 UPSERTING {total} vectors"
+        )
+
+        for i in range(
+            0,
+            total,
+            batch_size
+        ):
+
+            end = min(
+                i + batch_size,
+                total
+            )
 
             points = [
 
@@ -102,82 +214,174 @@ class QdrantStore:
                     payload=payloads[j]
                 )
 
-                for j in range(
-                    i,
-                    min(i + batch_size, len(ids))
-                )
+                for j in range(i, end)
             ]
 
-            self.client.upsert(
-                collection_name=self.collection_name,
-                points=points
-            )
+            try:
 
-        print(f"✅ Upserted {len(ids)} chunks")
+                self.client.upsert(
+
+                    collection_name=self.collection_name,
+
+                    points=points,
+
+                    wait=True
+                )
+
+            except Exception:
+
+                import traceback
+
+                print(
+                    "❌ QDRANT UPSERT FAILED"
+                )
+
+                traceback.print_exc()
+
+                raise
+
+        print(
+            f"✅ Upserted {total} chunks"
+        )
 
     # =====================================
     # SEARCH
     # =====================================
-    def search(self, query_vector, top_k=5, language=None):
+    def search(
+        self,
+        query_vector,
+        top_k=5,
+        language=None
+    ):
 
         query_filter = None
 
         if language:
 
             query_filter = Filter(
+
                 must=[
+
                     FieldCondition(
+
                         key="language",
-                        match=MatchValue(value=language)
+
+                        match=MatchValue(
+                            value=language
+                        )
                     )
                 ]
             )
 
-        results = self.client.query_points(
-            collection_name=self.collection_name,
-            query=query_vector,
-            limit=top_k,
-            query_filter=query_filter
-        )
+        try:
 
-        points = getattr(results, "points", []) or []
+            results = self.client.query_points(
 
-        return [
+                collection_name=self.collection_name,
 
-            {
-                "id": getattr(r, "id", None),
+                query=query_vector,
 
-                "score": float(
-                    getattr(r, "score", 0.0)
-                ),
+                limit=top_k,
 
-                "payload": getattr(r, "payload", {}) or {}
-            }
+                query_filter=query_filter
+            )
 
-            for r in points
-        ]
+            points = getattr(
+                results,
+                "points",
+                []
+            ) or []
+
+            return [
+
+                {
+                    "id":
+                        getattr(
+                            p,
+                            "id",
+                            None
+                        ),
+
+                    "score":
+                        float(
+                            getattr(
+                                p,
+                                "score",
+                                0.0
+                            )
+                        ),
+
+                    "payload":
+                        getattr(
+                            p,
+                            "payload",
+                            {}
+                        ) or {}
+                }
+
+                for p in points
+            ]
+
+        except Exception:
+
+            import traceback
+
+            print(
+                "❌ SEARCH FAILED"
+            )
+
+            traceback.print_exc()
+
+            return []
 
     # =====================================
     # FILE HASH EXISTS
     # =====================================
-    def file_hash_exists(self, file_hash):
+    def file_hash_exists(
+        self,
+        file_hash
+    ):
 
-        records, _ = self.client.scroll(
+        try:
 
-            collection_name=self.collection_name,
+            records, _ = self.client.scroll(
 
-            scroll_filter=Filter(
-                must=[
-                    FieldCondition(
-                        key="metadata.file_hash",
-                        match=MatchValue(value=file_hash)
-                    )
-                ]
-            ),
+                collection_name=self.collection_name,
 
-            limit=1,
+                scroll_filter=Filter(
 
-            with_payload=True
-        )
+                    must=[
 
-        return len(records) > 0
+                        FieldCondition(
+
+                            key="file_hash",
+
+                            match=MatchValue(
+                                value=file_hash
+                            )
+                        )
+                    ]
+                ),
+
+                limit=1,
+
+                with_payload=False
+            )
+
+            exists = len(records) > 0
+
+            print(
+                f"🔥 DUPLICATE CHECK: "
+                f"{exists}"
+            )
+
+            return exists
+
+        except Exception as e:
+
+            print(
+                "❌ DUPLICATE CHECK FAILED:",
+                e
+            )
+
+            return False

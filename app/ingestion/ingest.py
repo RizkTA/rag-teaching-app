@@ -1,6 +1,7 @@
 import os
 import uuid
 import hashlib
+import traceback
 
 from pypdf import PdfReader
 
@@ -56,9 +57,9 @@ def get_upserter():
 
 
 # ==========================================
-# FILE HASH
+# HASH
 # ==========================================
-def get_file_hash(path: str):
+def get_file_hash(path: str) -> str:
 
     with open(path, "rb") as f:
 
@@ -71,6 +72,9 @@ def get_file_hash(path: str):
 # CLEAN TEXT
 # ==========================================
 def clean_text(text):
+
+    if text is None:
+        return ""
 
     if isinstance(text, list):
 
@@ -88,9 +92,9 @@ def clean_text(text):
 
 
 # ==========================================
-# PDF READER
+# PDF
 # ==========================================
-def read_pdf(path: str):
+def read_pdf(path: str) -> str:
 
     reader = PdfReader(path)
 
@@ -100,12 +104,12 @@ def read_pdf(path: str):
 
         try:
 
-            t = page.extract_text()
+            content = page.extract_text()
 
-            if t:
-                pages.append(str(t))
+            if content:
+                pages.append(content)
 
-        except:
+        except Exception:
             continue
 
     return "\n".join(pages)
@@ -115,6 +119,11 @@ def read_pdf(path: str):
 # CHUNKING
 # ==========================================
 def chunk_text(text: str):
+
+    text = clean_text(text)
+
+    if not text:
+        return []
 
     text = text[:20000]
 
@@ -129,9 +138,10 @@ def chunk_text(text: str):
 
         end = start + chunk_size
 
-        chunks.append(
-            str(text[start:end])
-        )
+        chunk = text[start:end].strip()
+
+        if chunk:
+            chunks.append(chunk)
 
         start += chunk_size - overlap
 
@@ -141,61 +151,35 @@ def chunk_text(text: str):
 # ==========================================
 # CODE DETECTION
 # ==========================================
-def is_code_chunk(text: str):
+def is_code_chunk(text: str) -> bool:
 
     indicators = [
 
-        "include",
-
         "#include",
-
+        "include",
         "cout",
-
         "printf",
-
         "def ",
-
         "class ",
-
         "return",
-
         "{",
-
         "}",
-
         ";"
     ]
 
     text_lower = text.lower()
 
     return any(
-        k.lower() in text_lower
-        for k in indicators
+        token.lower() in text_lower
+        for token in indicators
     )
 
 
 # ==========================================
-# MAIN INGEST
+# DUPLICATE CHECK
 # ==========================================
-def ingest_file(path: str, filename: str):
+def file_exists(store, file_hash):
 
-    print("🔥 ingest start:", filename)
-
-    store = get_store()
-
-    # =====================================
-    # FILE HASH
-    # =====================================
-    file_hash = get_file_hash(path)
-
-    print("🔥 FILE HASH:", file_hash)
-
-    # =====================================
-    # DUPLICATE CHECK
-    # IMPORTANT:
-    # MUST MATCH YOUR PAYLOAD STRUCTURE
-    # metadata.file_hash
-    # =====================================
     try:
 
         records, _ = store.client.scroll(
@@ -208,7 +192,8 @@ def ingest_file(path: str, filename: str):
 
                     FieldCondition(
 
-                        key="metadata.file_hash",
+                        # MATCH YOUR CURRENT PAYLOAD
+                        key="file_hash",
 
                         match=MatchValue(
                             value=file_hash
@@ -219,15 +204,37 @@ def ingest_file(path: str, filename: str):
 
             limit=1,
 
-            with_payload=True
+            with_payload=False
         )
 
-        print("🔥 RECORDS FOUND:", len(records))
+        return len(records) > 0
 
-        # =================================
-        # FILE ALREADY EXISTS
-        # =================================
-        if len(records) > 0:
+    except Exception as e:
+
+        print("❌ Duplicate check failed:", e)
+
+        return False
+
+
+# ==========================================
+# MAIN INGEST
+# ==========================================
+def ingest_file(path: str, filename: str):
+
+    try:
+
+        print(f"🔥 ingest start: {filename}")
+
+        store = get_store()
+
+        file_hash = get_file_hash(path)
+
+        print("🔥 file hash:", file_hash)
+
+        # ==================================
+        # DUPLICATE CHECK
+        # ==================================
+        if file_exists(store, file_hash):
 
             return {
 
@@ -240,129 +247,159 @@ def ingest_file(path: str, filename: str):
                     file_hash
             }
 
-    except Exception as e:
+        # ==================================
+        # READ FILE
+        # ==================================
+        suffix = os.path.splitext(
+            filename
+        )[1].lower()
 
-        print("❌ DUPLICATE CHECK ERROR:", e)
-
-    # =====================================
-    # READ FILE
-    # =====================================
-    suffix = os.path.splitext(
-        filename
-    )[1].lower()
-
-    if suffix == ".pdf":
-
-        text = clean_text(
-            read_pdf(path)
-        )
-
-    elif suffix in [".txt", ".md"]:
-
-        with open(
-            path,
-            "r",
-            encoding="utf-8"
-        ) as f:
+        if suffix == ".pdf":
 
             text = clean_text(
-                f.read()
+                read_pdf(path)
             )
 
-    else:
+        elif suffix in [".txt", ".md"]:
 
-        return {
-            "status": "error",
-            "message": "unsupported file type"
-        }
+            with open(
+                path,
+                "r",
+                encoding="utf-8",
+                errors="ignore"
+            ) as f:
 
-    # =====================================
-    # CLEANUP TEMP FILE
-    # =====================================
-    try:
-        os.remove(path)
-    except:
-        pass
+                text = clean_text(
+                    f.read()
+                )
 
-    # =====================================
-    # EMPTY FILE CHECK
-    # =====================================
-    if not text or not text.strip():
+        else:
 
-        return {
-            "status": "error",
-            "message": "empty file"
-        }
+            return {
 
-    # =====================================
-    # CHUNKING
-    # =====================================
-    chunks = chunk_text(text)
+                "status": "error",
 
-    structured = []
+                "message":
+                    f"Unsupported file type: {suffix}"
+            }
 
-    for i, chunk in enumerate(chunks):
+        # ==================================
+        # EMPTY CHECK
+        # ==================================
+        if not text:
 
-        structured.append({
+            return {
 
-            "id":
-                str(uuid.uuid4()),
+                "status": "error",
 
-            "text":
-                chunk,
+                "message":
+                    "File contains no text"
+            }
 
-            "source":
-                filename,
+        # ==================================
+        # CHUNK
+        # ==================================
+        chunks = chunk_text(text)
 
-            "chunk_id":
-                i,
+        if not chunks:
 
-            "language":
-                "text",
+            return {
 
-            "topic":
-                "general",
+                "status": "error",
 
-            "metadata": {
+                "message":
+                    "No chunks generated"
+            }
 
-                # IMPORTANT
-                "file_hash":
-                    file_hash,
+        structured = []
 
-                "filename":
+        for i, chunk in enumerate(chunks):
+
+            structured.append({
+
+                "id":
+                    str(uuid.uuid4()),
+
+                "text":
+                    chunk,
+
+                "source":
                     filename,
 
-                "is_code":
-                    is_code_chunk(chunk)
-            }
-        })
+                "chunk_id":
+                    i,
 
-    print("🔥 CHUNKS:", len(structured))
+                "language":
+                    "text",
 
-    # =====================================
-    # UPSERT
-    # =====================================
-    upserter = get_upserter()
+                "topic":
+                    "general",
 
-    result = upserter.upsert_chunks(
-        structured
-    )
+                "metadata": {
 
-    print("🔥 UPSERT COMPLETE")
+                    "file_hash":
+                        file_hash,
 
-    return {
+                    "filename":
+                        filename,
 
-        "status": "uploaded",
+                    "is_code":
+                        is_code_chunk(chunk)
+                }
+            })
 
-        "filename":
-            filename,
+        print(
+            f"🔥 generated {len(structured)} chunks"
+        )
 
-        "chunks":
-            len(structured),
+        # ==================================
+        # UPSERT
+        # ==================================
+        result = get_upserter().upsert_chunks(
+            structured
+        )
 
-        "file_hash":
-            file_hash,
+        print("🔥 upsert complete")
 
-        "qdrant":
-            result
-    }
+        return {
+
+            # FRONTEND EXPECTS THIS
+            "status": "ok",
+
+            "filename":
+                filename,
+
+            "chunks":
+                len(structured),
+
+            "file_hash":
+                file_hash,
+
+            "qdrant":
+                result
+        }
+
+    except Exception as e:
+
+        traceback.print_exc()
+
+        return {
+
+            "status": "error",
+
+            "message":
+                str(e),
+
+            "traceback":
+                traceback.format_exc()
+        }
+
+    finally:
+
+        try:
+
+            if os.path.exists(path):
+                os.remove(path)
+
+        except Exception:
+            pass

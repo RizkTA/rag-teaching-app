@@ -97,5 +97,8 @@ def embed_texts(texts):
         show_progress_bar=False,
         batch_size=16
     )
-
+    print(
+        "🔥 EMBEDDINGS SHAPE:",
+        vectors.shape
+    )
     return vectors.tolist()

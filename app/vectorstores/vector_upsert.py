@@ -19,61 +19,69 @@ class VectorUpsert:
             print("⚠️ No chunks received")
 
             return {
-                "inserted": 0,
-                "status": "empty"
+                "status": "empty",
+                "inserted": 0
             }
 
         # =================================
-        # PREPARE TEXTS
+        # CLEAN CHUNKS
         # =================================
-        texts = []
-
         valid_chunks = []
+        texts = []
 
         for c in chunks:
 
-            text = c.get("text", "")
+            text = c.get("text")
 
             if text is None:
                 continue
 
-            # flatten lists
             if isinstance(text, list):
-                text = " ".join(map(str, text))
+                text = " ".join(
+                    map(str, text)
+                )
 
             text = str(text).strip()
 
-            # skip empty
             if not text:
                 continue
 
             texts.append(text)
-
             valid_chunks.append(c)
 
-        # no valid text
         if not texts:
 
             print("⚠️ No valid texts")
 
             return {
-                "inserted": 0,
-                "status": "empty_text"
+                "status": "empty_text",
+                "inserted": 0
             }
 
-        print("🔥 embedding texts:", len(texts))
+        print(
+            f"🔥 embedding {len(texts)} chunks"
+        )
 
         # =================================
         # EMBEDDINGS
-
-        if not texts:
-            return {
-                "inserted": 0,
-                "status": "empty"
-            }
+        # =================================
         vectors = embed_texts(texts)
 
-        print("🔥 embeddings done")
+        if vectors is None:
+
+            raise Exception(
+                "embed_texts returned None"
+            )
+
+        if len(vectors) == 0:
+
+            raise Exception(
+                "No embeddings generated"
+            )
+
+        print(
+            f"🔥 embeddings generated: {len(vectors)}"
+        )
 
         # =================================
         # SAFETY CHECK
@@ -81,60 +89,86 @@ class VectorUpsert:
         if len(vectors) != len(valid_chunks):
 
             raise Exception(
-                "Vector count mismatch"
+                f"Vector count mismatch "
+                f"({len(vectors)} vs {len(valid_chunks)})"
             )
 
         # =================================
-        # IDS
+        # BUILD IDS + PAYLOADS
         # =================================
         ids = []
-
         payloads = []
 
-        # =================================
-        # BUILD PAYLOADS
-        # =================================
-        for i, c in enumerate(valid_chunks):
+        for idx, chunk in enumerate(valid_chunks):
 
-            metadata = c.get("metadata", {})
+            metadata = chunk.get(
+                "metadata",
+                {}
+            )
 
             ids.append(
-                c["id"]
+                chunk["id"]
             )
 
             payloads.append({
 
                 # MAIN CONTENT
                 "text":
-                    texts[i],
+                    texts[idx],
 
-                # SOURCE INFO
+                # SOURCE
                 "source":
-                    c.get("source", "unknown"),
+                    chunk.get(
+                        "source",
+                        "unknown"
+                    ),
 
                 "filename":
-                    c.get("source", "unknown"),
+                    metadata.get(
+                        "filename",
+                        chunk.get(
+                            "source",
+                            "unknown"
+                        )
+                    ),
 
+                # CHUNK INFO
                 "chunk_id":
-                    c.get("chunk_id", i),
+                    chunk.get(
+                        "chunk_id",
+                        idx
+                    ),
 
                 # TAGGING
                 "language":
-                    c.get("language", "text"),
+                    chunk.get(
+                        "language",
+                        "text"
+                    ),
 
                 "topic":
-                    c.get("topic", "general"),
+                    chunk.get(
+                        "topic",
+                        "general"
+                    ),
 
-                # DUPLICATE DETECTION
+                # DUPLICATE CHECK
                 "file_hash":
-                    metadata.get("file_hash"),
+                    metadata.get(
+                        "file_hash"
+                    ),
 
-                # CODE DETECTION
+                # CODE FLAG
                 "is_code":
-                    metadata.get("is_code", False)
+                    metadata.get(
+                        "is_code",
+                        False
+                    )
             })
 
-        print("🔥 qdrant upsert")
+        print(
+            f"🔥 upserting {len(ids)} vectors"
+        )
 
         # =================================
         # UPSERT
@@ -149,7 +183,8 @@ class VectorUpsert:
 
         return {
 
-            "inserted": len(payloads),
+            "status": "ok",
 
-            "status": "ok"
+            "inserted":
+                len(payloads)
         }
