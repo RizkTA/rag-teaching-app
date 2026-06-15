@@ -193,14 +193,30 @@ from app.ingestion.ingest import ingest_file
 async def upload_file(file: UploadFile = File(...)):
 
     print("🔥 ENDPOINT HIT")
-    print("🔥 filename:", file.filename)
 
-    contents = await file.read()
+    suffix = os.path.splitext(file.filename)[1]
 
-    print("🔥 bytes:", len(contents))
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=suffix
+    ) as tmp:
 
-    return {
-        "status": "ok",
-        "filename": file.filename,
-        "size": len(contents)
-    }
+        contents = await file.read()
+
+        tmp.write(contents)
+
+        temp_path = tmp.name
+
+    print("🔥 temp file:", temp_path)
+
+    print("🔥 BEFORE INGEST")
+
+    result = ingest_file(
+        temp_path,
+        file.filename
+    )
+
+    print("🔥 AFTER INGEST")
+    print(result)
+
+    return result
