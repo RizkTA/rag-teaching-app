@@ -113,7 +113,20 @@ import tempfile
 import os
 
 from app.ingestion.ingest import ingest_file
+@app.get("/health")
+async def health():
 
+    return {
+        "status": "ok"
+    }
+@app.get("/upload_test")
+async def upload_test():
+
+    print("🔥 upload_test reached")
+
+    return {
+        "message": "upload route server alive"
+    }
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
 

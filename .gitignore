@@ -33,7 +33,7 @@ data/
 .env
 
 # Qdrant local
-qdrant_storage/
+#qdrant_storage/
 
 # Build
 dist/
