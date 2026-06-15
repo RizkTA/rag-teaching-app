@@ -570,15 +570,7 @@ if st.session_state.authenticated:
                             files=files,
                             data=data,
                             timeout=300
-                        )
-                        st.write("Status:", res.status_code)
-                        st.code(res.text)
-                        try:
-                            res = requests.post(...)
-                            st.write("HTTP Status:", res.status_code)
-                        except Exception as e:
-                            st.error(str(e))
-                        progress.progress(50)
+
 
                         # -------------------
                         # HTTP ERROR
