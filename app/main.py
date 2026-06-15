@@ -123,14 +123,17 @@ async def upload_test():
 
     print("🔥 upload_test reached")
 
-    return {
+    return ({
         "message": "upload route server alive"
     }
-@app.post("/upload_file")
+
+@app.post("/upload_file"))
 async def upload_file(file: UploadFile = File(...)):
 
     print("🔥 ENDPOINT HIT")
+    print("🔥 filename:", file.filename)
 
     return {
-        "status": "ok"
+        "status": "ok",
+        "filename": file.filename
     }
