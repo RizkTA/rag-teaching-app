@@ -574,7 +574,8 @@ if st.session_state.authenticated:
                             data=data,
                             timeout=300
                         )
-
+                        st.write("Status:", res.status_code)
+                        st.code(res.text)
                         # -------------------
                         # HTTP ERROR
                         # -------------------
