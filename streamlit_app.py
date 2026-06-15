@@ -560,7 +560,25 @@ if st.session_state.authenticated:
                             "replace_existing": str(replace_existing),
                             "file_hash": file_hash
                         }
+                        try:
 
+                            st.write("Calling URL:", f"{API_URL}/upload_file")
+
+                            res = requests.post(
+                                f"{API_URL}/upload_file",
+                                files=files,
+                                data=data,
+                                timeout=300
+                            )
+
+                            st.write("HTTP Status:", res.status_code)
+
+                            if res.text:
+                                st.code(res.text)
+
+                        except Exception as e:
+
+                            st.error(f"Request failed: {e}")
                         progress.progress(25)
                         st.write("Calling URL:")
                         st.code(f"{API_URL}/upload_file")
