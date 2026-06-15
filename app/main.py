@@ -1,13 +1,12 @@
-from fastapi import FastAPI
 from fastapi import FastAPI, UploadFile, File
-
-app = FastAPI()
-
-from fastapi import UploadFile, File
-import tempfile
-import os
+print("🔥 BEFORE INGEST IMPORT")
 
 from app.ingestion.ingest import ingest_file
+
+print("🔥 AFTER INGEST IMPORT")
+print("🔥 MAIN.PY LOADED")
+app = FastAPI()
+
 
 from app.rag.fusion_rag import fusion_search
 from app.llm.streaming import stream_answer
@@ -130,49 +129,8 @@ async def upload_test():
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
 
-    temp_path = None
+    print("🔥 ENDPOINT HIT")
 
-    try:
-
-        print("🔥 ENDPOINT HIT")
-
-        suffix = os.path.splitext(file.filename)[1]
-
-        with tempfile.NamedTemporaryFile(
-            delete=False,
-            suffix=suffix
-        ) as tmp:
-
-            contents = await file.read()
-
-            tmp.write(contents)
-
-            temp_path = tmp.name
-
-        print("🔥 temp file:", temp_path)
-
-        print("🔥 calling ingest")
-
-        result = ingest_file(
-            temp_path,
-            file.filename
-        )
-
-        print("🔥 ingest finished")
-
-        return result
-
-    except Exception as e:
-
-        import traceback
-
-        tb = traceback.format_exc()
-
-        print("🔥 INGEST ERROR")
-        print(tb)
-
-        return {
-            "status": "error",
-            "message": str(e),
-            "traceback": tb
-        }
+    return {
+        "status": "ok"
+    }
