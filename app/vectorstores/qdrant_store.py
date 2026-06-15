@@ -1,4 +1,5 @@
 from qdrant_client import QdrantClient
+import os
 from qdrant_client.models import (
     VectorParams,
     Distance,
@@ -9,7 +10,6 @@ from qdrant_client.models import (
     MatchValue
 )
 
-from app.config import QDRANT_API_KEY
 
 
 # =========================================
@@ -59,10 +59,20 @@ class QdrantStore:
 
         self.client = QdrantClient(
             url=url,
-            api_key=QDRANT_API_KEY,
+            api_key=os.getenv("QDRANT_API_KEY"),
             timeout=120
         )
+        print("🔥 QDRANT URL:", url)
+        print("🔥 API KEY EXISTS:", bool(QDRANT_API_KEY))
 
+        try:
+            collections = self.client.get_collections()
+            print("✅ Qdrant Connected")
+            print(collections)
+
+        except Exception as e:
+            print("❌ QDRANT CONNECTION FAILED")
+            print(str(e))
         self._ensure_collection()
 
         ensure_indexes(

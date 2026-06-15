@@ -114,8 +114,6 @@ import os
 
 from app.ingestion.ingest import ingest_file
 
-
-
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
 
@@ -124,7 +122,6 @@ async def upload_file(file: UploadFile = File(...)):
     try:
 
         print("🔥 UPLOAD START")
-        print("🔥 FILE:", file.filename)
 
         suffix = os.path.splitext(file.filename)[1]
 
@@ -141,7 +138,7 @@ async def upload_file(file: UploadFile = File(...)):
 
             temp_path = tmp.name
 
-        print("🔥 TEMP FILE:", temp_path)
+        print("🔥 TEMP PATH:", temp_path)
 
         result = ingest_file(
             temp_path,
@@ -156,10 +153,20 @@ async def upload_file(file: UploadFile = File(...)):
 
         import traceback
 
-        print("🔥 EXCEPTION:")
         traceback.print_exc()
 
         return {
             "status": "error",
-            "message": str(e)
+            "message": str(e),
+            "traceback": traceback.format_exc()
         }
+
+    finally:
+
+        if temp_path and os.path.exists(temp_path):
+
+            try:
+                os.remove(temp_path)
+
+            except:
+                pass
