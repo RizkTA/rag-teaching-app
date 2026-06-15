@@ -20,6 +20,25 @@ from app.llm.streaming import stream_answer
 # =====================================
 app = FastAPI()
 
+from fastapi import Request
+
+@app.middleware("http")
+async def log_every_request(request: Request, call_next):
+
+    print(
+        "🔥 REQUEST:",
+        request.method,
+        request.url.path
+    )
+
+    response = await call_next(request)
+
+    print(
+        "🔥 RESPONSE:",
+        response.status_code
+    )
+
+    return response
 
 # =====================================
 # MODELS
