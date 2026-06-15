@@ -20,7 +20,6 @@ from app.config import (
 from app.vectorstores.qdrant_store import QdrantStore
 from app.vectorstores.vector_upsert import VectorUpsert
 
-
 # ==========================================
 # SINGLETONS
 # ==========================================
@@ -29,11 +28,9 @@ _upserter = None
 
 
 def get_store():
-
     global _store
 
     if _store is None:
-
         _store = QdrantStore(
             QDRANT_URL,
             QDRANT_COLLECTION,
@@ -44,11 +41,9 @@ def get_store():
 
 
 def get_upserter():
-
     global _upserter
 
     if _upserter is None:
-
         _upserter = VectorUpsert(
             get_store()
         )
@@ -60,9 +55,7 @@ def get_upserter():
 # HASH
 # ==========================================
 def get_file_hash(path: str) -> str:
-
     with open(path, "rb") as f:
-
         return hashlib.md5(
             f.read()
         ).hexdigest()
@@ -72,12 +65,10 @@ def get_file_hash(path: str) -> str:
 # CLEAN TEXT
 # ==========================================
 def clean_text(text):
-
     if text is None:
         return ""
 
     if isinstance(text, list):
-
         text = " ".join(
             map(str, text)
         )
@@ -95,7 +86,6 @@ def clean_text(text):
 # PDF
 # ==========================================
 def read_pdf(path: str) -> str:
-
     reader = PdfReader(path)
 
     pages = []
@@ -119,7 +109,6 @@ def read_pdf(path: str) -> str:
 # CHUNKING
 # ==========================================
 def chunk_text(text: str):
-
     text = clean_text(text)
 
     if not text:
@@ -152,7 +141,6 @@ def chunk_text(text: str):
 # CODE DETECTION
 # ==========================================
 def is_code_chunk(text: str) -> bool:
-
     indicators = [
 
         "#include",
@@ -179,7 +167,6 @@ def is_code_chunk(text: str) -> bool:
 # DUPLICATE CHECK
 # ==========================================
 def file_exists(store, file_hash):
-
     try:
 
         records, _ = store.client.scroll(
@@ -220,8 +207,8 @@ def file_exists(store, file_hash):
 # MAIN INGEST
 # ==========================================
 def ingest_file(path: str, filename: str):
-     print("🔥 ingest start:", filename)
-     try:
+    print("🔥 ingest start:", filename)
+    try:
 
         print(f"🔥 ingest start: {filename}")
 
@@ -235,7 +222,6 @@ def ingest_file(path: str, filename: str):
         # DUPLICATE CHECK
         # ==================================
         if file_exists(store, file_hash):
-
             return {
 
                 "status": "skipped",
@@ -263,10 +249,10 @@ def ingest_file(path: str, filename: str):
         elif suffix in [".txt", ".md"]:
 
             with open(
-                path,
-                "r",
-                encoding="utf-8",
-                errors="ignore"
+                    path,
+                    "r",
+                    encoding="utf-8",
+                    errors="ignore"
             ) as f:
 
                 text = clean_text(
@@ -287,7 +273,6 @@ def ingest_file(path: str, filename: str):
         # EMPTY CHECK
         # ==================================
         if not text:
-
             return {
 
                 "status": "error",
@@ -302,7 +287,6 @@ def ingest_file(path: str, filename: str):
         chunks = chunk_text(text)
 
         if not chunks:
-
             return {
 
                 "status": "error",
@@ -314,7 +298,6 @@ def ingest_file(path: str, filename: str):
         structured = []
 
         for i, chunk in enumerate(chunks):
-
             structured.append({
 
                 "id":
@@ -376,30 +359,14 @@ def ingest_file(path: str, filename: str):
                 file_hash,
 
             "qdrant":
-                result
-        }
+                result   }
 
-    except Exception as e:
-
-        traceback.print_exc()
-
-        return {
-
-            "status": "error",
-
-            "message":
-                str(e),
-
-            "traceback":
-                traceback.format_exc()
-        }
 
     finally:
 
         try:
 
-            if os.path.exists(path):
-                os.remove(path)
-
+             if os.path.exists(path):
+                     os.remove(path)
         except Exception:
             pass
