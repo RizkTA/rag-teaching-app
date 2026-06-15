@@ -130,9 +130,11 @@ async def upload_test():
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
 
-    print("🔥 ENDPOINT HIT")
+    temp_path = None
 
     try:
+
+        print("🔥 ENDPOINT HIT")
 
         suffix = os.path.splitext(file.filename)[1]
 
@@ -149,9 +151,16 @@ async def upload_file(file: UploadFile = File(...)):
 
         print("🔥 temp file:", temp_path)
 
-        return {
-            "status": "ok"
-        }
+        print("🔥 calling ingest")
+
+        result = ingest_file(
+            temp_path,
+            file.filename
+        )
+
+        print("🔥 ingest finished")
+
+        return result
 
     except Exception as e:
 
@@ -159,6 +168,7 @@ async def upload_file(file: UploadFile = File(...)):
 
         tb = traceback.format_exc()
 
+        print("🔥 INGEST ERROR")
         print(tb)
 
         return {
