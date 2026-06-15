@@ -2,7 +2,7 @@ import os
 import uuid
 import hashlib
 
-
+print("🔥 INGEST.PY IMPORT START")
 from pypdf import PdfReader
 
 from qdrant_client.models import (
@@ -325,4 +325,5 @@ def ingest_file(path: str, filename: str):
                 os.remove(path)
 
         except Exception:
-            pass
+
+print("🔥 INGEST.PY IMPORT COMPLETE")

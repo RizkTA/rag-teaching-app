@@ -7,7 +7,7 @@ import traceback
 
 print("🔥 BEFORE INGEST IMPORT")
 
-from app.ingestion.ingest import ingest_file
+#from app.ingestion.ingest import ingest_file
 
 print("🔥 AFTER INGEST IMPORT")
 print("🔥 MAIN.PY LOADED")
@@ -188,35 +188,13 @@ from fastapi import UploadFile, File
 import tempfile
 import os
 
-from app.ingestion.ingest import ingest_file
+#from app.ingestion.ingest import ingest_file
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
+    contents = await file.read()
 
-    print("🔥 ENDPOINT HIT")
-
-    suffix = os.path.splitext(file.filename)[1]
-
-    with tempfile.NamedTemporaryFile(
-        delete=False,
-        suffix=suffix
-    ) as tmp:
-
-        contents = await file.read()
-
-        tmp.write(contents)
-
-        temp_path = tmp.name
-
-    print("🔥 temp file:", temp_path)
-
-    print("🔥 BEFORE INGEST")
-
-    result = ingest_file(
-        temp_path,
-        file.filename
-    )
-
-    print("🔥 AFTER INGEST")
-    print(result)
-
-    return result
+    return {
+        "status": "ok",
+        "filename": file.filename,
+        "size": len(contents)
+    }
