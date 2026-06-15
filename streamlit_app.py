@@ -12,7 +12,7 @@ from datetime import datetime
 
 API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
-st.write("api URL:", API_URL)
+
 
 # =================================
 # SESSION STATE
@@ -564,7 +564,10 @@ if st.session_state.authenticated:
                         progress.progress(25)
                         st.write("Calling URL:")
                         st.code(f"{API_URL}/upload_file")
-
+                        st.write("Calling URL:", f"{API_URL}/upload_file")
+                        st.write("Status Code:", res.status_code)
+                        st.write("Response Text:")
+                        st.code(res.text)
                         res = requests.post(
                             f"{API_URL}/upload_file",
                             files=files,

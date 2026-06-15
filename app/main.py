@@ -127,59 +127,31 @@ async def upload_test():
     return {
         "message": "upload route server alive"
     }
+
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
 
-    temp_path = None
+    print("🔥 ENDPOINT HIT")
 
     try:
 
-        print("🔥 UPLOAD START")
+        print("🔥 filename:", file.filename)
 
-        suffix = os.path.splitext(file.filename)[1]
-
-        with tempfile.NamedTemporaryFile(
-            delete=False,
-            suffix=suffix
-        ) as tmp:
-
-            contents = await file.read()
-
-            print("🔥 FILE SIZE:", len(contents))
-
-            tmp.write(contents)
-
-            temp_path = tmp.name
-
-        print("🔥 TEMP PATH:", temp_path)
-
-        result = ingest_file(
-            temp_path,
-            file.filename
-        )
-
-        print("🔥 INGEST RESULT:", result)
-
-        return result
+        return {
+            "status": "ok",
+            "filename": file.filename
+        }
 
     except Exception as e:
 
         import traceback
 
-        traceback.print_exc()
+        tb = traceback.format_exc()
+
+        print(tb)
 
         return {
             "status": "error",
             "message": str(e),
-            "traceback": traceback.format_exc()
+            "traceback": tb
         }
-
-    finally:
-
-        if temp_path and os.path.exists(temp_path):
-
-            try:
-                os.remove(temp_path)
-
-            except:
-                pass
