@@ -1,6 +1,0 @@
-streamlit
-requests
-sentence-transformers
-torch
-transformers
-ollama
