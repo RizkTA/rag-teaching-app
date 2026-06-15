@@ -15,4 +15,3 @@ torch
 transformers
 pypdf==4.2.0
 pypdf
-git add requirements.txtnumpy
