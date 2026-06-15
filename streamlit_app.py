@@ -373,7 +373,70 @@ for i, msg in enumerate(st.session_state.messages):
                     best.get("text", "")[:250]
                 )
 
+import os
+import pandas as pd
+from datetime import datetime
 
+HISTORY_FILE = "upload_history.csv"
+
+
+def load_history():
+
+    if os.path.exists(HISTORY_FILE):
+
+        try:
+            return pd.read_csv(HISTORY_FILE)
+
+        except Exception:
+            pass
+
+    return pd.DataFrame(
+        columns=[
+            "date",
+            "time",
+            "file",
+            "type",
+            "status"
+        ]
+    )
+
+
+def save_history(df):
+
+    df.to_csv(
+        HISTORY_FILE,
+        index=False
+    )
+
+
+def add_history(
+    filename,
+    filetype,
+    status
+):
+
+    now = datetime.now()
+
+    history = load_history()
+
+    new_row = pd.DataFrame([{
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M:%S"),
+        "file": filename,
+        "type": filetype,
+        "status": status
+    }])
+
+    history = pd.concat(
+        [history, new_row],
+        ignore_index=True
+    )
+
+    save_history(history)
+
+    st.session_state.upload_history = (
+        history.to_dict("records")
+    )
 # =================================
 # UPLOAD SECTION
 # =================================
@@ -467,98 +530,22 @@ if st.session_state.authenticated:
 
             total_files = len(uploaded_files)
 
-
             for idx, uploaded_file in enumerate(uploaded_files):
 
                 ext = uploaded_file.name.split(".")[-1].lower()
 
-                color = progress_color.get(ext, "#999")
-
-                st.markdown(
-                    f"""
-                    <style>
-                    .stProgress > div > div > div > div {{
-                        background-color: {color};
-                    }}
-                    </style>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-                # =================================
-                # FRONTEND HASHING
-                # =================================
                 file_bytes = uploaded_file.getvalue()
 
                 file_hash = compute_hash(file_bytes)
 
-                # SAFE EXT
-                ext = uploaded_file.name.split(".")[-1].lower()
-
                 with st.expander(f"📄 {uploaded_file.name}"):
 
                     st.write(f"Hash: `{file_hash}`")
-                    print("UPLOADING:", uploaded_file.name)
+
                     progress = st.progress(5)
 
                     try:
-                        import pandas as pd
-                        import os
-                        from datetime import datetime
 
-                        HISTORY_FILE = "upload_history.csv"
-
-
-                        def load_history():
-
-                            if os.path.exists(HISTORY_FILE):
-                                return pd.read_csv(HISTORY_FILE)
-
-                            return pd.DataFrame(
-                                columns=[
-                                    "date",
-                                    "time",
-                                    "file",
-                                    "type",
-                                    "status"
-                                ]
-                            )
-
-
-                        def save_history(df):
-
-                            df.to_csv(
-                                HISTORY_FILE,
-                                index=False
-                            )
-                        # =========================
-                        # INIT HISTORY
-                        # =========================
-                        from datetime import datetime
-
-
-                        def add_history(date,time,filename, filetype, status):
-
-                            history = load_history()
-
-                            new_row = pd.DataFrame([{
-                                "date": datetime.now().strftime("%Y-%m-%d"),
-                                "time": datetime.now().strftime("%H:%M:%S"),
-                                "file": filename,
-                                "type": filetype,
-                                "status": status
-                            }])
-
-                            history = pd.concat(
-                                [history, new_row],
-                                ignore_index=True
-                            )
-
-                            save_history(history)
-
-                        # =========================
-                        # PREPARE REQUEST
-                        # =========================
                         files = {
                             "file": (
                                 uploaded_file.name,
@@ -574,9 +561,6 @@ if st.session_state.authenticated:
 
                         progress.progress(25)
 
-                        # =========================
-                        # API REQUEST
-                        # =========================
                         res = requests.post(
                             f"{API_URL}/upload_file",
                             files=files,
@@ -584,74 +568,103 @@ if st.session_state.authenticated:
                             timeout=300
                         )
 
-                        progress.progress(60)
+                        progress.progress(50)
 
-                        # =========================
-                        # SAFE JSON
-                        # =========================
+                        # -------------------
+                        # HTTP ERROR
+                        # -------------------
+                        if res.status_code != 200:
+                            st.error(
+                                f"❌ Upload failed for {uploaded_file.name}"
+                            )
+
+                            st.write(
+                                f"Status Code: {res.status_code}"
+                            )
+
+                            st.code(res.text)
+
+                            add_history(
+                                uploaded_file.name,
+                                ext.upper(),
+                                "❌ HTTP Error"
+                            )
+
+                            continue
+
+                        # -------------------
+                        # JSON
+                        # -------------------
                         try:
 
                             result = res.json()
 
                         except Exception:
 
-                            st.error("❌ Backend returned invalid JSON")
-                            st.write("Status Code:", res.status_code)
+                            st.error(
+                                "❌ Backend returned invalid JSON"
+                            )
+
+                            st.write(
+                                f"Status Code: {res.status_code}"
+                            )
+
                             st.code(res.text)
 
-                            progress.empty()
-                            raise e
-                         #   st.stop()
+                            add_history(
+                                uploaded_file.name,
+                                ext.upper(),
+                                "❌ Invalid JSON"
+                            )
+
+                            continue
 
                         progress.progress(80)
 
-                        # =========================
-                        # STATUS
-                        # =========================
-                        status = result.get("status", "unknown")
-                        from datetime import datetime
+                        status = result.get(
+                            "status",
+                            "unknown"
+                        )
 
-                        now = datetime.now()
-                        # =========================
+                        # -------------------
                         # SKIPPED
-                        # =========================
+                        # -------------------
                         if status == "skipped":
 
                             st.warning(
-                                f"⚠️ {uploaded_file.name} already exists — skipped"
+                                f"⚠️ {uploaded_file.name} already exists"
                             )
 
                             add_history(
-                                now.strftime("%Y-%m-%d"),
-                                now.strftime("%H:%M:%S"),
                                 uploaded_file.name,
                                 ext.upper(),
                                 "⚠️ Skipped"
                             )
 
-                        # =========================
+                        # -------------------
                         # SUCCESS
-                        # =========================
-                        elif status == "ok":
+                        # -------------------
+                        elif status in ["ok", "uploaded"]:
 
-                            inserted = result.get("chunks", 0)
+                            chunks = result.get(
+                                "chunks",
+                                0
+                            )
 
                             st.success(
                                 f"✅ {uploaded_file.name} uploaded successfully "
-                                f"({inserted} chunks)"
+                                f"({chunks} chunks)"
                             )
 
                             add_history(
-                                now.strftime("%Y-%m-%d"),  # date
-                                now.strftime("%H:%M:%S"),  # time
-                                uploaded_file.name,  # filename
-                                ext.upper(),  # filetype
-                                "✅ Uploaded"  # status
+                                uploaded_file.name,
+                                ext.upper(),
+                                "✅ Uploaded"
                             )
 
-                        # =========================
-                        # ERROR
-                        # =========================
+                        # -------------------
+                        # BACKEND ERROR
+                        # -------------------
                         else:
 
                             st.error(
@@ -661,12 +674,11 @@ if st.session_state.authenticated:
                             st.json(result)
 
                             add_history(
-                                now.strftime("%Y-%m-%d"),
-                                now.strftime("%H:%M:%S"),
                                 uploaded_file.name,
                                 ext.upper(),
                                 "❌ Failed"
                             )
+
                         progress.progress(100)
 
                     except Exception as e:
@@ -677,39 +689,25 @@ if st.session_state.authenticated:
 
                         st.code(str(e))
 
-                        st.session_state.upload_history.append({
+                        add_history(
+                            uploaded_file.name,
+                            ext.upper(),
+                            "❌ Exception"
+                        )
 
-                            "file":
-                                uploaded_file.name,
-
-                            "type":
-                                ext.upper(),
-
-                            "status":
-                                "❌ Exception"
-                        })
-            if st.session_state.upload_history:
-                    st.subheader("History")
-
-            history_df = pd.DataFrame(
-                        st.session_state.upload_history
+                overall_progress.progress(
+                    int(
+                        ((idx + 1) / total_files) * 100
                     )
-            st.dataframe(
-                        history_df,
-                        use_container_width=True
-                    )
-            history_df = load_history()
-            if not history_df.empty:
-                csv = history_df.to_csv(index=False)
-
-                st.download_button(
-                    label="📥 Download Upload History",
-                    data=csv,
-                    file_name="upload_history.csv",
-                    mime="text/csv"
                 )
+
+            # ============================
+            # HISTORY TABLE
+            # ============================
+            history_df = load_history()
+
             if not history_df.empty:
-                st.subheader("Upload History..........")
+                st.subheader("📜 Upload History")
 
                 st.dataframe(
                     history_df.sort_values(
@@ -718,6 +716,20 @@ if st.session_state.authenticated:
                     ),
                     use_container_width=True
                 )
+
+                csv = history_df.to_csv(
+                    index=False
+                )
+
+                st.download_button(
+                    label="📥 Download Upload History",
+                    data=csv,
+                    file_name="upload_history.csv",
+                    mime="text/csv"
+                )
+                progress.progress(80)
+
+
         # =================================
         # OVERALL PROGRESS
         # =================================
