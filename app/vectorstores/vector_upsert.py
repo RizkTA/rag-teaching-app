@@ -10,7 +10,7 @@ class VectorUpsert:
     def upsert_chunks(self, chunks):
 
         print("🔥 upsert_chunks start")
-
+        
         # =================================
         # EMPTY CHECK
         # =================================

@@ -220,8 +220,8 @@ def file_exists(store, file_hash):
 # MAIN INGEST
 # ==========================================
 def ingest_file(path: str, filename: str):
-
-    try:
+     print("🔥 ingest start:", filename)
+     try:
 
         print(f"🔥 ingest start: {filename}")
 

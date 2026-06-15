@@ -12,6 +12,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 @lru_cache(maxsize=1)
 def get_embedder():
+    print("🔥 Loading embedding model...")
     from sentence_transformers import SentenceTransformer
 
     _embedder: SentenceTransformer | None = None
