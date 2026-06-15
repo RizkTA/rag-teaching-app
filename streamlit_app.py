@@ -596,12 +596,12 @@ if st.session_state.authenticated:
                         except Exception:
 
                             st.error("❌ Backend returned invalid JSON")
-
+                            st.write("Status Code:", res.status_code)
                             st.code(res.text)
 
                             progress.empty()
-
-                            st.stop()
+                            raise e
+                         #   st.stop()
 
                         progress.progress(80)
 
