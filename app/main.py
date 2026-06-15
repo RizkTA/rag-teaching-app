@@ -15,12 +15,10 @@ from app.llm.streaming import stream_answer
 from pydantic import BaseModel
 
 
-app = FastAPI()
-
-
 class QueryRequest(BaseModel):
     q: str
 
+app = FastAPI()
 
 @app.get("/")
 def root():

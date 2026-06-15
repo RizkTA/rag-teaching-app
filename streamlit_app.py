@@ -11,7 +11,7 @@ from datetime import datetime
 # =================================
 API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
-st.write("API_URL =", API_URL)
+
 # =================================
 # SESSION STATE
 # =================================
