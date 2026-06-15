@@ -195,12 +195,45 @@ async def upload_file(file: UploadFile = File(...)):
     print("🔥 ENDPOINT HIT")
     print("🔥 filename:", file.filename)
 
-    contents = await file.read()
+    temp_path = None
 
-    print("🔥 bytes:", len(contents))
+    try:
 
-    return {
-        "status": "ok",
-        "filename": file.filename,
-        "size": len(contents)
-    }
+        suffix = os.path.splitext(file.filename)[1]
+
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        ) as tmp:
+
+            contents = await file.read()
+
+            print("🔥 bytes:", len(contents))
+
+            tmp.write(contents)
+
+            temp_path = tmp.name
+
+        print("🔥 temp file:", temp_path)
+
+        print("🔥 BEFORE INGEST")
+
+        result = ingest_file(
+            temp_path,
+            file.filename
+        )
+
+        print("🔥 AFTER INGEST")
+        print(result)
+
+        return result
+
+    except Exception as e:
+
+        import traceback
+        traceback.print_exc()
+
+        return {
+            "status": "error",
+            "message": str(e)
+        }

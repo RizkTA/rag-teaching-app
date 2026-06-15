@@ -210,14 +210,15 @@ def ingest_file(path: str, filename: str):
 
     print("🔥 ingest start:", filename)
 
+
     try:
-
+        print("STEP A")
         store = get_store()
-
+        print("STEP B")
         file_hash = get_file_hash(path)
 
         print("🔥 file hash:", file_hash)
-
+        print("STEP C")
         if file_exists(store, file_hash):
 
             return {
@@ -233,7 +234,7 @@ def ingest_file(path: str, filename: str):
             text = clean_text(
                 read_pdf(path)
             )
-
+            print("STEP D")
         elif suffix in [".txt", ".md"]:
 
             with open(
@@ -246,7 +247,7 @@ def ingest_file(path: str, filename: str):
                 text = clean_text(
                     f.read()
                 )
-
+                print("STEP DD")
         else:
 
             return {
@@ -262,7 +263,7 @@ def ingest_file(path: str, filename: str):
             }
 
         chunks = chunk_text(text)
-
+        print("STEP E")
         if not chunks:
 
             return {
@@ -289,11 +290,11 @@ def ingest_file(path: str, filename: str):
             })
 
         print(f"🔥 generated {len(structured)} chunks")
-
+        print("STEP F")
         result = get_upserter().upsert_chunks(
             structured
         )
-
+        print("STEP G")
         print("🔥 upsert complete")
 
         return {
