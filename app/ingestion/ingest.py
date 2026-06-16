@@ -324,6 +324,8 @@ def ingest_file(path: str, filename: str):
             if os.path.exists(path):
                 os.remove(path)
 
-        except Exception:
+        except Exception as e:
+            print(e)
+
 
 print("🔥 INGEST.PY IMPORT COMPLETE")
