@@ -20,14 +20,14 @@ def get_embedder():
 
     print("🔥 BEFORE MODEL LOAD")
 
-    model = SentenceTransformer(
-        "sentence-transformers/all-MiniLM-L6-v2",
-        device="cpu"
-    )
+    #model = SentenceTransformer(
+    #    "sentence-transformers/all-MiniLM-L6-v2",
+    #    device="cpu"    )
+    print("🔥 MODEL LOAD SKIPPED")
+    return None
+    #print("🔥 AFTER MODEL LOAD")
 
-    print("🔥 AFTER MODEL LOAD")
-
-    return model
+    #return model
 
 # =================================
 # SAFE TEXT SANITIZER
@@ -69,8 +69,33 @@ def sanitize_text(x):
 def embed_texts(texts):
 
     print("🔥 ENTER embed_texts")
+    # single string
+    if isinstance(texts, str):
+        texts = [texts]
+
+    # sanitize
+    cleaned_texts = [
+
+        sanitize_text(t)
+
+        for t in texts
+
+        if t is not None
+    ]
+
+    # remove empty strings
+    cleaned_texts = [
+        t for t in cleaned_texts
+        if t.strip()
+    ]
+
+    if not cleaned_texts:
+        return []
 
     model = get_embedder()
+
+    if model is None:
+         return [[0.0] * 384 for _ in cleaned_texts]
 
     print("🔥 GOT MODEL")
 
