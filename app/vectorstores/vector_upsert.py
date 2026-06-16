@@ -10,7 +10,7 @@ class VectorUpsert:
     def upsert_chunks(self, chunks):
 
         print("🔥 upsert_chunks start")
-        
+
         # =================================
         # EMPTY CHECK
         # =================================
@@ -65,8 +65,10 @@ class VectorUpsert:
         # =================================
         # EMBEDDINGS
         # =================================
+        print("STEP A")
         vectors = embed_texts(texts)
 
+        print("STEP B")
         if vectors is None:
 
             raise Exception(
