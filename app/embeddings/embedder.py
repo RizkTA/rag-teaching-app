@@ -68,44 +68,6 @@ def sanitize_text(x):
 # =================================
 def embed_texts(texts):
 
-    print("🔥 ENTER embed_texts")
-    # single string
-    if isinstance(texts, str):
-        texts = [texts]
+    print("STEP A")
 
-    # sanitize
-    cleaned_texts = [
-
-        sanitize_text(t)
-
-        for t in texts
-
-        if t is not None
-    ]
-
-    # remove empty strings
-    cleaned_texts = [
-        t for t in cleaned_texts
-        if t.strip()
-    ]
-
-    if not cleaned_texts:
-        return []
-
-    model = get_embedder()
-
-    if model is None:
-         return [[0.0] * 384 for _ in cleaned_texts]
-
-    print("🔥 GOT MODEL")
-
-    vectors = model.encode(
-        texts,
-        normalize_embeddings=True,
-        convert_to_numpy=True,
-        show_progress_bar=False
-    )
-
-    print("🔥 ENCODE COMPLETE")
-
-    return vectors.tolist()
+    return [[0.0] * 384 for _ in texts]
