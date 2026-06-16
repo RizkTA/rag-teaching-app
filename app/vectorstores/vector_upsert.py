@@ -66,8 +66,12 @@ class VectorUpsert:
         # EMBEDDINGS
         # =================================
         print("STEP A")
-        vectors = embed_texts(texts)
+        #vectors = embed_texts(texts)
+        print("🔥 SKIPPING EMBEDDINGS")
 
+        vectors = [[0.0] * 384 for _ in texts]
+
+        print("🔥 FAKE EMBEDDINGS CREATED")
         print("STEP B")
         if vectors is None:
 
