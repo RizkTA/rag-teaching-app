@@ -69,25 +69,19 @@ def embed_texts(texts):
 
     print("STEP A")
 
-    from sentence_transformers import SentenceTransformer
+    model = get_embedder()
 
     print("STEP B")
-
-    model = SentenceTransformer(
-        "sentence-transformers/all-MiniLM-L6-v2",
-        device="cpu"
-    )
-
-    print("STEP C")
 
     vectors = model.encode(
         texts,
         normalize_embeddings=True,
         convert_to_numpy=True,
-        show_progress_bar=False
+        show_progress_bar=False,
+        batch_size=1
     )
 
-    print("STEP D")
+    print("STEP C")
 
     return vectors.tolist()
 print("🔥 EMBEDDER.PY IMPORT END")
