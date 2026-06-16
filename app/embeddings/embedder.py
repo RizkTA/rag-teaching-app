@@ -9,28 +9,21 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 # =================================
 # LOAD EMBEDDING MODEL ONCE
 # =================================
-
 @lru_cache(maxsize=1)
 def get_embedder():
+
     print("🔥 Loading embedding model...")
+
     from sentence_transformers import SentenceTransformer
 
-    _embedder: SentenceTransformer | None = None
-    print("🔥 ENTER get_embedder")
+    model = SentenceTransformer(
+        "sentence-transformers/all-MiniLM-L6-v2",
+        device="cpu"
+    )
 
-    if _embedder is None:
+    print("🔥 MODEL LOADED")
 
-        print("🔥 LOADING MODEL")
-
-        _embedder = SentenceTransformer(
-            "sentence-transformers/all-MiniLM-L6-v2",
-            device="cpu"
-        )
-
-        print("🔥 MODEL LOADED")
-
-    return _embedder
-
+    return model
 
 # =================================
 # SAFE TEXT SANITIZER
