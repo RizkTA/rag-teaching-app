@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 
@@ -255,15 +257,25 @@ async def upload_file(file: UploadFile = File(...)):
 
         print("STEP 11")
 
-        return {
-            "status": "ok",
-            "filename": file.filename
-        }
-        return {
-            "status": "ok",
-            "filename": file.filename
-        }
+        structured = [
+           {
+                "id": str(uuid.uuid4()),
+                "text": text,
+                "source": file.filename
+            }
+            ]
+        print("STEP 12")
 
+        result = upserter.upsert_chunks(structured)
+
+        print("STEP 13")
+        print(result)
+
+        return {
+            "status": "ok",
+            "filename": file.filename,
+            "qdrant": result
+}
     except Exception as e:
 
         import traceback
