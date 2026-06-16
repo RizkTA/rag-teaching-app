@@ -188,13 +188,49 @@ from fastapi import UploadFile, File
 import tempfile
 import os
 
-#from app.ingestion.ingest import ingest_file
+from app.ingestion.ingest import ingest_file
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
-    contents = await file.read()
 
-    return {
-        "status": "ok",
-        "filename": file.filename,
-        "size": len(contents)
-    }
+    print("🔥 ENDPOINT HIT")
+
+    temp_path = None
+
+    try:
+
+        suffix = os.path.splitext(file.filename)[1]
+
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        ) as tmp:
+
+            contents = await file.read()
+
+            tmp.write(contents)
+
+            temp_path = tmp.name
+
+        print("STEP 1")
+
+        from app.ingestion.ingest import get_store
+
+        store = get_store()
+
+        print("STEP 2")
+
+        return {
+            "status": "ok",
+            "filename": file.filename,
+            "size": len(contents)
+        }
+
+    except Exception as e:
+
+        import traceback
+        traceback.print_exc()
+
+        return {
+            "status": "error",
+            "message": str(e)
+        }
