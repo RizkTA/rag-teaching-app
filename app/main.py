@@ -188,7 +188,9 @@ from fastapi import UploadFile, File
 import tempfile
 import os
 
-from app.ingestion.ingest import ingest_file
+from app.ingestion.ingest import ingest_file, get_file_hash
+
+
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
 
@@ -211,18 +213,22 @@ async def upload_file(file: UploadFile = File(...)):
 
             temp_path = tmp.name
 
-        print("STEP 1")
+
 
         from app.ingestion.ingest import get_store
+        print("STEP 1")
 
         store = get_store()
 
         print("STEP 2")
 
+        file_hash = get_file_hash(temp_path)
+
+        print("STEP 3:", file_hash)
+
         return {
             "status": "ok",
-            "filename": file.filename,
-            "size": len(contents)
+            "filename": file.filename
         }
 
     except Exception as e:
