@@ -1,5 +1,5 @@
 from app.ingestion.ingest import store
-from app.embeddings.api_embedder import embed_texts
+from app.embeddings.oldapi_embedder import embed_texts
 from test_query import question
 
 

@@ -86,9 +86,9 @@ def embed_texts(texts):
 
     if not cleaned_texts:
         return []
-
+    print("🔥 EMBED START")
     model = get_embedder()
-
+    print("🔥 GOT MODEL")
     vectors = model.encode(
         cleaned_texts,
         normalize_embeddings=True,

@@ -4,7 +4,7 @@ from app.config import (
     EMBED_DIM,
 )
 
-from app.embeddings.api_embedder import embed_texts
+from app.embeddings.oldapi_embedder import embed_texts
 from app.vectorstores.qdrant_store import QdrantStore
 
 
