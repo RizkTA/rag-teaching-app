@@ -188,7 +188,7 @@ from fastapi import UploadFile, File
 import tempfile
 import os
 
-from app.ingestion.ingest import ingest_file, get_file_hash, file_exists
+from app.ingestion.ingest import ingest_file, get_file_hash, file_exists,get_store
 
 
 @app.post("/upload_file")
