@@ -191,15 +191,31 @@ import tempfile
 import os
 
 from app.ingestion.ingest import ingest_file, get_file_hash, file_exists,chunk_text,get_upserter, get_store
-
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
-    print("🔥 ENDPOINT HIT")
+
+    print("STEP 1")
 
     contents = await file.read()
 
-    return {
-        "status": "ok",
-        "filename": file.filename,
-        "size": len(contents)
-    }
+    print("STEP 2")
+
+    structured = [
+        {
+            "id": "1",
+            "text": "hello world",
+            "source": file.filename
+        }
+    ]
+
+    print("STEP 3")
+
+    upserter = get_upserter()
+
+    print("STEP 4")
+
+    result = upserter.upsert_chunks(structured)
+
+    print("STEP 5")
+
+    return result
