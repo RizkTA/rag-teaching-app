@@ -199,10 +199,11 @@ async def upload_file(file: UploadFile = File(...)):
     contents = await file.read()
 
     print("STEP 2")
+    import uuid
 
     structured = [
         {
-            "id": "1",
+            "id": str(uuid.uuid4()),
             "text": "hello world",
             "source": file.filename
         }
