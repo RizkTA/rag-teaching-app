@@ -188,7 +188,7 @@ from fastapi import UploadFile, File
 import tempfile
 import os
 
-from app.ingestion.ingest import ingest_file, get_file_hash, file_exists,get_store
+from app.ingestion.ingest import ingest_file, get_file_hash, file_exists,chunk_text,get_upserter, get_store
 
 
 @app.post("/upload_file")
@@ -245,7 +245,20 @@ async def upload_file(file: UploadFile = File(...)):
                 text = f.read()
 
             print("STEP 7:", len(text))
+        chunks = chunk_text(text)
 
+        print("STEP 8:", len(chunks))
+
+        print("STEP 10")
+
+        upserter = get_upserter()
+
+        print("STEP 11")
+
+        return {
+            "status": "ok",
+            "filename": file.filename
+        }
         return {
             "status": "ok",
             "filename": file.filename
