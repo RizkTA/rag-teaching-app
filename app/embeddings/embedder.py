@@ -9,19 +9,23 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 # =================================
 # LOAD EMBEDDING MODEL ONCE
 # =================================
+from functools import lru_cache
+
 @lru_cache(maxsize=1)
 def get_embedder():
 
-    print("🔥 Loading embedding model...")
+    print("🔥 ENTER get_embedder")
 
     from sentence_transformers import SentenceTransformer
+
+    print("🔥 BEFORE MODEL LOAD")
 
     model = SentenceTransformer(
         "sentence-transformers/all-MiniLM-L6-v2",
         device="cpu"
     )
 
-    print("🔥 MODEL LOADED")
+    print("🔥 AFTER MODEL LOAD")
 
     return model
 
@@ -64,40 +68,19 @@ def sanitize_text(x):
 # =================================
 def embed_texts(texts):
 
-    # single string
-    if isinstance(texts, str):
-        texts = [texts]
+    print("🔥 ENTER embed_texts")
 
-    # sanitize
-    cleaned_texts = [
-
-        sanitize_text(t)
-
-        for t in texts
-
-        if t is not None
-    ]
-
-    # remove empty strings
-    cleaned_texts = [
-        t for t in cleaned_texts
-        if t.strip()
-    ]
-
-    if not cleaned_texts:
-        return []
-    print("🔥 EMBED START")
     model = get_embedder()
+
     print("🔥 GOT MODEL")
+
     vectors = model.encode(
-        cleaned_texts,
+        texts,
         normalize_embeddings=True,
         convert_to_numpy=True,
-        show_progress_bar=False,
-        batch_size=16
+        show_progress_bar=False
     )
-    print(
-        "🔥 EMBEDDINGS SHAPE:",
-        vectors.shape
-    )
+
+    print("🔥 ENCODE COMPLETE")
+
     return vectors.tolist()
