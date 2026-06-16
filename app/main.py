@@ -213,9 +213,6 @@ async def upload_file(file: UploadFile = File(...)):
 
             temp_path = tmp.name
 
-
-
-        from app.ingestion.ingest import get_store
         print("STEP 1")
 
         store = get_store()
@@ -229,6 +226,25 @@ async def upload_file(file: UploadFile = File(...)):
         exists = file_exists(store, file_hash)
 
         print("STEP 4:", exists)
+
+        print("STEP 5")
+
+        suffix = os.path.splitext(file.filename)[1].lower()
+
+        print("STEP 6:", suffix)
+
+        if suffix == ".txt":
+
+            with open(
+                temp_path,
+                "r",
+                encoding="utf-8",
+                errors="ignore"
+            ) as f:
+
+                text = f.read()
+
+            print("STEP 7:", len(text))
 
         return {
             "status": "ok",
