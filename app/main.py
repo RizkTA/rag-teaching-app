@@ -192,96 +192,14 @@ import os
 
 from app.ingestion.ingest import ingest_file, get_file_hash, file_exists,chunk_text,get_upserter, get_store
 
-
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
-
     print("🔥 ENDPOINT HIT")
 
-    temp_path = None
+    contents = await file.read()
 
-    try:
-
-        suffix = os.path.splitext(file.filename)[1]
-
-        with tempfile.NamedTemporaryFile(
-            delete=False,
-            suffix=suffix
-        ) as tmp:
-
-            contents = await file.read()
-
-            tmp.write(contents)
-
-            temp_path = tmp.name
-
-        print("STEP 1")
-
-        store = get_store()
-
-        print("STEP 2")
-
-        file_hash = get_file_hash(temp_path)
-
-        print("STEP 3:", file_hash)
-
-        exists = file_exists(store, file_hash)
-
-        print("STEP 4:", exists)
-
-        print("STEP 5")
-
-        suffix = os.path.splitext(file.filename)[1].lower()
-
-        print("STEP 6:", suffix)
-
-        if suffix == ".txt":
-
-            with open(
-                temp_path,
-                "r",
-                encoding="utf-8",
-                errors="ignore"
-            ) as f:
-
-                text = f.read()
-
-            print("STEP 7:", len(text))
-        chunks = chunk_text(text)
-
-        print("STEP 8:", len(chunks))
-
-        print("STEP 10")
-
-        upserter = get_upserter()
-
-        print("STEP 11")
-
-        structured = [
-           {
-                "id": str(uuid.uuid4()),
-                "text": text,
-                "source": file.filename
-            }
-            ]
-        print("STEP 12")
-
-        result = upserter.upsert_chunks(structured)
-
-        print("STEP 13")
-        print(result)
-
-        return {
-            "status": "ok",
-            "filename": file.filename,
-            "qdrant": result
-}
-    except Exception as e:
-
-        import traceback
-        traceback.print_exc()
-
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+    return {
+        "status": "ok",
+        "filename": file.filename,
+        "size": len(contents)
+    }
