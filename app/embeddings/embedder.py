@@ -12,6 +12,10 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 from functools import lru_cache
 print("🔥 EMBEDDER.PY IMPORT START")
 from functools import lru_cache
+from functools import lru_cache
+
+print("🔥 EMBEDDER.PY IMPORT START")
+
 @lru_cache(maxsize=1)
 def get_embedder():
 
@@ -29,6 +33,27 @@ def get_embedder():
     print("STEP F")
 
     return model
+
+
+def embed_texts(texts):
+
+    print("STEP A")
+
+    model = get_embedder()
+
+    print("STEP B")
+
+    vectors = model.encode(
+        texts,
+        normalize_embeddings=True,
+        convert_to_numpy=True,
+        show_progress_bar=False,
+        batch_size=1
+    )
+
+    print("STEP C")
+
+    return vectors.tolist()
 
 # =================================
 # SAFE TEXT SANITIZER
@@ -69,24 +94,3 @@ def sanitize_text(x):
 # =================================
 print("🔥 EMBEDDER.PY IMPORT START")
 
-
-# noinspection PyPackageRequirements
-def embed_texts(texts):
-
-    print("STEP A")
-
-    model = get_embedder()
-
-    print("STEP B")
-
-    vectors = model.encode(
-        texts,
-        normalize_embeddings=True,
-        convert_to_numpy=True,
-        show_progress_bar=False,
-        batch_size=1
-    )
-
-    print("STEP C")
-
-    return vectors.tolist()
