@@ -31,16 +31,20 @@ except Exception as e:
 # FASTAPI
 # =====================================
 app = FastAPI()
-
 @app.get("/versions")
 def versions():
-
+    import numpy
+    import torch
+    import transformers
     import sentence_transformers
     import huggingface_hub
 
     return {
+        "numpy": numpy.__version__,
+        "torch": torch.__version__,
+        "transformers": transformers.__version__,
         "sentence_transformers": sentence_transformers.__version__,
-        "huggingface_hub": huggingface_hub.__version__
+        "huggingface_hub": huggingface_hub.__version__,
     }
 from fastapi import Request
 @app.get("/")
