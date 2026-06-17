@@ -72,18 +72,32 @@ def embed_texts(texts):
 
     print("STEP A")
 
-    model = get_embedder()
+    from sentence_transformers import SentenceTransformer
 
     print("STEP B")
 
-    vectors = model.encode(
-        texts,
-        normalize_embeddings=True,
-        convert_to_numpy=True,
-        show_progress_bar=False,
-        batch_size=1
+    import psutil
+    import os
+
+    process = psutil.Process(os.getpid())
+
+    print(
+        "MEMORY BEFORE MODEL:",
+        process.memory_info().rss / 1024 / 1024,
+        "MB"
+    )
+
+    model = SentenceTransformer(
+        "sentence-transformers/all-MiniLM-L6-v2",
+        device="cpu"
     )
 
     print("STEP C")
 
-    return vectors.tolist()
+    print(
+        "MEMORY AFTER MODEL:",
+        process.memory_info().rss / 1024 / 1024,
+        "MB"
+    )
+
+    return [[0.0] * 384 for _ in texts]
