@@ -71,6 +71,11 @@ def sanitize_text(x):
 print("🔥 EMBEDDER.PY IMPORT START")
 
 def embed_texts(texts):
-    return [[0.0] * 384 for _ in texts]
 
-print("🔥 EMBEDDER.PY IMPORT END")
+    print("STEP A")
+
+    from sentence_transformers import SentenceTransformer
+
+    print("STEP B")
+
+    return [[0.0] * 384 for _ in texts]
