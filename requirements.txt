@@ -16,3 +16,4 @@ torch
 transformers
 pypdf==4.2.0
 pypdf
+psutil

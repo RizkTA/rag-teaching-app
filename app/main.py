@@ -3,9 +3,6 @@ import uuid
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 
-import os
-import tempfile
-import traceback
 import psutil
 import os
 
