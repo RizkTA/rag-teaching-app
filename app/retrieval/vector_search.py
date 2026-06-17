@@ -1,4 +1,4 @@
-from app.embeddings.oldapi_embedder import embed_texts
+from app.embeddings.embedder import embed_texts
 
 from app.vectorstores.qdrant_store import QdrantStore
 
