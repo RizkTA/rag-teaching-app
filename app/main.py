@@ -191,32 +191,85 @@ import tempfile
 import os
 
 from app.ingestion.ingest import ingest_file, get_file_hash, file_exists,chunk_text,get_upserter, get_store
+
+
+from fastapi import UploadFile, File
+import tempfile
+import os
+import traceback
+
+from app.ingestion.ingest import ingest_file
+
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
 
-    print("STEP 1")
+    print("UPLOAD STEP 1")
 
-    contents = await file.read()
+    temp_path = None
 
-    print("STEP 2")
-    import uuid
+    try:
 
-    structured = [
-        {
-            "id": str(uuid.uuid4()),
-            "text": "hello world",
-            "source": file.filename
+        print("UPLOAD STEP 2")
+
+        # preserve extension
+        suffix = os.path.splitext(file.filename)[1]
+
+        print("UPLOAD FILENAME:", file.filename)
+
+        # save uploaded file
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        ) as tmp:
+
+            contents = await file.read()
+
+            print("UPLOAD SIZE:", len(contents))
+
+            tmp.write(contents)
+
+            temp_path = tmp.name
+
+        print("UPLOAD STEP 3")
+        print("TEMP PATH:", temp_path)
+
+        # call ingestion
+        result = ingest_file(
+            temp_path,
+            file.filename
+        )
+
+        print("UPLOAD STEP 4")
+        print("INGEST RESULT:", result)
+
+        return result
+
+    except Exception as e:
+
+        print("UPLOAD ERROR")
+        traceback.print_exc()
+
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
         }
-    ]
 
-    print("STEP 3")
+    finally:
 
-    upserter = get_upserter()
+        print("UPLOAD STEP 5")
 
-    print("STEP 4")
+        if temp_path and os.path.exists(temp_path):
 
-    result = upserter.upsert_chunks(structured)
+            try:
 
-    print("STEP 5")
+                os.remove(temp_path)
 
-    return result
+                print("TEMP FILE REMOVED")
+
+            except Exception as cleanup_error:
+
+                print(
+                    "TEMP FILE CLEANUP ERROR:",
+                    cleanup_error
+                )

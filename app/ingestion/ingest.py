@@ -26,16 +26,23 @@ from app.vectorstores.vector_upsert import VectorUpsert
 _store = None
 _upserter = None
 
-
 def get_store():
+
+    print("STORE STEP 1")
+
     global _store
 
     if _store is None:
+
+        print("STORE STEP 2")
+
         _store = QdrantStore(
             QDRANT_URL,
             QDRANT_COLLECTION,
             EMBED_DIM
         )
+
+        print("STORE STEP 3")
 
     return _store
 
