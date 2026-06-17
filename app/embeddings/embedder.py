@@ -71,30 +71,10 @@ def sanitize_text(x):
 # EMBEDDING FUNCTION
 # =================================
 def embed_texts(texts):
-    print("🔥 EMBED COUNT:", len(texts))
-    print("🔥 FIRST TYPE:", type(texts[0]))
     print("STEP A")
 
-    if isinstance(texts, str):
-        texts = [texts]
-
-    cleaned_texts = [
-        sanitize_text(t)
-        for t in texts
-    ]
-
-    model = get_embedder()
+    from sentence_transformers import SentenceTransformer
 
     print("STEP B")
 
-    vectors = model.encode(
-        cleaned_texts,
-        normalize_embeddings=True,
-        convert_to_numpy=True,
-        show_progress_bar=False,
-        batch_size=8
-    )
-
-    print("STEP C")
-
-    return vectors.tolist()
+    return [[0.0] * 384 for _ in texts]
