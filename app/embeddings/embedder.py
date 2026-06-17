@@ -68,36 +68,9 @@ def sanitize_text(x):
 # =================================
 # EMBEDDING FUNCTION
 # =================================
+print("🔥 EMBEDDER.PY IMPORT START")
+
 def embed_texts(texts):
-
-    print("STEP A")
-
-    from sentence_transformers import SentenceTransformer
-
-    print("STEP B")
-
-    import psutil
-    import os
-
-    process = psutil.Process(os.getpid())
-
-    print(
-        "MEMORY BEFORE MODEL:",
-        process.memory_info().rss / 1024 / 1024,
-        "MB"
-    )
-
-    model = SentenceTransformer(
-        "sentence-transformers/all-MiniLM-L6-v2",
-        device="cpu"
-    )
-
-    print("STEP C")
-
-    print(
-        "MEMORY AFTER MODEL:",
-        process.memory_info().rss / 1024 / 1024,
-        "MB"
-    )
-
     return [[0.0] * 384 for _ in texts]
+
+print("🔥 EMBEDDER.PY IMPORT END")
