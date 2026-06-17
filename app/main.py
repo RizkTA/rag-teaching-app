@@ -5,16 +5,6 @@ from pydantic import BaseModel
 
 import psutil
 import os
-@app.get("/versions")
-def versions():
-
-    import sentence_transformers
-    import huggingface_hub
-
-    return {
-        "sentence_transformers": sentence_transformers.__version__,
-        "huggingface_hub": huggingface_hub.__version__
-    }
 print(
     "MEMORY MB:",
     psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
@@ -42,6 +32,16 @@ except Exception as e:
 # =====================================
 app = FastAPI()
 
+@app.get("/versions")
+def versions():
+
+    import sentence_transformers
+    import huggingface_hub
+
+    return {
+        "sentence_transformers": sentence_transformers.__version__,
+        "huggingface_hub": huggingface_hub.__version__
+    }
 from fastapi import Request
 @app.get("/")
 def root():
