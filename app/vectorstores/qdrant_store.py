@@ -62,10 +62,10 @@ class QdrantStore:
 
         self._ensure_collection()
 
-        ensure_indexes(
-            self.client,
-            self.collection_name
-        )
+       # ensure_indexes(
+       #     self.client,
+       #     self.collection_name
+        #)
 
     # =========================================
     # CREATE COLLECTION IF MISSING
