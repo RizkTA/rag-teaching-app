@@ -30,6 +30,17 @@ except Exception as e:
 # FASTAPI
 # =====================================
 app = FastAPI()
+
+@app.get("/qdrant_count")
+def qdrant_count():
+
+    store = get_store()
+
+    count = store.client.count(
+        collection_name=store.collection_name
+    )
+
+    return count
 @app.get("/versions")
 def versions():
     import numpy
