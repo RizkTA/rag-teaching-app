@@ -219,9 +219,9 @@ def ingest_file(path: str, filename: str):
 
 
     try:
-        print("STEP A")
+        print("BEFORE GET_STORE")
         store = get_store()
-        print("STEP B")
+        print("AFTER GET_STORE")
         file_hash = get_file_hash(path)
 
         print("🔥 file hash:", file_hash)
