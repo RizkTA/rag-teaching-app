@@ -11,25 +11,17 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 # =================================
 from functools import lru_cache
 print("🔥 EMBEDDER.PY IMPORT START")
-
 from functools import lru_cache
+
 @lru_cache(maxsize=1)
 def get_embedder():
 
-    print("STEP D")
-
     from sentence_transformers import SentenceTransformer
 
-    print("STEP E")
-
-    model = SentenceTransformer(
+    return SentenceTransformer(
         "sentence-transformers/all-MiniLM-L6-v2",
         device="cpu"
     )
-
-    print("STEP F")
-
-    return model
 
 # =================================
 # SAFE TEXT SANITIZER
@@ -71,17 +63,14 @@ def sanitize_text(x):
 print("🔥 EMBEDDER.PY IMPORT START")
 def embed_texts(texts):
 
-    print("STEP A")
+    model = get_embedder()
 
-    from sentence_transformers import SentenceTransformer
-
-    print("STEP B")
-
-    model = SentenceTransformer(
-        "sentence-transformers/all-MiniLM-L6-v2",
-        device="cpu"
+    vectors = model.encode(
+        texts,
+        normalize_embeddings=True,
+        convert_to_numpy=True,
+        show_progress_bar=False,
+        batch_size=1
     )
 
-    print("STEP C")
-
-    return [[0.0] * 384 for _ in texts]
+    return vectors.tolist()

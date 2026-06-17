@@ -11,9 +11,9 @@ requests
 rank-bm25
 pydantic>=2.7.0
 ollama
-sentence-transformers
-torch
-transformers
+sentence-transformers==2.2.2
+transformers==4.38.2
+torch==2.2.2
 pypdf==4.2.0
 pypdf
 psutil
