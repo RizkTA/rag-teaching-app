@@ -3,7 +3,6 @@ from functools import lru_cache
 
 print("🔥 EMBEDDER.PY IMPORT START")
 
-# Force CPU
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 @lru_cache(maxsize=1)
@@ -12,8 +11,6 @@ def get_embedder():
     print("🔥 Loading FastEmbed model...")
 
     from fastembed import TextEmbedding
-    vec = next(model.embed(["test"]))
-    print("VECTOR DIM:", len(vec))
 
     model = TextEmbedding(
         model_name="BAAI/bge-small-en-v1.5"
