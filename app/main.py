@@ -3,7 +3,6 @@ import uuid
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 
-import psutil
 import os
 print(
     "MEMORY MB:",
