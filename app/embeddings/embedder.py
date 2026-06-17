@@ -69,7 +69,6 @@ def sanitize_text(x):
 # EMBEDDING FUNCTION
 # =================================
 print("🔥 EMBEDDER.PY IMPORT START")
-
 def embed_texts(texts):
 
     print("STEP A")
@@ -77,5 +76,12 @@ def embed_texts(texts):
     from sentence_transformers import SentenceTransformer
 
     print("STEP B")
+
+    model = SentenceTransformer(
+        "sentence-transformers/all-MiniLM-L6-v2",
+        device="cpu"
+    )
+
+    print("STEP C")
 
     return [[0.0] * 384 for _ in texts]

@@ -6,7 +6,13 @@ from pydantic import BaseModel
 import os
 import tempfile
 import traceback
+import psutil
+import os
 
+print(
+    "MEMORY MB:",
+    psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
+)
 print("🔥 BEFORE INGEST IMPORT")
 
 #from app.ingestion.ingest import ingest_file
@@ -31,7 +37,18 @@ except Exception as e:
 app = FastAPI()
 
 from fastapi import Request
+@app.get("/")
+def root():
 
+    import psutil
+    import os
+
+    print(
+        "MEMORY MB:",
+        psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
+    )
+
+    return {"status":"ok"}
 @app.middleware("http")
 async def log_every_request(request: Request, call_next):
 
