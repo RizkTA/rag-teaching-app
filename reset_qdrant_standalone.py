@@ -1,4 +1,4 @@
-""""""""""
+
 from qdrant_client import QdrantClient
 
 # 🔥 PUT YOUR VALUES DIRECTLY HERE (NO IMPORTS)
@@ -20,4 +20,3 @@ for c in collections.collections:
     client.delete_collection(c.name)
 
 print("✅ DONE: All collections deleted")
-"""""""""""

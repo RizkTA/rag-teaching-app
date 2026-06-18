@@ -158,7 +158,13 @@ def query(req: QueryRequest):
 
         results = fusion_search(req.q)
         print("\n========== RETRIEVED RESULTS ==========")
+        if not results:
+            print("RETURNING I DONT KNOW")
 
+            return {
+                "answer": "I don't know based on the documents.",
+                "sources": []
+            }
         for r in results:
             print(
                 f"SCORE={r['final_score']:.3f}",

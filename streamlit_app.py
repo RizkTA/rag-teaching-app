@@ -142,7 +142,13 @@ if submitted and query.strip():
 
             data = res.json()
 
+            print("BACKEND RESPONSE:", data)
+
             answer = data.get("answer", "")
+            sources = data.get("sources", [])
+            print("ANSWER:", answer)
+            print("SOURCE COUNT:", len(sources))
+
 
             # CLEAN
             answer = re.sub(r"dlab\d+_\d+", "", answer).strip()
@@ -159,7 +165,7 @@ if submitted and query.strip():
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": answer,
-                "citations": data.get("sources", [])
+                "citations": sources
             })
 
         except Exception as e:
@@ -286,7 +292,9 @@ if st.session_state.pinned:
 
         st.markdown("---")
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True
+st.write("MESSAGE COUNT:", len(st.session_state.messages))
+st.write(st.session_state.messages[-1])
 # =================================
 # CHAT HISTORY (CLEAN)
 # =================================
