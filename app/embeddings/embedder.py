@@ -50,7 +50,7 @@ def sanitize_text(x):
 def embed_texts(texts):
 
     model = get_embedder()
-
+    print("MODEL:", model)
     all_vectors = []
 
     BATCH_SIZE = 4

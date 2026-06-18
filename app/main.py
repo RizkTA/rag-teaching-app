@@ -157,7 +157,17 @@ def query(req: QueryRequest):
     try:
 
         results = fusion_search(req.q)
+        print("\n========== RETRIEVED RESULTS ==========")
 
+        for r in results:
+            print(
+                f"SCORE={r['final_score']:.3f}",
+                r["source"]
+            )
+
+            print(r["text"][:250])
+
+            print("--------------------------------")
         if not results:
             return {
                 "answer": "I don't know based on the documents.",
@@ -167,7 +177,9 @@ def query(req: QueryRequest):
         context = "\n\n".join(
             [r["text"] for r in results]
         )[:2500]
-
+        print("\n========== CONTEXT ==========")
+        print(context[:2000])
+        print("=============================\n")
         prompt = f"""
         You are a helpful teaching assistant.
 
@@ -201,7 +213,17 @@ def query(req: QueryRequest):
 
         Answer:
         """
+        print("========== CONTEXT ==========")
 
+        for r in results:
+            print(
+                r["source"],
+                r["final_score"]
+            )
+
+            print(r["text"][:300])
+
+            print()
         answer_parts = []
 
         for chunk in stream_answer(prompt):

@@ -163,15 +163,26 @@ def fusion_search(query):
 
         code_boost = 0.15 if d["is_code"] else 0
 
-        d["final_score"] = (
-
-            semantic_score * 0.70 +
-
-            keyword_score * 0.20 +
-
-            code_boost
+        query_words = set(
+            query.lower().split()
         )
 
+        text_lower = d["text"].lower()
+
+        keyword_hits = sum(
+            1
+            for w in query_words
+            if w in text_lower
+        )
+
+        keyword_boost = keyword_hits * 0.20
+
+        d["final_score"] = (
+                semantic_score * 0.60 +
+                keyword_score * 0.20 +
+                keyword_boost +
+                code_boost
+        )
 
       #  d["final_score"] += source_boost
 
@@ -182,6 +193,24 @@ def fusion_search(query):
         key=lambda x:
             x["final_score"],
         reverse=True
+    )
+    if not docs:
+        return []
+
+    top_score = docs[0]["final_score"]
+
+    print(
+        "TOP SCORE:",
+        top_score
+    )
+    if not docs:
+        return []
+
+    top_score = docs[0]["final_score"]
+
+    print(
+        "TOP SCORE:",
+        top_score
     )
     docs = [
 
