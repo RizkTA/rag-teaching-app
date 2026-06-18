@@ -96,7 +96,7 @@ def fusion_search(query):
         score = float(r.get("score", 0))
 
         # HARD FILTER
-        if score < 0.12:
+        if score < 0.70:
             continue
 
 
