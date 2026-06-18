@@ -4,6 +4,7 @@ MAX_CHUNKS = 500
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 100
 
+
 def ingest_pdf(file_path):
 
     chunks = extract_pdf_chunks(file_path)
@@ -13,8 +14,6 @@ def ingest_pdf(file_path):
         "type": "pdf",
         "chunks": chunks
     }
-
-
 
 
 def chunk_text(text):
@@ -32,7 +31,10 @@ def chunk_text(text):
 
         end = start + CHUNK_SIZE
 
-        chunks.append(text[start:end])
+        chunk = text[start:end].strip()
+
+        if chunk:
+            chunks.append(chunk)
 
         start += CHUNK_SIZE - CHUNK_OVERLAP
 
@@ -43,34 +45,53 @@ def extract_pdf_chunks(pdf_path):
 
     print("PDF OPEN")
 
-    doc = fitz.open(pdf_path)
+    try:
 
-    print("PDF PAGES:", len(doc))
+        doc = fitz.open(pdf_path)
 
-    all_chunks = []
+        print("PDF PAGES:", len(doc))
 
-    for page_num in range(len(doc)):
+        all_chunks = []
 
-        print("READING PAGE", page_num)
+        for page_num in range(len(doc)):
 
-        page = doc[page_num]
+            print("READING PAGE", page_num + 1)
 
-        text = page.get_text()
+            page = doc[page_num]
 
-        print("PAGE CHARS:", len(text))
+            try:
+                text = page.get_text("text")
+            except Exception as e:
+                print("PAGE READ ERROR:", e)
+                continue
 
-        page_chunks = chunk_text(text)
+            if not text or not text.strip():
+                continue
 
-        all_chunks.extend(page_chunks)
+            print("PAGE CHARS:", len(text))
 
-        if len(all_chunks) >= MAX_CHUNKS:
+            page_chunks = chunk_text(text)
 
-            print("⚠️ MAX CHUNKS REACHED")
+            all_chunks.extend(page_chunks)
 
-            all_chunks = all_chunks[:MAX_CHUNKS]
+            print("CURRENT CHUNKS:", len(all_chunks))
 
-            break
+            if len(all_chunks) >= MAX_CHUNKS:
 
-    print("TOTAL CHUNKS:", len(all_chunks))
+                print("⚠️ MAX CHUNKS REACHED")
 
-    return all_chunks
+                all_chunks = all_chunks[:MAX_CHUNKS]
+
+                break
+
+        doc.close()
+
+        print("TOTAL CHUNKS:", len(all_chunks))
+
+        return all_chunks
+
+    except Exception as e:
+
+        print("PDF INGEST ERROR:", e)
+
+        return []

@@ -416,8 +416,12 @@ def add_history(
     filetype,
     status
 ):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
 
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("America/Chicago"))
+
+
 
     history = load_history()
 
