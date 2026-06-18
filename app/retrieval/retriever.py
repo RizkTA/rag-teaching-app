@@ -19,7 +19,26 @@ def retrieve(query: str, top_k=5):
         with_payload=True,
         with_vectors=False
     )
+    print("\n====================")
+    print("RETRIEVED CHUNKS")
+    print("====================")
 
+    for i, r in enumerate(results):
+        print(
+            f"{i + 1}. score={r.score}"
+        )
+
+        print(
+            "FILE:",
+            r.payload.get("filename")
+        )
+
+        print(
+            "TEXT:",
+            r.payload.get("text", "")[:500]
+        )
+
+        print("--------------------")
     print("\n=== SEARCH RESULTS ===")
 
     contexts = []
