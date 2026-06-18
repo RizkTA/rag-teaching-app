@@ -46,16 +46,20 @@ def sanitize_text(x):
 
     return str(x).strip()
 
-
 def embed_texts(texts):
 
     print("🔥 embed_texts start")
 
     model = get_embedder()
 
+    texts = [str(x) for x in texts if str(x).strip()]
+
+    if not texts:
+        return []
+
     vectors = list(model.embed(texts))
 
-    print(f"🔥 generated {len(vectors)} embeddings")
+    print("🔥 embeddings:", len(vectors))
 
     return [v.tolist() for v in vectors]
 

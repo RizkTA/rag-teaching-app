@@ -1,23 +1,12 @@
 import fitz  # PyMuPDF
-import uuid
 
+MAX_CHUNKS = 500
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 100
 
-def ingest_pdf(file_path: str):
-    """
-    Extract text from PDF and return chunks with metadata
-    """
+def ingest_pdf(file_path):
 
-    doc = fitz.open(file_path)
-
-    text = ""
-
-    for page in doc:
-        text += page.get_text()
-
-    doc.close()
-
-    # simple chunking
-    chunks = chunk_text(text)
+    chunks = extract_pdf_chunks(file_path)
 
     return {
         "file": file_path,
@@ -26,25 +15,62 @@ def ingest_pdf(file_path: str):
     }
 
 
-def chunk_text(text, chunk_size=800):
-    """
-    Simple safe chunker
-    """
 
-    words = text.split()
+
+def chunk_text(text):
+
+    text = text.strip()
+
+    if not text:
+        return []
+
     chunks = []
 
-    for i in range(0, len(words), chunk_size):
-        chunk = " ".join(words[i:i + chunk_size])
+    start = 0
 
-        chunks.append({
-            "id": str(uuid.uuid4()),
-            "text": chunk,
-            "source": "pdf",
-            "language": "auto",
-            "metadata": {
-                "type": "pdf"
-            }
-        })
+    while start < len(text):
+
+        end = start + CHUNK_SIZE
+
+        chunks.append(text[start:end])
+
+        start += CHUNK_SIZE - CHUNK_OVERLAP
 
     return chunks
+
+
+def extract_pdf_chunks(pdf_path):
+
+    print("PDF OPEN")
+
+    doc = fitz.open(pdf_path)
+
+    print("PDF PAGES:", len(doc))
+
+    all_chunks = []
+
+    for page_num in range(len(doc)):
+
+        print("READING PAGE", page_num)
+
+        page = doc[page_num]
+
+        text = page.get_text()
+
+        print("PAGE CHARS:", len(text))
+
+        page_chunks = chunk_text(text)
+
+        all_chunks.extend(page_chunks)
+
+        if len(all_chunks) >= MAX_CHUNKS:
+
+            print("⚠️ MAX CHUNKS REACHED")
+
+            all_chunks = all_chunks[:MAX_CHUNKS]
+
+            break
+
+    print("TOTAL CHUNKS:", len(all_chunks))
+
+    return all_chunks
