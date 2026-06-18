@@ -189,8 +189,6 @@ def query(req: QueryRequest):
         prompt = f"""
         You are a helpful teaching assistant.
 
-        IMPORTANT:
-
         Answer ONLY using the provided context.
 
         If the answer is not contained in the context,
@@ -198,18 +196,11 @@ def query(req: QueryRequest):
 
         I don't know based on the documents.
 
-        Return format:
-
-        1. If code is needed → show code first
-
-        2. Then write:
-        Explanation: <1-2 lines max>
-
         Rules:
-        - No introduction
-        - No repetition
-        - No extra paragraphs
-        - Do NOT use outside knowledge
+        - Use the context only
+        - Give a detailed explanation
+        - Use examples when available
+        - Include code if relevant
 
         Context:
         {context}
@@ -219,7 +210,7 @@ def query(req: QueryRequest):
 
         Answer:
         """
-        print("========== CONTEXT ==========")
+        #print("========== CONTEXT ==========")
 
         for r in results:
             print(

@@ -18,7 +18,7 @@ Given:
 Return ONLY valid JSON with:
 - hallucination_score (0..1)
 - grounded (true/false)
-- explanation (short string)
+- explanation 
 - unsupported_spans (list of exact substrings from the answer that are NOT supported by the context)
 
 Rules:

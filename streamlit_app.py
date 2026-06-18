@@ -145,8 +145,12 @@ if submitted and query.strip():
             print("BACKEND RESPONSE:", data)
 
             answer = data.get("answer", "")
-            sources = data.get("sources", [])
+            st.write(data)
             print("ANSWER:", answer)
+            print("ANSWER LENGTH:", len(answer))
+            print(answer[:1000])
+            sources = data.get("sources", [])
+
             print("SOURCE COUNT:", len(sources))
 
 
