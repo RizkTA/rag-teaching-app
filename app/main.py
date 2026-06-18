@@ -41,6 +41,13 @@ def qdrant_count():
     )
 
     return count
+from app.embeddings.embedder import get_embedder
+
+@app.on_event("startup")
+async def startup_event():
+    print("🔥 Preloading embedder...")
+    get_embedder()
+    print("🔥 Embedder ready")
 @app.get("/versions")
 def versions():
     import numpy
