@@ -72,7 +72,10 @@ def fusion_search(query):
         query_vector,
         top_k=15
     )
+    print("VECTOR RESULTS:", len(vector_results))
 
+    for r in vector_results:
+        print(r)
     if not vector_results:
         return []
 
@@ -94,21 +97,25 @@ def fusion_search(query):
             continue
 
         score = float(r.get("score", 0))
-
+        print(
+            f"SCORE={score:.3f}",
+            payload.get("filename"),
+        )
         # HARD FILTER
         if score < 0.70:
             continue
-
 
         docs.append({
 
             "text": clean_text(text),
 
-            "score":
-                score,
+            "score": score,
 
             "source":
                 payload.get("source", "unknown"),
+
+            "filename":
+                payload.get("filename", "unknown"),
 
             "chunk_id":
                 payload.get("chunk_id", -1),
@@ -116,7 +123,6 @@ def fusion_search(query):
             "is_code":
                 detect_code(text)
         })
-
     # =========================
     # BM25
     # =========================
@@ -177,7 +183,12 @@ def fusion_search(query):
             x["final_score"],
         reverse=True
     )
+    docs = [
 
+        d for d in docs
+
+        if d["score"] >= 0.70
+    ]
     # =========================
     # REMOVE DUPLICATES
     # =========================
@@ -199,7 +210,14 @@ def fusion_search(query):
 
         d for d in docs
 
-        if d["final_score"] >= best_score * 0.60
+        if d["final_score"] >= best_score * 0.85
     ]
+    print("\nTOP RESULTS")
 
+    for d in docs[:10]:
+        print(
+            d["score"],
+            d["final_score"],
+            d.get("filename")
+        )
     return filtered[:5]
