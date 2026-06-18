@@ -169,28 +169,38 @@ def query(req: QueryRequest):
         )[:2500]
 
         prompt = f"""
-You are a helpful teaching assistant.
+        You are a helpful teaching assistant.
 
-Return format:
+        IMPORTANT:
 
-1. If code is needed → show code first
+        Answer ONLY using the provided context.
 
-2. Then write:
-Explanation: <1-2 lines max>
+        If the answer is not contained in the context,
+        respond exactly:
 
-Rules:
-- No introduction
-- No repetition
-- No extra paragraphs
+        I don't know based on the documents.
 
-Context:
-{context}
+        Return format:
 
-Question:
-{req.q}
+        1. If code is needed → show code first
 
-Answer:
-"""
+        2. Then write:
+        Explanation: <1-2 lines max>
+
+        Rules:
+        - No introduction
+        - No repetition
+        - No extra paragraphs
+        - Do NOT use outside knowledge
+
+        Context:
+        {context}
+
+        Question:
+        {req.q}
+
+        Answer:
+        """
 
         answer_parts = []
 
