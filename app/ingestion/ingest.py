@@ -296,8 +296,22 @@ def ingest_file(path: str, filename: str):
                 }
             })
 
+   #     print(f"🔥 generated {len(structured)} chunks")
+   #     print("STEP F")
+   #     result = get_upserter().upsert_chunks(
+#        structured
+ #       )
         print(f"🔥 generated {len(structured)} chunks")
+
+        # TEMP TEST
+        structured = structured[:5]
+
+        print(
+            f"🔥 TEST MODE: sending {len(structured)} chunks"
+        )
+
         print("STEP F")
+
         result = get_upserter().upsert_chunks(
             structured
         )
