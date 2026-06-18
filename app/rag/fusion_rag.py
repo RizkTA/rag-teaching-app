@@ -249,4 +249,4 @@ def fusion_search(query):
             d["final_score"],
             d.get("filename")
         )
-    return filtered[:5]
+    return filtered[:3]

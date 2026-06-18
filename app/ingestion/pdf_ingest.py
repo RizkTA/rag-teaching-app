@@ -1,8 +1,8 @@
 import fitz  # PyMuPDF
 
 MAX_CHUNKS = 500
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 100
+CHUNK_SIZE = 1200
+CHUNK_OVERLAP = 200
 
 
 def ingest_pdf(file_path):
@@ -32,7 +32,8 @@ def chunk_text(text):
         end = start + CHUNK_SIZE
 
         chunk = text[start:end].strip()
-
+        print("TEXT LENGTH:", len(text))
+        print("CHUNKS:", len(chunks))
         if chunk:
             chunks.append(chunk)
 
