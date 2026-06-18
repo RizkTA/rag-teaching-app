@@ -47,28 +47,34 @@ def sanitize_text(x):
 
     return str(x).strip()
 
-
 def embed_texts(texts):
-
-    print("🔥 embed_texts start")
-
-    texts = [
-        sanitize_text(x)
-        for x in texts
-    ]
-
-    texts = [t for t in texts if t]
-
-    if not texts:
-        return []
 
     model = get_embedder()
 
-    vectors = list(model.embed(texts))
+    all_vectors = []
 
-    print(f"🔥 embeddings generated: {len(vectors)}")
+    BATCH_SIZE = 4
 
-    return [v.tolist() for v in vectors]
+    for i in range(0, len(texts), BATCH_SIZE):
 
+        batch = texts[i:i+BATCH_SIZE]
+
+        print(
+            f"🔥 embedding batch "
+            f"{i//BATCH_SIZE+1}"
+        )
+
+        batch_vectors = list(
+            model.embed(batch)
+        )
+
+        all_vectors.extend(
+            batch_vectors
+        )
+
+    return [
+        v.tolist()
+        for v in all_vectors
+    ]
 
 print("🔥 EMBEDDER.PY IMPORT END")

@@ -116,6 +116,7 @@ def read_pdf(path: str) -> str:
 # CHUNKING
 # ==========================================
 def chunk_text(text: str):
+
     text = clean_text(text)
 
     if not text:
@@ -123,8 +124,8 @@ def chunk_text(text: str):
 
     text = text[:20000]
 
-    chunk_size = 300
-    overlap = 50
+    chunk_size = 1200
+    overlap = 200
 
     chunks = []
 
@@ -141,8 +142,11 @@ def chunk_text(text: str):
 
         start += chunk_size - overlap
 
-    return chunks
+    print(
+        f"🔥 chunked into {len(chunks)} chunks"
+    )
 
+    return chunks
 
 # ==========================================
 # CODE DETECTION
@@ -304,14 +308,22 @@ def ingest_file(path: str, filename: str):
         print(f"🔥 generated {len(structured)} chunks")
 
         # TEMP TEST
-        structured = structured[:5]
+       # structured = structured[:5]
 
         print(
             f"🔥 TEST MODE: sending {len(structured)} chunks"
         )
 
         print("STEP F")
+        MAX_CHUNKS = 40
 
+        if len(structured) > MAX_CHUNKS:
+            print(
+                f"⚠️ limiting chunks "
+                f"{len(structured)} -> {MAX_CHUNKS}"
+            )
+
+            structured = structured[:MAX_CHUNKS]
         result = get_upserter().upsert_chunks(
             structured
         )
