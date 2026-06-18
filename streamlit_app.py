@@ -295,7 +295,8 @@ if st.session_state.pinned:
     st.markdown("</div>", unsafe_allow_html=True )
     st.markdown()
 st.write("MESSAGE COUNT:", len(st.session_state.messages))
-st.write(st.session_state.messages[-1])
+if st.session_state.messages:
+    st.write(st.session_state.messages[-1])
 # =================================
 # CHAT HISTORY (CLEAN)
 # =================================
