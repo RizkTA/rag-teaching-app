@@ -227,13 +227,14 @@ def fusion_search(query):
     O(log n)
     """
 
-    query_tokens = (expanded_query.lower().split())
+    import re
+
     query_tokens = [
               t
         for t in re.findall(r"\w+", query.lower())
         if t not in STOP_WORDS
     ]
-    bm25_scores = bm25.get_scores(query_tokens)
+    bm25_scores = bm25.get_scores(expanded_query.lower().split())
 
     bm25_min = min(bm25_scores)
     bm25_max = max(bm25_scores)
@@ -309,7 +310,7 @@ def fusion_search(query):
 
             if "o(" in text_lower:
                 d["final_score"] += 1.0
-                
+
         if "dynamic programming" in query.lower():
             if "dynamic programming" in text_lower:
                 phrase_boost += 0.3
@@ -335,21 +336,6 @@ def fusion_search(query):
         # Word coverage
         import re
 
-        text_tokens = set(
-            re.findall(r"\w+", text_lower)
-        )
-
-        matched_words = sum(
-            1
-            for w in query_words
-            if w in text_tokens
-        )
-
-        coverage_score = (
-            matched_words / len(query_words)
-            if query_words
-            else 0
-        )
 
         # Code bonus
         code_boost = 0.05 if d["is_code"] else 0
@@ -371,16 +357,38 @@ def fusion_search(query):
         for word in query_words:
             if word in filename_lower:
                 title_boost += 0.2
+        # =====================
+        # WORD COVERAGE
+        # =====================
 
-        # Final score
+        text_tokens = set(
+            re.findall(r"\w+", text_lower)
+        )
+
+        matched_words = sum(
+            1
+            for w in query_words
+            if w in text_tokens
+        )
+
+        coverage_score = (
+            matched_words / len(query_words)
+            if query_words
+            else 0
+        )
+
+        # =====================
+        # FINAL SCORE
+        # =====================
+
         d["final_score"] = (
                 semantic_score * 0.30 +
                 keyword_score * 0.50 +
                 coverage_score * 0.20 +
                 phrase_boost +
-                title_boost +
                 code_boost
         )
+
     # =========================
 
     # SORT
@@ -422,4 +430,11 @@ def fusion_search(query):
             "\nFINAL:", d["final_score"],
             "\nTEXT:", d["text"][:150]
         )
+        print("QUERY:", query)
+        print("TOKENS:", query_tokens)
+        print("MATCHED:", matched_words)
+        print("COVERAGE:", coverage_score)
+        print("BM25:", bm25_scores[i])
+        print("FINAL:", d["final_score"])
+        print("TEXT:", d["text"][:150])
     return filtered[:5]
