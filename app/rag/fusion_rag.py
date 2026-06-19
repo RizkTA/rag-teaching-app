@@ -236,7 +236,8 @@ def fusion_search(query):
     for i, d in enumerate(docs):
 
         semantic_score = d["score"]
-
+        print("QUERY TOKENS:", query_tokens)
+        print("BM25:", bm25_scores[:10])
         # BM25 normalization
         if bm25_max > bm25_min:
             keyword_score = (
@@ -250,8 +251,28 @@ def fusion_search(query):
         text_lower = d["text"].lower()
 
         # Exact phrase boost
-        phrase_boost = 0.75 if query.lower() in text_lower else 0
+        #phrase_boost = 0.75 if query.lower() in text_lower else 0
+        phrase_boost = 0
 
+        important_phrases = [
+            "dynamic programming",
+            "time complexity",
+            "segment tree",
+            "binary search",
+            "memoization",
+        ]
+
+
+        if "dynamic programming" in query.lower():
+            if "dynamic programming" in text_lower:
+                phrase_boost += 5.0
+
+        if "time complexity" in query.lower():
+            if "time complexity" in text_lower:
+                phrase_boost += 5.0
+        for phrase in important_phrases:
+            if phrase in query.lower() and phrase in text_lower:
+                phrase_boost += 2.0
         # Word coverage
         matched_words = sum(
             1
@@ -267,6 +288,13 @@ def fusion_search(query):
 
         # Code bonus
         code_boost = 0.05 if d["is_code"] else 0
+        filename_lower = d["filename"].lower()
+
+        title_boost = 0
+
+        for word in query_words:
+            if word in filename_lower:
+                title_boost += 0.2
 
         # Final score
         d["final_score"] = (
@@ -274,6 +302,7 @@ def fusion_search(query):
                 keyword_score * 0.50 +
                 coverage_score * 0.20 +
                 phrase_boost +
+                title_boost +
                 code_boost
         )
     # =========================
@@ -310,5 +339,11 @@ def fusion_search(query):
             d["final_score"],
             d["filename"]
         )
-
+    for i, d in enumerate(docs[:20]):
+        print(
+            "\nFILE:", d["filename"],
+            "\nSEM:", d["score"],
+            "\nFINAL:", d["final_score"],
+            "\nTEXT:", d["text"][:150]
+        )
     return filtered[:5]
