@@ -74,12 +74,13 @@ def fusion_search(query):
     print("\nEXPANDED QUERY:", expanded_query)
     if "time complexity" in q:
         expanded_query += """
-        Big O notation
+        Big O
+        asymptotic analysis
         running time
         algorithm efficiency
-        asymptotic complexity
         O(n)
         O(log n)
+        O(n log n)
         """
 
     if "dynamic programming" in q:
@@ -226,9 +227,13 @@ def fusion_search(query):
 
     # BM25 uses the actual query
     bm25_scores = bm25.get_scores(query_tokens)
+    # Save BM25 score inside each document
+    for i, d in enumerate(docs):
+        d["bm25_raw"] = float(bm25_scores[i])
 
-    bm25_min = float(min(bm25_scores))
-    bm25_max = float(max(bm25_scores))
+    bm25_min = min(d["bm25_raw"] for d in docs)
+    bm25_max = max(d["bm25_raw"] for d in docs)
+
 
     for i, d in enumerate(docs):
 
@@ -268,12 +273,13 @@ def fusion_search(query):
     bm25_max = max(bm25_values)
     # =========================
     import re
-    query_tokens = re.findall(
-        r"\w+",
-        query.lower()
-    )
 
-    query_words = set(query_tokens)
+
+    query_words = set(
+        t
+        for t in re.findall(r"\w+", query.lower())
+        if t not in STOP_WORDS
+    )
 
     for i, d in enumerate(docs):
 
@@ -283,7 +289,7 @@ def fusion_search(query):
         # BM25 normalization
         if bm25_max > bm25_min:
             keyword_score = (
-                                    bm25_scores[i] - bm25_min
+                                    d["bm25_raw"] - bm25_min
                             ) / (
                                     bm25_max - bm25_min
                             )
@@ -309,16 +315,16 @@ def fusion_search(query):
         if "time complexity" in query.lower():
 
             if "complexity" in text_lower:
-                extra_boost += 1.0
+                extra_boost += 0.50
 
             if "running time" in text_lower:
-                extra_boost += 1.0
+                extra_boost += 0.50
 
             if "big o" in text_lower:
-                extra_boost += 1.0
+                extra_boost += 0.30
 
             if "o(" in text_lower:
-                extra_boost += 1.0
+                extra_boost += 0.20
 
 
         if "dynamic programming" in query.lower():
@@ -450,7 +456,7 @@ def fusion_search(query):
         print("TOKENS:", query_tokens)
         print("MATCHED:", matched_words)
         print("COVERAGE:", coverage_score)
-        print("BM25:", bm25_scores[i])
+        print("BM25:", d["bm25_raw"])
         print("FINAL:", d["final_score"])
         print("TEXT:", d["text"][:150])
     return filtered[:5]
