@@ -52,7 +52,55 @@ def deduplicate(results):
         unique.append(r)
 
     return unique
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
+def apply_mmr(docs, top_k=5, lambda_param=0.7):
+
+    if len(docs) <= top_k:
+        return docs
+
+    selected = [docs[0]]
+    candidates = docs[1:]
+
+    while len(selected) < top_k and candidates:
+
+        best_doc = None
+        best_score = -999
+
+        for candidate in candidates:
+
+            relevance = candidate["score"]
+
+            max_similarity = 0
+
+            for chosen in selected:
+
+                sim = cosine_similarity(
+                    [candidate["embedding"]],
+                    [chosen["embedding"]]
+                )[0][0]
+
+                max_similarity = max(
+                    max_similarity,
+                    sim
+                )
+
+            mmr_score = (
+                lambda_param * relevance
+                -
+                (1 - lambda_param) * max_similarity
+            )
+
+            if mmr_score > best_score:
+
+                best_score = mmr_score
+                best_doc = candidate
+
+        selected.append(best_doc)
+        candidates.remove(best_doc)
+
+    return selected
 # =================================
 # MAIN FUSION SEARCH
 # =================================
@@ -197,6 +245,8 @@ def fusion_search(query):
 
             "score": score,
 
+            "embedding": r["vector"],
+
             "source":
                 payload.get("source", "unknown"),
 
@@ -209,6 +259,15 @@ def fusion_search(query):
             "is_code":
                 detect_code(text)
         })
+
+    from app.rag.mmr import mmr_rerank
+
+    docs = mmr_rerank(
+        query,
+        docs,
+        top_k=20,
+        lambda_param=0.7
+    )
     # =================================
     # BM25
     # =================================
@@ -335,11 +394,7 @@ def fusion_search(query):
             if w in text_tokens
         )
 
-        coverage_score = (
-            matched_words / len(query_words)
-            if matched_words == len(query_words)
-            else 0
-        )
+        coverage_score = matched_words / max(len(query_words), 1)
 
         # -----------------------------
         # BOOSTS
@@ -353,36 +408,39 @@ def fusion_search(query):
         phrase_boost = 0
         extra_boost = 0
         if query.lower() in text_lower:
-            phrase_boost += 1.0
+            phrase_boost +=  1.0
         if "dynamic programming" in query.lower():
 
             if "dynamic programming" in text_lower:
-                pphrase_boost = min(phrase_boost, 0.4)
+                phrase_boost += 0.4
 
             if "memoization" in text_lower:
-                phrase_boost = min(phrase_boost, 0.4)
+                phrase_boost += 0.4
+
 
             if "tabulation" in text_lower:
-                phrase_boost = min(phrase_boost, 0.4)
+                phrase_boost += 0.4
+
 
         if "time complexity" in query.lower():
 
             if "time complexity" in text_lower:
-                phrase_boost = min(phrase_boost, 0.4)
+                extra_boost += 0.4
+
 
             if "complexity" in text_lower:
-                extra_boost = min(extra_boost, 0.4)
+                extra_boost += 0.4
 
             if "running time" in text_lower:
-                extra_boost = min(extra_boost, 0.4)
+                extra_boost += 0.4
 
             if "big o" in text_lower:
-                extra_boost = min(extra_boost, 0.4)
+                extra_boost += 0.4
             if "asymptotic" in text_lower:
-                extra_boost = min(extra_boost, 0.4)
+                extra_boost += 0.4
 
             if "o(" in text_lower:
-                eextra_boost = min(extra_boost, 0.4)
+                extra_boost += 0.4
 
         # -----------------------------
         # FILENAME BOOST
@@ -393,24 +451,7 @@ def fusion_search(query):
 
         filename = d["filename"].lower()
 
-        doc_boost = 0
 
-        if "competitive" in filename:
-            doc_boost += 0.3
-
-        if "algorithm" in filename:
-            doc_boost += 0.3
-
-        if "guide" in filename:
-            doc_boost += 0.2
-
-
-        title_boost = 0
-
-        for word in query_words:
-
-            if word in filename:
-                title_boost += 0.2
 
         # -----------------------------
         # CODE BONUS
@@ -427,15 +468,16 @@ def fusion_search(query):
         # -----------------------------
 
         d["final_score"] = (
-                semantic_score * 0.45 +
-                keyword_score * 0.40 +
-                coverage_score * 0.10 +
+                semantic_score * 0.65 +
+                keyword_score * 0.20 +
+                coverage_score * 0.15 +
                 phrase_boost +
-                extra_boost )
+                extra_boost
+        )
 
         if keyword_score < 0.05:
             d["final_score"] *= 0.5
-        d["final_score"]  += doc_boost
+
         d["final_score"] *= length_penalty
         d["coverage_score"] = coverage_score
         d["keyword_score"] = keyword_score
@@ -451,7 +493,6 @@ def fusion_search(query):
     # =================================
     # SORT
     # =================================
-
     docs.sort(
         key=lambda x: x["final_score"],
         reverse=True
@@ -459,53 +500,13 @@ def fusion_search(query):
 
     docs = deduplicate(docs)
 
-    if not docs:
-        return []
+    docs = docs[:20]
 
-    best_score = docs[0]["final_score"]
+    docs = apply_mmr(
+        docs,
+        top_k=5,
+        lambda_param=0.75
+    )
 
-    filtered = [
-        d
-        for d in docs
-        if d["final_score"] >= best_score * 0.90
-    ]
+    return docs
 
-    # =================================
-    # DEBUG
-    # =================================
-
-    for d in docs[:20]:
-        print(
-            "\nFILE:", d["filename"]
-        )
-
-        print(
-            "SEM:", d["score"]
-        )
-
-        print(
-            "BM25:", d["bm25_raw"]
-        )
-
-        print(
-            "KEYWORD:", d["keyword_score"]
-        )
-
-        print(
-            "COVERAGE:", d["coverage_score"]
-        )
-
-        print(
-            "MATCHED:", d["matched_words"]
-        )
-
-        print(
-            "FINAL:", d["final_score"]
-        )
-
-        print(
-            "TEXT:",
-            d["text"][:200]
-        )
-
-    return filtered[:5]

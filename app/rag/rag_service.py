@@ -10,7 +10,7 @@ from app.rag.fusion_rag import fusion_search
 
 from groq import Groq
 
-
+from app.rag.mmr import mmr_rerank
 # =================================
 # GROQ CLIENT
 # =================================
@@ -98,7 +98,13 @@ def retrieve(question, top_k=TOP_K):
     try:
 
         results = fusion_search(question)
-
+        results = mmr_rerank(
+            question,
+            results,
+            top_k=5,
+            lambda_param=0.7
+        )
+        results = results[:4]
         contexts = []
 
         citations = []
@@ -145,18 +151,32 @@ def retrieve(question, top_k=TOP_K):
         # BUILD CONTEXT
         # =================================
        # context = "\n\n".join(contexts)
+        context_parts = []
 
-        # USE ONLY TOP 1 CHUNK
-        context = contexts[0] if contexts else ""
+        total = 0
 
+        for r in results:
 
-        # trim context for speed
-        context = context[:MAX_CONTEXT_CHARS]
+            txt = r["text"]
 
+            if total + len(txt) > MAX_CONTEXT_CHARS:
+                break
 
-        best_result = results[0] if results else {}
+            context_parts.append(txt)
 
-        return context, best_result
+            total += len(txt)
+
+        context = "\n\n".join(context_parts)
+
+        best = results[0]["final_score"]
+
+        results = [
+            r
+            for r in results
+            if r["final_score"] >= best * 0.85
+        ]
+
+        return context, best
 
 
     except Exception as e:
@@ -171,83 +191,137 @@ def retrieve(question, top_k=TOP_K):
 # =================================
 def answer(question: str):
 
-    # =================================
+    # ==========================
     # RETRIEVE
-    # =================================
-    #context, best_result  = retrieve(question)
-
+    # ==========================
     results = fusion_search(question)
-    contexts = [
-        r["text"]
-        for r in results
-    ]
-    citations = [
-        {
-            "source": r["source"],
-            "score": r["final_score"],
-            "text": r["text"]
-        }
-        for r in results
-    ]
 
-    context = "\n\n".join(contexts)
-
-    # =================================
-    # NO CONTEXT
-    # =================================
-    if not context.strip():
-
+    if not results:
         return {
-
             "answer":
                 "I don't know based on the documents.",
-
             "citations": [],
-
             "context_length": 0
         }
 
-    # =================================
+    # ==========================
+    # MMR
+    # ==========================
+    results = mmr_rerank(
+        results,
+        top_k=5,
+        lambda_param=0.75
+    )
+
+    # ==========================
+    # KEEP STRONG RESULTS ONLY
+    # ==========================
+    best_score = results[0]["final_score"]
+
+    results = [
+        r
+        for r in results
+        if r["final_score"] >= best_score * 0.85
+    ]
+
+    # ==========================
+    # LIMIT RESULTS
+    # ==========================
+    results = results[:4]
+
+    # ==========================
+    # BUILD CONTEXT
+    # ==========================
+    context_parts = []
+
+    total_chars = 0
+
+    for r in results:
+
+        txt = r["text"]
+
+        if total_chars + len(txt) > MAX_CONTEXT_CHARS:
+            break
+
+        context_parts.append(txt)
+
+        total_chars += len(txt)
+
+    context = "\n\n".join(context_parts)
+
+    # ==========================
+    # NO CONTEXT
+    # ==========================
+    if not context.strip():
+
+        return {
+            "answer":
+                "I don't know based on the documents.",
+            "citations": [],
+            "context_length": 0
+        }
+
+    # ==========================
     # PROMPT
-    # =================================
+    # ==========================
     prompt = f"""
 Use ONLY the context below to answer the question.
 
 If the answer is not contained in the context,
 say:
+
 "I don't know based on the documents."
 
 If code exists in the context,
-include the code example.
+include the code.
 
 ----------------
 
 Context:
+
 {context}
 
 ----------------
 
 Question:
+
 {question}
 
 Answer clearly and concisely.
 """
 
-    # =================================
+    # ==========================
     # GENERATE
-    # =================================
+    # ==========================
     answer_text = generate(prompt)
 
-
-
-    # =================================
-    # CLEAN COMMON GARBAGE
-    # =================================
     answer_text = answer_text.strip()
 
-    # =================================
+    # ==========================
+    # CITATIONS
+    # ==========================
+    citations = [
+
+        {
+            "source":
+                r.get("source", "unknown"),
+
+            "filename":
+                r.get("filename", "unknown"),
+
+            "score":
+                round(
+                    r.get("final_score", 0),
+                    3
+                )
+        }
+
+        for r in results[:3]
+    ]
+
+    # ==========================
     # RETURN
-    # =================================
+    # ==========================
     return {
 
         "answer":
@@ -259,31 +333,3 @@ Answer clearly and concisely.
         "context_length":
             len(context)
     }
-
-def rerank_best_source(answer, results):
-
-    answer_words = set(
-        answer.lower().split()
-    )
-
-    best = None
-
-    best_overlap = -1
-
-    for r in results:
-
-        text = r.get("text", "").lower()
-
-        text_words = set(text.split())
-
-        overlap = len(
-            answer_words.intersection(text_words)
-        )
-
-        if overlap > best_overlap:
-
-            best_overlap = overlap
-
-            best = r
-
-    return best
