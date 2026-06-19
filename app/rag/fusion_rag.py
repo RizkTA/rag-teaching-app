@@ -74,13 +74,20 @@ def fusion_search(query):
     print("\nEXPANDED QUERY:", expanded_query)
     if "time complexity" in q:
         expanded_query += """
-        Big O
+        time complexity definition
+        algorithm complexity
+        computational complexity
+        asymptotic complexity
         asymptotic analysis
         running time
-        algorithm efficiency
+        growth rate
+        efficiency of algorithms
+        Big O notation
+        Big O
         O(n)
         O(log n)
         O(n log n)
+        O(n^2)
         """
 
     if "dynamic programming" in q:
@@ -113,12 +120,27 @@ def fusion_search(query):
     # =========================
     vector_results = store.search(
         query_vector,
-        top_k=200
+        top_k=1000
     )
     print("VECTOR RESULTS:", len(vector_results))
+    for r in vector_results:
+        text = r["payload"]["text"].lower()
 
+        if "time complexity" in text:
+            print(r["score"])
+            print(text[:500])
     for r in vector_results:
         print(r)
+    count = 0
+
+    for r in vector_results:
+
+        text = r["payload"]["text"].lower()
+
+        if "time complexity" in text:
+            count += 1
+
+    print("CHUNKS WITH TIME COMPLEXITY:", count)
     if not vector_results:
         return []
 
@@ -246,7 +268,10 @@ def fusion_search(query):
 
         if matches >= 1:
             filtered_docs.append(d)
-
+    for d in docs:
+        if "time complexity" in d["text"].lower():
+            print(d["filename"])
+            print(d["text"][:1000])
     if filtered_docs:
         docs = filtered_docs
 
