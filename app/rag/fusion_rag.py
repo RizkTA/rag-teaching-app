@@ -230,6 +230,22 @@ def fusion_search(query):
     bm25_min = float(min(bm25_scores))
     bm25_max = float(max(bm25_scores))
 
+    for i, d in enumerate(docs):
+
+        d["bm25_raw"] = float(bm25_scores[i])
+
+        if bm25_max > bm25_min:
+            keyword_score = (
+                                    d["bm25_raw"] - bm25_min
+                            ) / (
+                                    bm25_max - bm25_min
+                            )
+        else:
+            keyword_score = 0
+
+        d["keyword_score"] = keyword_score
+
+
     important_terms = query_tokens
 
     filtered_docs = []
@@ -247,6 +263,9 @@ def fusion_search(query):
             filtered_docs.append(d)
 
     docs = filtered_docs if filtered_docs else docs
+    bm25_values = [d["bm25_raw"] for d in docs]
+    bm25_min = min(bm25_values)
+    bm25_max = max(bm25_values)
     # =========================
     import re
     query_tokens = re.findall(
@@ -275,7 +294,7 @@ def fusion_search(query):
 
         # Exact phrase boost
         #phrase_boost = 0.75 if query.lower() in text_lower else 0
-        phrase_boost = 0
+
 
         important_phrases = [
             "dynamic programming",
@@ -286,7 +305,7 @@ def fusion_search(query):
         ]
 
         extra_boost = 0
-
+        phrase_boost = 0
         if "time complexity" in query.lower():
 
             if "complexity" in text_lower:
@@ -301,14 +320,6 @@ def fusion_search(query):
             if "o(" in text_lower:
                 extra_boost += 1.0
 
-        d["final_score"] = (
-                semantic_score * 0.30 +
-                keyword_score * 0.50 +
-                coverage_score * 0.20 +
-                phrase_boost +
-                code_boost +
-                extra_boost
-        )
 
         if "dynamic programming" in query.lower():
             if "dynamic programming" in text_lower:
@@ -360,25 +371,31 @@ def fusion_search(query):
         # WORD COVERAGE
         # =====================
 
-        text_tokens = set(
-            re.findall(r"\w+", text_lower)
-        )
+
+        # =====================
+        # FINAL SCORE
+        # =====================
+        text_lower = d["text"].lower()
+
+        # coverage
+        text_tokens = set(re.findall(r"\w+", text_lower))
 
         matched_words = sum(
-            1
-            for w in query_words
+            1 for w in query_words
             if w in text_tokens
         )
 
         coverage_score = (
             matched_words / len(query_words)
-            if query_words
-            else 0
+            if query_words else 0
         )
+
+        # code bonus
         code_boost = 0.05 if d["is_code"] else 0
-        # =====================
-        # FINAL SCORE
-        # =====================
+
+        # phrase bonus
+
+        # final score
 
         d["final_score"] = (
                 semantic_score * 0.30 +
