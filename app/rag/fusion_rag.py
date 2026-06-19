@@ -63,7 +63,42 @@ def fusion_search(query):
     # =========================
     # EMBEDDING
     # =========================
-    query_vector = embed_texts([query])[0]
+    # =========================
+    # QUERY EXPANSION
+    # =========================
+
+    expanded_query = query
+
+    q = query.lower()
+    print("\nQUERY:", query)
+    print("\nEXPANDED QUERY:", expanded_query)
+    if "time complexity" in q:
+        expanded_query += """
+        Big O notation
+        running time
+        algorithm efficiency
+        asymptotic complexity
+        O(n)
+        O(log n)
+        """
+
+    if "dynamic programming" in q:
+        expanded_query += """
+        DP memoization tabulation
+        """
+
+    if "segment tree" in q:
+        expanded_query += """
+        range query interval tree
+        """
+
+    # =========================
+    # EMBEDDING
+    # =========================
+
+    query_vector = embed_texts(
+        [expanded_query]
+    )[0]
 
     # =========================
     # VECTOR SEARCH
@@ -162,9 +197,10 @@ def fusion_search(query):
        # )
         max_bm25 = max(bm25_scores) if len(bm25_scores) else 1
 
-        keyword_score = (
-                bm25_scores[i] / max_bm25
-        )
+        if max_bm25 == 0:
+            keyword_score = 0
+        else:
+            keyword_score = bm25_scores[i] / max_bm25
         code_boost = 0.15 if d["is_code"] else 0
 
         query_words = set(
@@ -179,12 +215,12 @@ def fusion_search(query):
             if w in text_lower
         )
 
-        keyword_boost = keyword_hits * 0.05
+        keyword_boost = keyword_hits * 0.50
 
         d["final_score"] = (
-                semantic_score * 0.75 +
-                keyword_score * 0.20 +
-                keyword_boost * 0.05 +
+                semantic_score * 0.55 +
+                keyword_score * 0.30 +
+                keyword_boost * 0.15 +
                 code_boost
         )
 
