@@ -183,6 +183,7 @@ def query(req: QueryRequest):
         context = "\n\n".join(
             [r["text"] for r in results]
         )[:2500]
+
         print("\n========== CONTEXT ==========")
         print(context[:2000])
         print("=============================\n")
@@ -211,14 +212,12 @@ def query(req: QueryRequest):
         Answer:
         """
         #print("========== CONTEXT ==========")
+        print("========== CONTEXT ==========")
 
         for r in results:
-            print(
-                r["source"],
-                r["final_score"]
-            )
-
-            print(r["text"][:300])
+            print(r["source"])
+            print(r["text"][:500])
+            print("----------------")
 
             print()
         answer_parts = []

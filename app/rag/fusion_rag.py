@@ -70,7 +70,7 @@ def fusion_search(query):
     # =========================
     vector_results = store.search(
         query_vector,
-        top_k=15
+        top_k=40
     )
     print("VECTOR RESULTS:", len(vector_results))
 

@@ -37,8 +37,12 @@ def hybrid_search_impl(query: str):
     for r in vector_results:
 
         payload = r.get("payload", {})
-        text = payload.get("text", "")
 
+        text = payload.get("text", "")
+        text_lower = text.lower()
+
+        if "contents" in text_lower:
+            continue
         if not text:
             continue
 

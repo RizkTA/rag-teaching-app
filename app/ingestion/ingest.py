@@ -138,6 +138,16 @@ def chunk_text(text: str):
         chunk = text[start:end].strip()
 
         if chunk:
+            low = chunk.lower()
+
+            if "contents" in low:
+                continue
+
+            if "table of contents" in low:
+                continue
+
+            if chunk.count("...") > 5:
+                continue
             chunks.append(chunk)
 
         start += chunk_size - overlap
