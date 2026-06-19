@@ -122,11 +122,11 @@ def chunk_text(text: str):
     if not text:
         return []
 
-    text = text[:20000]
+    # DELETE THIS
+    # text = text[:20000]
 
     chunk_size = 1200
     overlap = 200
-
     chunks = []
 
     start = 0
@@ -138,20 +138,49 @@ def chunk_text(text: str):
         chunk = text[start:end].strip()
 
         if chunk:
+
             low = chunk.lower()
 
-            if "contents" in low:
-                continue
+            skip = False
 
+            # ======================
+            # TOC DETECTION
+            # ======================
+            toc_words = [
+                "contents",
+                "chapter 1",
+                "chapter 2",
+                "chapter 3",
+            ]
+
+            matches = sum(
+                1
+                for w in toc_words
+                if w in low
+            )
+
+            if matches >= 3:
+                skip = True
+
+            # ======================
+            # EXISTING FILTERS
+            # ======================
             if "table of contents" in low:
-                continue
+                skip = True
 
             if chunk.count("...") > 5:
-                continue
-            chunks.append(chunk)
+                skip = True
+
+            if len(chunk.split()) < 40:
+                skip = True
+
+            # ======================
+            # KEEP CHUNK
+            # ======================
+            if not skip:
+                chunks.append(chunk)
 
         start += chunk_size - overlap
-
     print(
         f"🔥 chunked into {len(chunks)} chunks"
     )
@@ -284,6 +313,7 @@ def ingest_file(path: str, filename: str):
             }
 
         chunks = chunk_text(text)
+        print(chunks[:10])
         print("STEP E")
         if not chunks:
 

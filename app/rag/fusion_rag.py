@@ -102,7 +102,7 @@ def fusion_search(query):
             payload.get("filename"),
         )
         # HARD FILTER
-        if score < 0.70:
+        if score < 0.25:
             continue
 
         docs.append({
@@ -157,10 +157,14 @@ def fusion_search(query):
 
         semantic_score = d["score"]
 
-        keyword_score = float(
-            bm25_scores[i]
-        )
+      #  keyword_score = float(
+      #     bm25_scores[i]
+       # )
+        max_bm25 = max(bm25_scores) if len(bm25_scores) else 1
 
+        keyword_score = (
+                bm25_scores[i] / max_bm25
+        )
         code_boost = 0.15 if d["is_code"] else 0
 
         query_words = set(
@@ -175,12 +179,12 @@ def fusion_search(query):
             if w in text_lower
         )
 
-        keyword_boost = keyword_hits * 0.20
+        keyword_boost = keyword_hits * 0.05
 
         d["final_score"] = (
-                semantic_score * 0.60 +
+                semantic_score * 0.75 +
                 keyword_score * 0.20 +
-                keyword_boost +
+                keyword_boost * 0.05 +
                 code_boost
         )
 
@@ -212,12 +216,7 @@ def fusion_search(query):
         "TOP SCORE:",
         top_score
     )
-    docs = [
 
-        d for d in docs
-
-        if d["score"] >= 0.70
-    ]
     # =========================
     # REMOVE DUPLICATES
     # =========================
@@ -239,7 +238,7 @@ def fusion_search(query):
 
         d for d in docs
 
-        if d["final_score"] >= best_score * 0.85
+        if d["final_score"] >= best_score * 0.60
     ]
     print("\nTOP RESULTS")
 
