@@ -213,8 +213,8 @@ def fusion_search(query):
 
     for i, d in enumerate(docs):
 
-    ```
-    semantic_score = d["score"]
+
+     semantic_score = d["score"]
 
     # normalize BM25
     if bm25_max > bm25_min:
@@ -272,7 +272,7 @@ def fusion_search(query):
             phrase_boost +
             code_boost
     )
-    ```
+
 
     # =========================
 
