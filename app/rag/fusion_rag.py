@@ -193,7 +193,7 @@ def fusion_search(query):
     # =========================
     # BM25
     # =========================
-
+    import re
     tokenized = [
         re.findall(r"\w+", d["text"].lower())
         for d in docs
@@ -216,7 +216,7 @@ def fusion_search(query):
         "for",
         "and"
     }
-
+    import re
     # tokenize query exactly the same way
     query_tokens = [
         t
