@@ -183,27 +183,11 @@ def fusion_search(query):
             "is_code":
                 detect_code(text)
         })
-    # =========================
+    # =================================
     # BM25
-    # =========================
+    # =================================
 
-    # Replace everything from BM25 onwards with this
-
-    # =========================
-
-    # =========================
-    # BM25
-    # =========================
     import re
-    tokenized = [
-        re.findall(r"\w+", d["text"].lower())
-        for d in docs
-    ]
-
-    if not tokenized:
-        return []
-
-    bm25 = BM25Okapi(tokenized)
 
     STOP_WORDS = {
         "what",
@@ -217,41 +201,36 @@ def fusion_search(query):
         "for",
         "and"
     }
-    import re
-    # tokenize query exactly the same way
+
     query_tokens = [
         t
         for t in re.findall(r"\w+", query.lower())
         if t not in STOP_WORDS
     ]
 
-    # BM25 uses the actual query
+    query_words = set(query_tokens)
+
+    tokenized = [
+        re.findall(r"\w+", d["text"].lower())
+        for d in docs
+    ]
+
+    if not tokenized:
+        return []
+
+    bm25 = BM25Okapi(tokenized)
+
     bm25_scores = bm25.get_scores(query_tokens)
-    # Save BM25 score inside each document
+
     for i, d in enumerate(docs):
         d["bm25_raw"] = float(bm25_scores[i])
 
     bm25_min = min(d["bm25_raw"] for d in docs)
     bm25_max = max(d["bm25_raw"] for d in docs)
 
-
-    for i, d in enumerate(docs):
-
-        d["bm25_raw"] = float(bm25_scores[i])
-
-        if bm25_max > bm25_min:
-            keyword_score = (
-                                    d["bm25_raw"] - bm25_min
-                            ) / (
-                                    bm25_max - bm25_min
-                            )
-        else:
-            keyword_score = 0
-
-        d["keyword_score"] = keyword_score
-
-
-    important_terms = query_tokens
+    # =================================
+    # OPTIONAL FILTER
+    # =================================
 
     filtered_docs = []
 
@@ -260,33 +239,31 @@ def fusion_search(query):
         text_lower = d["text"].lower()
 
         matches = sum(
-            1 for term in important_terms
+            1
+            for term in query_tokens
             if term in text_lower
         )
 
-        if matches >= max(1, len(important_terms) // 2):
+        if matches >= 1:
             filtered_docs.append(d)
 
-    docs = filtered_docs if filtered_docs else docs
-    bm25_values = [d["bm25_raw"] for d in docs]
-    bm25_min = min(bm25_values)
-    bm25_max = max(bm25_values)
-    # =========================
-    import re
+    if filtered_docs:
+        docs = filtered_docs
 
+    # =================================
+    # RERANK
+    # =================================
 
-    query_words = set(
-        t
-        for t in re.findall(r"\w+", query.lower())
-        if t not in STOP_WORDS
-    )
+    for d in docs:
 
-    for i, d in enumerate(docs):
+        text_lower = d["text"].lower()
 
         semantic_score = d["score"]
-        print("QUERY TOKENS:", query_tokens)
-        print("BM25:", bm25_scores[:10])
-        # BM25 normalization
+
+        # -----------------------------
+        # BM25
+        # -----------------------------
+
         if bm25_max > bm25_min:
             keyword_score = (
                                     d["bm25_raw"] - bm25_min
@@ -296,126 +273,108 @@ def fusion_search(query):
         else:
             keyword_score = 0
 
-        text_lower = d["text"].lower()
+        # -----------------------------
+        # COVERAGE
+        # -----------------------------
 
-        # Exact phrase boost
-        #phrase_boost = 0.75 if query.lower() in text_lower else 0
-
-
-        important_phrases = [
-            "dynamic programming",
-            "time complexity",
-            "segment tree",
-            "binary search",
-            "memoization",
-        ]
-
-        extra_boost = 0
-        phrase_boost = 0
-        if "time complexity" in query.lower():
-
-            if "complexity" in text_lower:
-                extra_boost += 0.50
-
-            if "running time" in text_lower:
-                extra_boost += 0.50
-
-            if "big o" in text_lower:
-                extra_boost += 0.30
-
-            if "o(" in text_lower:
-                extra_boost += 0.20
-
-
-        if "dynamic programming" in query.lower():
-            if "dynamic programming" in text_lower:
-                phrase_boost += 0.3
-
-        if "time complexity" in query.lower():
-            if "time complexity" in text_lower:
-                phrase_boost += 0.3
-        for phrase in important_phrases:
-            if phrase in query.lower() and phrase in text_lower:
-                phrase_boost += 0.30
-        STOP_WORDS = {
-            "what",
-            "is",
-            "the",
-            "a",
-            "an",
-            "of",
-            "to",
-            "in",
-            "for",
-            "and"
-        }
-        # Word coverage
-        import re
-
-
-        # Code bonus
-        code_boost = 0.05 if d["is_code"] else 0
-        filename_lower = d["filename"].lower()
-        filename = d["filename"].lower()
-
-        source_boost = 0
-
-        if "complexity" in filename:
-            source_boost += 0.20
-
-        if "programming" in filename:
-            source_boost += 0.15
-
-        if "algorithm" in filename:
-            source_boost += 0.15
-        title_boost = 0
-
-        for word in query_words:
-            if word in filename_lower:
-                title_boost += 0.2
-        # =====================
-        # WORD COVERAGE
-        # =====================
-
-
-        # =====================
-        # FINAL SCORE
-        # =====================
-        text_lower = d["text"].lower()
-
-        # coverage
-        text_tokens = set(re.findall(r"\w+", text_lower))
+        text_tokens = set(
+            re.findall(r"\w+", text_lower)
+        )
 
         matched_words = sum(
-            1 for w in query_words
+            1
+            for w in query_words
             if w in text_tokens
         )
 
         coverage_score = (
             matched_words / len(query_words)
-            if query_words else 0
+            if query_words
+            else 0
         )
 
-        # code bonus
-        code_boost = 0.05 if d["is_code"] else 0
+        # -----------------------------
+        # BOOSTS
+        # -----------------------------
 
-        # phrase bonus
+        phrase_boost = 0
+        extra_boost = 0
 
-        # final score
+        if "dynamic programming" in query.lower():
+
+            if "dynamic programming" in text_lower:
+                phrase_boost += 1.0
+
+            if "memoization" in text_lower:
+                phrase_boost += 0.5
+
+            if "tabulation" in text_lower:
+                phrase_boost += 0.5
+
+        if "time complexity" in query.lower():
+
+            if "time complexity" in text_lower:
+                phrase_boost += 2.0
+
+            if "complexity" in text_lower:
+                extra_boost += 1.0
+
+            if "running time" in text_lower:
+                extra_boost += 1.0
+
+            if "big o" in text_lower:
+                extra_boost += 1.0
+
+            if "asymptotic" in text_lower:
+                extra_boost += 1.0
+
+            if "o(" in text_lower:
+                extra_boost += 0.5
+
+        # -----------------------------
+        # FILENAME BOOST
+        # -----------------------------
+
+        filename = d["filename"].lower()
+
+        title_boost = 0
+
+        for word in query_words:
+
+            if word in filename:
+                title_boost += 0.2
+
+        # -----------------------------
+        # CODE BONUS
+        # -----------------------------
+
+        code_boost = (
+            0.05
+            if d["is_code"]
+            else 0
+        )
+
+        # -----------------------------
+        # FINAL SCORE
+        # -----------------------------
 
         d["final_score"] = (
-                semantic_score * 0.30 +
-                keyword_score * 0.50 +
+                semantic_score * 0.25 +
+                keyword_score * 0.40 +
                 coverage_score * 0.20 +
                 phrase_boost +
-                code_boost +
-                extra_boost
+                extra_boost +
+                title_boost +
+                code_boost
         )
-    # =========================
 
+        d["coverage_score"] = coverage_score
+        d["keyword_score"] = keyword_score
+        d["matched_words"] = matched_words
+
+    # =================================
     # SORT
-
-    # =========================
+    # =================================
 
     docs.sort(
         key=lambda x: x["final_score"],
@@ -429,34 +388,48 @@ def fusion_search(query):
 
     best_score = docs[0]["final_score"]
 
-    # tighter filter
-
     filtered = [
         d
         for d in docs
         if d["final_score"] >= best_score * 0.90
     ]
 
-    print("\nTOP RESULTS")
+    # =================================
+    # DEBUG
+    # =================================
 
-    for d in docs[:10]:
+    for d in docs[:20]:
         print(
-            d["score"],
-            d["final_score"],
-            d["filename"]
+            "\nFILE:", d["filename"]
         )
-    for i, d in enumerate(docs[:20]):
+
         print(
-            "\nFILE:", d["filename"],
-            "\nSEM:", d["score"],
-            "\nFINAL:", d["final_score"],
-            "\nTEXT:", d["text"][:150]
+            "SEM:", d["score"]
         )
-        print("QUERY:", query)
-        print("TOKENS:", query_tokens)
-        print("MATCHED:", matched_words)
-        print("COVERAGE:", coverage_score)
-        print("BM25:", d["bm25_raw"])
-        print("FINAL:", d["final_score"])
-        print("TEXT:", d["text"][:150])
+
+        print(
+            "BM25:", d["bm25_raw"]
+        )
+
+        print(
+            "KEYWORD:", d["keyword_score"]
+        )
+
+        print(
+            "COVERAGE:", d["coverage_score"]
+        )
+
+        print(
+            "MATCHED:", d["matched_words"]
+        )
+
+        print(
+            "FINAL:", d["final_score"]
+        )
+
+        print(
+            "TEXT:",
+            d["text"][:200]
+        )
+
     return filtered[:5]
