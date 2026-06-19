@@ -120,7 +120,14 @@ def fusion_search(query):
     # PARSE RESULTS
     # =========================
     for r in vector_results:
+        text = r["payload"].get("text", "").lower()
 
+        if "dynamic programming" in text:
+            print(
+                "FOUND DP",
+                r["score"],
+                r["payload"].get("filename")
+            )
         payload = r.get("payload", {})
 
         text = payload.get("text", "")
@@ -172,131 +179,134 @@ def fusion_search(query):
     # BM25
     # =========================
 
+    # Replace everything from BM25 onwards with this
 
     # =========================
+
     # BM25
+
     # =========================
+
     tokenized = [
-
-        d["text"].split()
-
+        d["text"].lower().split()
         for d in docs
-
         if d["text"].strip()
     ]
 
-    # NOTHING LEFT
-    if len(tokenized) == 0:
+    if not tokenized:
         return []
 
     bm25 = BM25Okapi(tokenized)
 
-    bm25_scores = bm25.get_scores(
-        query.split()
-    )
+    query_tokens = query.lower().split()
+
+    bm25_scores = bm25.get_scores(query_tokens)
+
+    bm25_min = min(bm25_scores)
+    bm25_max = max(bm25_scores)
 
     # =========================
+
     # FUSION SCORING
+
     # =========================
+
     for i, d in enumerate(docs):
 
-        semantic_score = d["score"]
+    ```
+    semantic_score = d["score"]
 
-      #  keyword_score = float(
-      #     bm25_scores[i]
-       # )
-        bm25_min = min(bm25_scores)
-        bm25_max = max(bm25_scores)
+    # normalize BM25
+    if bm25_max > bm25_min:
+        keyword_score = (
+                                bm25_scores[i] - bm25_min
+                        ) / (
+                                bm25_max - bm25_min
+                        )
+    else:
+        keyword_score = 0
 
-        if bm25_max > bm25_min:
-            keyword_score = (
-                                    bm25_scores[i] - bm25_min
-                            ) / (
-                                    bm25_max - bm25_min
-                            )
-        else:
-            keyword_score = 0
+    text_lower = d["text"].lower()
 
-        code_boost = 0.15 if d["is_code"] else 0
+    # =====================
+    # EXACT PHRASE BOOST
+    # =====================
 
-        query_words = set(
-            query.lower().split()
-        )
+    phrase_boost = 0
 
-        text_lower = d["text"].lower()
+    if query.lower() in text_lower:
+        phrase_boost = 0.40
 
-        keyword_hits = sum(
-            1
-            for w in query_words
-            if w in text_lower
-        )
+    # =====================
+    # WORD COVERAGE
+    # =====================
 
-        keyword_boost = keyword_hits * 0.50
+    query_words = set(query_tokens)
 
-        d["final_score"] = (
-                semantic_score * 0.55 +
-                keyword_score * 0.30 +
-                keyword_boost * 0.10 +
-                code_boost * 0.05
-        )
+    matched_words = sum(
+        1
+        for w in query_words
+        if w in text_lower
+    )
 
-      #  d["final_score"] += source_boost
+    coverage_score = (
+        matched_words / len(query_words)
+        if query_words
+        else 0
+    )
+
+    # =====================
+    # CODE BONUS
+    # =====================
+
+    code_boost = 0.05 if d["is_code"] else 0
+
+    # =====================
+    # FINAL SCORE
+    # =====================
+
+    d["final_score"] = (
+            semantic_score * 0.55 +
+            keyword_score * 0.20 +
+            coverage_score * 0.20 +
+            phrase_boost +
+            code_boost
+    )
+    ```
 
     # =========================
+
     # SORT
+
     # =========================
+
     docs.sort(
-        key=lambda x:
-            x["final_score"],
+        key=lambda x: x["final_score"],
         reverse=True
     )
-    if not docs:
-        return []
 
-    top_score = docs[0]["final_score"]
-
-    print(
-        "TOP SCORE:",
-        top_score
-    )
-    if not docs:
-        return []
-
-    top_score = docs[0]["final_score"]
-
-    print(
-        "TOP SCORE:",
-        top_score
-    )
-
-    # =========================
-    # REMOVE DUPLICATES
-    # =========================
     docs = deduplicate(docs)
 
-    # =========================
-    # DYNAMIC TOP K
-    # =========================
-
-
-    # NO RESULTS AFTER FILTERING
     if not docs:
         return []
-
 
     best_score = docs[0]["final_score"]
 
+    # tighter filter
+
     filtered = [
+        d
+        for d in docs
+        if d["final_score"] >= best_score * 0.90
+    ]
 
-        d for d in docs
-
-        if d["final_score"] >= best_score * 0.85   ]
     print("\nTOP RESULTS")
 
     for d in docs[:10]:
         print(
             d["score"],
             d["final_score"],
-            d.get("filename")
+            d["filename"]
         )
-    return filtered[:3]
+
+    return filtered[:5]
