@@ -84,7 +84,14 @@ def fusion_search(query):
 
     if "dynamic programming" in q:
         expanded_query += """
-        DP memoization tabulation
+        dynamic programming
+        DP
+        memoization
+        tabulation
+        recurrence
+        subproblem
+        optimal substructure
+        overlapping subproblems
         """
 
     if "segment tree" in q:
@@ -105,7 +112,7 @@ def fusion_search(query):
     # =========================
     vector_results = store.search(
         query_vector,
-        top_k=100
+        top_k=200
     )
     print("VECTOR RESULTS:", len(vector_results))
 
@@ -204,76 +211,71 @@ def fusion_search(query):
 
     bm25_min = min(bm25_scores)
     bm25_max = max(bm25_scores)
+    important_terms = query.lower().split()
 
+    filtered_docs = []
+
+    for d in docs:
+
+        text_lower = d["text"].lower()
+
+        matches = sum(
+            1 for term in important_terms
+            if term in text_lower
+        )
+
+        if matches >= max(1, len(important_terms) // 2):
+            filtered_docs.append(d)
+
+    docs = filtered_docs if filtered_docs else docs
     # =========================
 
-    # FUSION SCORING
-
-    # =========================
+    query_tokens = query.lower().split()
+    query_words = set(query_tokens)
 
     for i, d in enumerate(docs):
 
+        semantic_score = d["score"]
 
-     semantic_score = d["score"]
+        # BM25 normalization
+        if bm25_max > bm25_min:
+            keyword_score = (
+                                    bm25_scores[i] - bm25_min
+                            ) / (
+                                    bm25_max - bm25_min
+                            )
+        else:
+            keyword_score = 0
 
-    # normalize BM25
-    if bm25_max > bm25_min:
-        keyword_score = (
-                                bm25_scores[i] - bm25_min
-                        ) / (
-                                bm25_max - bm25_min
-                        )
-    else:
-        keyword_score = 0
+        text_lower = d["text"].lower()
 
-    text_lower = d["text"].lower()
+        # Exact phrase boost
+        phrase_boost = 0.75 if query.lower() in text_lower else 0
 
-    # =====================
-    # EXACT PHRASE BOOST
-    # =====================
+        # Word coverage
+        matched_words = sum(
+            1
+            for w in query_words
+            if w in text_lower
+        )
 
-    phrase_boost = 0
+        coverage_score = (
+            matched_words / len(query_words)
+            if query_words
+            else 0
+        )
 
-    if query.lower() in text_lower:
-        phrase_boost = 0.40
+        # Code bonus
+        code_boost = 0.05 if d["is_code"] else 0
 
-    # =====================
-    # WORD COVERAGE
-    # =====================
-
-    query_words = set(query_tokens)
-
-    matched_words = sum(
-        1
-        for w in query_words
-        if w in text_lower
-    )
-
-    coverage_score = (
-        matched_words / len(query_words)
-        if query_words
-        else 0
-    )
-
-    # =====================
-    # CODE BONUS
-    # =====================
-
-    code_boost = 0.05 if d["is_code"] else 0
-
-    # =====================
-    # FINAL SCORE
-    # =====================
-
-    d["final_score"] = (
-            semantic_score * 0.55 +
-            keyword_score * 0.20 +
-            coverage_score * 0.20 +
-            phrase_boost +
-            code_boost
-    )
-
-
+        # Final score
+        d["final_score"] = (
+                semantic_score * 0.30 +
+                keyword_score * 0.50 +
+                coverage_score * 0.20 +
+                phrase_boost +
+                code_boost
+        )
     # =========================
 
     # SORT
