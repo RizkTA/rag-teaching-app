@@ -287,20 +287,29 @@ def fusion_search(query):
             "binary search",
             "memoization",
         ]
+        base_score = (
+                semantic_score * 0.30 +
+                keyword_score * 0.50 +
+                coverage_score * 0.20 +
+                code_boost
+        )
+
+        d["final_score"] = base_score
 
         if "time complexity" in query.lower():
-
-            if "big o" in text_lower:
-                d["final_score"] += 1.0
 
             if "complexity" in text_lower:
                 d["final_score"] += 1.0
 
-            if "o(" in text_lower:
-                d["final_score"] += 1.0
-
             if "running time" in text_lower:
                 d["final_score"] += 1.0
+
+            if "big o" in text_lower:
+                d["final_score"] += 1.0
+
+            if "o(" in text_lower:
+                d["final_score"] += 1.0
+                
         if "dynamic programming" in query.lower():
             if "dynamic programming" in text_lower:
                 phrase_boost += 0.3
