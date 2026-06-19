@@ -105,7 +105,7 @@ def fusion_search(query):
     # =========================
     vector_results = store.search(
         query_vector,
-        top_k=40
+        top_k=100
     )
     print("VECTOR RESULTS:", len(vector_results))
 
@@ -124,7 +124,17 @@ def fusion_search(query):
         payload = r.get("payload", {})
 
         text = payload.get("text", "")
+        source = (
+                payload.get("filename", "")
+                + " "
+                + payload.get("source", "")
+        ).lower()
 
+        source_boost = 0
+
+        for term in query.lower().split():
+            if term in source:
+                source_boost += 0.05
         #source = r.get("source", "").lower()
         #source_boost = 0
         #if query.lower() in source: source_boost += 0.15
@@ -195,12 +205,18 @@ def fusion_search(query):
       #  keyword_score = float(
       #     bm25_scores[i]
        # )
-        max_bm25 = max(bm25_scores) if len(bm25_scores) else 1
+        bm25_min = min(bm25_scores)
+        bm25_max = max(bm25_scores)
 
-        if max_bm25 == 0:
-            keyword_score = 0
+        if bm25_max > bm25_min:
+            keyword_score = (
+                                    bm25_scores[i] - bm25_min
+                            ) / (
+                                    bm25_max - bm25_min
+                            )
         else:
-            keyword_score = bm25_scores[i] / max_bm25
+            keyword_score = 0
+
         code_boost = 0.15 if d["is_code"] else 0
 
         query_words = set(
@@ -220,8 +236,8 @@ def fusion_search(query):
         d["final_score"] = (
                 semantic_score * 0.55 +
                 keyword_score * 0.30 +
-                keyword_boost * 0.15 +
-                code_boost
+                keyword_boost * 0.10 +
+                code_boost * 0.05
         )
 
       #  d["final_score"] += source_boost
@@ -274,8 +290,7 @@ def fusion_search(query):
 
         d for d in docs
 
-        if d["final_score"] >= best_score * 0.60
-    ]
+        if d["final_score"] >= best_score * 0.85   ]
     print("\nTOP RESULTS")
 
     for d in docs[:10]:
