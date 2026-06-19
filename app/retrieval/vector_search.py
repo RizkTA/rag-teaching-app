@@ -41,7 +41,7 @@ def detect_query_language(query):
 # ==============================
 def vector_search(
     query,
-    top_k=5
+    top_k=50
 ):
 
     # ==========================

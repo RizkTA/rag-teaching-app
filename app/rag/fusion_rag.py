@@ -120,7 +120,7 @@ def fusion_search(query):
     # =========================
     vector_results = store.search(
         query_vector,
-        top_k=1000
+        top_k=50
     )
     print("VECTOR RESULTS:", len(vector_results))
     for r in vector_results:
@@ -253,7 +253,25 @@ def fusion_search(query):
     # =================================
     # OPTIONAL FILTER
     # =================================
+    SPECIAL_PHRASES = [
+        "time complexity",
+        "dynamic programming",
+        "segment tree",
+        "binary search"
+    ]
 
+    phrase_docs = []
+
+    for d in docs:
+        text_lower = d["text"].lower()
+
+        for p in SPECIAL_PHRASES:
+            if p in query.lower() and p in text_lower:
+                phrase_docs.append(d)
+                break
+
+    if phrase_docs:
+        docs = phrase_docs
     filtered_docs = []
 
     for d in docs:
@@ -314,7 +332,7 @@ def fusion_search(query):
 
         coverage_score = (
             matched_words / len(query_words)
-            if query_words
+            if matched_words == len(query_words)
             else 0
         )
 
@@ -328,37 +346,39 @@ def fusion_search(query):
         if "dynamic programming" in query.lower():
 
             if "dynamic programming" in text_lower:
-                phrase_boost += 1.0
+                pphrase_boost = min(phrase_boost, 0.4)
 
             if "memoization" in text_lower:
-                phrase_boost += 0.5
+                phrase_boost = min(phrase_boost, 0.4)
 
             if "tabulation" in text_lower:
-                phrase_boost += 0.5
+                phrase_boost = min(phrase_boost, 0.4)
 
         if "time complexity" in query.lower():
 
             if "time complexity" in text_lower:
-                phrase_boost += 2.0
+                phrase_boost = min(phrase_boost, 0.4)
 
             if "complexity" in text_lower:
-                extra_boost += 1.0
+                extra_boost = min(extra_boost, 0.4)
 
             if "running time" in text_lower:
-                extra_boost += 1.0
+                extra_boost = min(extra_boost, 0.4)
 
             if "big o" in text_lower:
-                extra_boost += 1.0
-
+                extra_boost = min(extra_boost, 0.4)
             if "asymptotic" in text_lower:
-                extra_boost += 1.0
+                extra_boost = min(extra_boost, 0.4)
 
             if "o(" in text_lower:
-                extra_boost += 0.5
+                eextra_boost = min(extra_boost, 0.4)
 
         # -----------------------------
         # FILENAME BOOST
         # -----------------------------
+        query_phrase = query.lower().strip()
+        if query_phrase in text_lower:
+            phrase_boost += 1.0
 
         filename = d["filename"].lower()
 
@@ -388,10 +408,8 @@ def fusion_search(query):
                 keyword_score * 0.40 +
                 coverage_score * 0.20 +
                 phrase_boost +
-                extra_boost +
-                title_boost +
-                code_boost
-        )
+                extra_boost )
+
 
         d["coverage_score"] = coverage_score
         d["keyword_score"] = keyword_score
