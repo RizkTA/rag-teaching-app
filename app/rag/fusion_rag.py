@@ -120,7 +120,7 @@ def fusion_search(query):
     # =========================
     vector_results = store.search(
         query_vector,
-        top_k=1000
+        top_k=40
     )
     print("VECTOR RESULTS:", len(vector_results))
     for r in vector_results:
@@ -186,7 +186,11 @@ def fusion_search(query):
         # HARD FILTER
        # if score < 0.40:
         #    continue
-
+        for d in docs[:10]:
+            print(
+                d["filename"],
+                len(d["text"])
+            )
         docs.append({
 
             "text": clean_text(text),
@@ -272,6 +276,7 @@ def fusion_search(query):
 
     if phrase_docs:
         docs = phrase_docs
+
     filtered_docs = []
 
     for d in docs:
@@ -339,10 +344,16 @@ def fusion_search(query):
         # -----------------------------
         # BOOSTS
         # -----------------------------
+        chunk_len = len(d["text"])
 
+        if chunk_len > 1200:
+            length_penalty = 0.85
+        else:
+            length_penalty = 1.0
         phrase_boost = 0
         extra_boost = 0
-
+        if query.lower() in text_lower:
+            phrase_boost += 1.0
         if "dynamic programming" in query.lower():
 
             if "dynamic programming" in text_lower:
@@ -378,9 +389,21 @@ def fusion_search(query):
         # -----------------------------
         query_phrase = query.lower().strip()
         if query_phrase in text_lower:
-            phrase_boost += 1.0
+            phrase_boost += 0.5
 
         filename = d["filename"].lower()
+
+        doc_boost = 0
+
+        if "competitive" in filename:
+            doc_boost += 0.3
+
+        if "algorithm" in filename:
+            doc_boost += 0.3
+
+        if "guide" in filename:
+            doc_boost += 0.2
+
 
         title_boost = 0
 
@@ -412,6 +435,8 @@ def fusion_search(query):
 
         if keyword_score < 0.05:
             d["final_score"] *= 0.5
+        d["final_score"]  += doc_boost
+        d["final_score"] *= length_penalty
         d["coverage_score"] = coverage_score
         d["keyword_score"] = keyword_score
         d["matched_words"] = matched_words
