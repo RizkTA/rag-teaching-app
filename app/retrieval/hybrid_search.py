@@ -53,7 +53,7 @@ def hybrid_search_impl(query: str):
             "chunk_id": payload.get("chunk_id", -1),
             "is_code": payload.get("is_code", False)
         })
-
+    print("DOCS AFTER FILTER:", len(docs))
     if not docs:
         return []
 

@@ -102,8 +102,8 @@ def fusion_search(query):
             payload.get("filename"),
         )
         # HARD FILTER
-        if score < 0.25:
-            continue
+       # if score < 0.40:
+        #    continue
 
         docs.append({
 

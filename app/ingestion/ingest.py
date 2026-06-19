@@ -151,16 +151,18 @@ def chunk_text(text: str):
                 "chapter 1",
                 "chapter 2",
                 "chapter 3",
+                "chapter 4",
+                "chapter 5",
+                "chapter 6",
             ]
 
             matches = sum(
-                1
-                for w in toc_words
+                1 for w in toc_words
                 if w in low
             )
 
             if matches >= 3:
-                skip = True
+                continue
 
             # ======================
             # EXISTING FILTERS
