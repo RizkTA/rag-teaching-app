@@ -285,20 +285,30 @@ def fusion_search(query):
             "memoization",
         ]
 
+        extra_boost = 0
 
         if "time complexity" in query.lower():
 
             if "complexity" in text_lower:
-                d["final_score"] += 1.0
+                extra_boost += 1.0
 
             if "running time" in text_lower:
-                d["final_score"] += 1.0
+                extra_boost += 1.0
 
             if "big o" in text_lower:
-                d["final_score"] += 1.0
+                extra_boost += 1.0
 
             if "o(" in text_lower:
-                d["final_score"] += 1.0
+                extra_boost += 1.0
+
+        d["final_score"] = (
+                semantic_score * 0.30 +
+                keyword_score * 0.50 +
+                coverage_score * 0.20 +
+                phrase_boost +
+                code_boost +
+                extra_boost
+        )
 
         if "dynamic programming" in query.lower():
             if "dynamic programming" in text_lower:
@@ -376,8 +386,7 @@ def fusion_search(query):
                 coverage_score * 0.20 +
                 phrase_boost +
                 code_boost +
-                source_boost +
-                title_boost
+                extra_boost
         )
     # =========================
 
