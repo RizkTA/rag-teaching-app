@@ -120,7 +120,7 @@ def fusion_search(query):
     # =========================
     vector_results = store.search(
         query_vector,
-        top_k=50
+        top_k=1000
     )
     print("VECTOR RESULTS:", len(vector_results))
     for r in vector_results:
@@ -404,17 +404,25 @@ def fusion_search(query):
         # -----------------------------
 
         d["final_score"] = (
-                semantic_score * 0.25 +
+                semantic_score * 0.45 +
                 keyword_score * 0.40 +
-                coverage_score * 0.20 +
+                coverage_score * 0.10 +
                 phrase_boost +
                 extra_boost )
 
-
+        if keyword_score < 0.05:
+            d["final_score"] *= 0.5
         d["coverage_score"] = coverage_score
         d["keyword_score"] = keyword_score
         d["matched_words"] = matched_words
-
+        print(
+            d["filename"],
+            "SEM=", semantic_score,
+            "BM25=", keyword_score,
+            "COV=", coverage_score,
+            "PHRASE=", phrase_boost,
+            "FINAL=", d["final_score"]
+        )
     # =================================
     # SORT
     # =================================

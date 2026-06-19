@@ -125,8 +125,8 @@ def chunk_text(text: str):
     # DELETE THIS
     # text = text[:20000]
 
-    chunk_size = 1200
-    overlap = 200
+    chunk_size = 250
+    overlap = 50
     chunks = []
 
     start = 0
