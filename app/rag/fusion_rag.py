@@ -204,9 +204,35 @@ def fusion_search(query):
         return []
 
     bm25 = BM25Okapi(tokenized)
+    STOP_WORDS = {
+        "what",
+        "is",
+        "the",
+        "a",
+        "an",
+        "of",
+        "to",
+        "in",
+        "for",
+        "and"
+    }
+    import re
+    expanded_query = """
+    time complexity
+    big o
+    running time
+    algorithm efficiency
+    asymptotic complexity
+    O(n)
+    O(log n)
+    """
 
-    query_tokens = query.lower().split()
-
+    query_tokens = (expanded_query.lower().split())
+    query_tokens = [
+              t
+        for t in re.findall(r"\w+", query.lower())
+        if t not in STOP_WORDS
+    ]
     bm25_scores = bm25.get_scores(query_tokens)
 
     bm25_min = min(bm25_scores)
@@ -262,22 +288,52 @@ def fusion_search(query):
             "memoization",
         ]
 
+        if "time complexity" in query.lower():
 
+            if "big o" in text_lower:
+                d["final_score"] += 1.0
+
+            if "complexity" in text_lower:
+                d["final_score"] += 1.0
+
+            if "o(" in text_lower:
+                d["final_score"] += 1.0
+
+            if "running time" in text_lower:
+                d["final_score"] += 1.0
         if "dynamic programming" in query.lower():
             if "dynamic programming" in text_lower:
-                phrase_boost += 5.0
+                phrase_boost += 0.3
 
         if "time complexity" in query.lower():
             if "time complexity" in text_lower:
-                phrase_boost += 5.0
+                phrase_boost += 0.3
         for phrase in important_phrases:
             if phrase in query.lower() and phrase in text_lower:
-                phrase_boost += 2.0
+                phrase_boost += 0.30
+        STOP_WORDS = {
+            "what",
+            "is",
+            "the",
+            "a",
+            "an",
+            "of",
+            "to",
+            "in",
+            "for",
+            "and"
+        }
         # Word coverage
+        import re
+
+        text_tokens = set(
+            re.findall(r"\w+", text_lower)
+        )
+
         matched_words = sum(
             1
             for w in query_words
-            if w in text_lower
+            if w in text_tokens
         )
 
         coverage_score = (
@@ -289,7 +345,18 @@ def fusion_search(query):
         # Code bonus
         code_boost = 0.05 if d["is_code"] else 0
         filename_lower = d["filename"].lower()
+        filename = d["filename"].lower()
 
+        source_boost = 0
+
+        if "complexity" in filename:
+            source_boost += 0.20
+
+        if "programming" in filename:
+            source_boost += 0.15
+
+        if "algorithm" in filename:
+            source_boost += 0.15
         title_boost = 0
 
         for word in query_words:
