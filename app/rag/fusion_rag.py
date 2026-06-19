@@ -190,20 +190,20 @@ def fusion_search(query):
 
     # =========================
 
+    # =========================
     # BM25
-
     # =========================
 
     tokenized = [
-        d["text"].lower().split()
+        re.findall(r"\w+", d["text"].lower())
         for d in docs
-        if d["text"].strip()
     ]
 
     if not tokenized:
         return []
 
     bm25 = BM25Okapi(tokenized)
+
     STOP_WORDS = {
         "what",
         "is",
@@ -216,29 +216,21 @@ def fusion_search(query):
         "for",
         "and"
     }
-    import re
-    expanded_query = """
-    time complexity
-    big o
-    running time
-    algorithm efficiency
-    asymptotic complexity
-    O(n)
-    O(log n)
-    """
 
-    import re
-
+    # tokenize query exactly the same way
     query_tokens = [
-              t
+        t
         for t in re.findall(r"\w+", query.lower())
         if t not in STOP_WORDS
     ]
-    bm25_scores = bm25.get_scores(expanded_query.lower().split())
 
-    bm25_min = min(bm25_scores)
-    bm25_max = max(bm25_scores)
-    important_terms = query.lower().split()
+    # BM25 uses the actual query
+    bm25_scores = bm25.get_scores(query_tokens)
+
+    bm25_min = float(min(bm25_scores))
+    bm25_max = float(max(bm25_scores))
+
+    important_terms = query_tokens
 
     filtered_docs = []
 
@@ -256,8 +248,12 @@ def fusion_search(query):
 
     docs = filtered_docs if filtered_docs else docs
     # =========================
+    import re
+    query_tokens = re.findall(
+        r"\w+",
+        query.lower()
+    )
 
-    query_tokens = query.lower().split()
     query_words = set(query_tokens)
 
     for i, d in enumerate(docs):
@@ -288,14 +284,7 @@ def fusion_search(query):
             "binary search",
             "memoization",
         ]
-        base_score = (
-                semantic_score * 0.30 +
-                keyword_score * 0.50 +
-                coverage_score * 0.20 +
-                code_boost
-        )
 
-        d["final_score"] = base_score
 
         if "time complexity" in query.lower():
 
@@ -376,7 +365,7 @@ def fusion_search(query):
             if query_words
             else 0
         )
-
+        code_boost = 0.05 if d["is_code"] else 0
         # =====================
         # FINAL SCORE
         # =====================
@@ -386,9 +375,10 @@ def fusion_search(query):
                 keyword_score * 0.50 +
                 coverage_score * 0.20 +
                 phrase_boost +
-                code_boost
+                code_boost +
+                source_boost +
+                title_boost
         )
-
     # =========================
 
     # SORT
