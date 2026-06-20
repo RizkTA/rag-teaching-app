@@ -145,7 +145,7 @@ if submitted and query.strip():
             #print("BACKEND RESPONSE:", data)
 
             answer = data.get("answer", "")
-            st.write(data)
+           # st.write(data)
             print("ANSWER:", answer)
             print("ANSWER LENGTH:", len(answer))
             print(answer[:1000])
