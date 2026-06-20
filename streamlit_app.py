@@ -505,7 +505,13 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
 
      # SAVE FILES TO SESSION
      if uploaded_files:
-         st.session_state.uploaded_files = uploaded_files
+         st.session_state.uploaded_files = [
+             {
+                 "name": f.name,
+                 "bytes": f.getvalue()
+             }
+             for f in uploaded_files
+         ]
 
      # READ FROM SESSION
      files_to_process = st.session_state.get(
@@ -538,7 +544,9 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
 
                  ext = uploaded_file.name.split(".")[-1].lower()
 
-                 file_bytes = uploaded_file.getvalue()
+                 for uploaded_file in files_to_process:
+                     file_bytes = uploaded_file["bytes"]
+                     filename = uploaded_file["name"]
 
                  file_hash = compute_hash(file_bytes)
 
@@ -563,12 +571,21 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
 
                          progress.progress(25)
 
+
+
+                         st.write("Uploading:", uploaded_file.name)
+                         st.write("Calling:", f"{API_URL}/upload_file")
+
                          res = requests.post(
                              f"{API_URL}/upload_file",
                              files=files,
                              data=data,
                              timeout=300
                          )
+
+                         st.write("Response:", res.status_code)
+
+
 
                          progress.progress(50)
 
@@ -622,7 +639,8 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
                  )
 
              # CLEAR AFTER SUCCESS
-             st.session_state.uploaded_files = []
+             all_success = True
+
  # =================================
  # HISTORY (ALWAYS SHOW)
  # =================================

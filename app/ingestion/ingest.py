@@ -357,7 +357,7 @@ def ingest_file(path: str, filename: str):
         )
 
         print("STEP F")
-        MAX_CHUNKS = 40
+        MAX_CHUNKS = 3
 
         if len(structured) > MAX_CHUNKS:
             print(
@@ -366,9 +366,26 @@ def ingest_file(path: str, filename: str):
             )
 
             structured = structured[:MAX_CHUNKS]
-        result = get_upserter().upsert_chunks(
-            structured
-        )
+            import time
+
+            t0 = time.time()
+
+            store = get_store()
+            print("GET STORE:", time.time() - t0)
+
+            t1 = time.time()
+
+            chunks = chunk_text(text)
+            print("CHUNKING:", time.time() - t1)
+
+            t2 = time.time()
+
+            result = get_upserter().upsert_chunks(structured)
+
+            print("UPSERT:", time.time() - t2)
+
+       # result = get_upserter().upsert_chunks(
+
         print("STEP G")
         print("🔥 upsert complete")
 
@@ -392,15 +409,6 @@ def ingest_file(path: str, filename: str):
             "message": str(e)
         }
 
-    finally:
-
-        try:
-
-            if os.path.exists(path):
-                os.remove(path)
-
-        except Exception as e:
-            print(e)
 
 
 print("🔥 INGEST.PY IMPORT COMPLETE")

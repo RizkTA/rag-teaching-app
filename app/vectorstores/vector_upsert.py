@@ -69,8 +69,33 @@ class VectorUpsert:
         #vectors = embed_texts(texts)
         print("STEP A")
 
-        vectors = embed_texts(texts)
+        import time
 
+        t0 = time.time()
+
+        print("Calling embed_texts")
+
+        all_vectors = []
+
+        BATCH_SIZE = 8
+
+        for i in range(0, len(texts), BATCH_SIZE):
+            batch = texts[i:i + BATCH_SIZE]
+
+            print(
+                f"Embedding batch {i // BATCH_SIZE + 1}"
+            )
+
+            batch_vectors = embed_texts(batch)
+
+            all_vectors.extend(batch_vectors)
+
+        vectors = all_vectors
+        print(
+            "embed_texts returned in",
+            time.time() - t0,
+            "seconds"
+        )
         print("STEP B")
         print("STEP B")
         if vectors is None:
@@ -117,60 +142,46 @@ class VectorUpsert:
             )
 
             payloads.append({
+                "text": texts[idx],
 
-                # MAIN CONTENT
-                "text":
-                    texts[idx],
+                "source": chunk.get(
+                    "source",
+                    "unknown"
+                ),
 
-                # SOURCE
-                "source":
-                    chunk.get(
-                        "source",
-                        "unknown"
-                    ),
+                "filename": metadata.get(
+                    "filename",
+                    chunk.get("source", "unknown")
+                ),
 
-                "filename":
-                    metadata.get(
-                        "filename",
-                        chunk.get(
-                            "source",
-                            "unknown"
-                        )
-                    ),
+                "chunk_id": chunk.get(
+                    "chunk_id",
+                    idx
+                ),
 
-                # CHUNK INFO
-                "chunk_id":
-                    chunk.get(
-                        "chunk_id",
-                        idx
-                    ),
+                "language": chunk.get(
+                    "language",
+                    "text"
+                ),
 
-                # TAGGING
-                "language":
-                    chunk.get(
-                        "language",
-                        "text"
-                    ),
+                "topic": chunk.get(
+                    "topic",
+                    "general"
+                ),
 
-                "topic":
-                    chunk.get(
-                        "topic",
-                        "general"
-                    ),
+                "file_hash": metadata.get(
+                    "file_hash"
+                ),
 
-                # DUPLICATE CHECK
-                "file_hash":
-                    metadata.get(
-                        "file_hash"
-                    ),
+                "is_code": metadata.get(
+                    "is_code",
+                    False
+                ),
 
-                # CODE FLAG
-                "is_code":
-                    metadata.get(
-                        "is_code",
-                        False
-                    )
+                # ADD THIS
+                "embedding": vectors[idx]
             })
+            
 
         print(
             f"🔥 upserting {len(ids)} vectors"

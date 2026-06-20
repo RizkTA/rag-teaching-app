@@ -190,22 +190,23 @@ def fusion_search(query):
                 len(d["text"])
             )
         docs.append({
-
             "text": clean_text(text),
 
+            # semantic score from Qdrant
             "score": score,
 
-            "source":
-                payload.get("source", "unknown"),
+            # source info
+            "source": payload.get("source", "unknown"),
 
-            "filename":
-                payload.get("filename", "unknown"),
+            "filename": payload.get("filename", "unknown"),
 
-            "chunk_id":
-                payload.get("chunk_id", -1),
+            "chunk_id": payload.get("chunk_id", -1),
 
-            "is_code":
-                detect_code(text)
+            # code flag
+            "is_code": detect_code(text),
+
+            # embedding already stored during upload
+            "embedding": payload.get("embedding")
         })
 
     from app.rag.mmr import mmr_rerank
@@ -311,8 +312,9 @@ def fusion_search(query):
             if term in text_lower
         )
 
-        if matches >= max(2, len(query_tokens) // 2):
+        if matches >= 1:
             filtered_docs.append(d)
+
     if filtered_docs:
         docs = filtered_docs
     # =================================
@@ -377,18 +379,18 @@ def fusion_search(query):
         phrase_boost = 0
         extra_boost = 0
         if query.lower() in text_lower:
-            phrase_boost +=  1.0
+            phrase_boost +=  0.15
         if "dynamic programming" in query.lower():
 
             if "dynamic programming" in text_lower:
-                phrase_boost += 0.4
+                phrase_boost += 0.15
 
             if "memoization" in text_lower:
-                phrase_boost += 0.4
+                phrase_boost += 0.15
 
 
             if "tabulation" in text_lower:
-                phrase_boost += 0.
+                phrase_boost += 0.15
         """
         if "time complexity" in query.lower():
             complexity_terms = [
@@ -426,25 +428,25 @@ def fusion_search(query):
         if "time complexity" in query.lower():
 
                 if "time complexity" in text_lower:
-                    extra_boost += 0.4
+                    extra_boost += 0.05
 
                 if "complexity" in text_lower:
-                    extra_boost += 0.4
+                    extra_boost += 0.05
 
                 if "running time" in text_lower:
-                    extra_boost += 0.4
+                    extra_boost += 0.05
 
                 if "big o" in text_lower:
-                    extra_boost += 0.4
+                    extra_boost += 0.05
 
                 if "asymptotic" in text_lower:
-                    extra_boost += 0.4
+                    extra_boost += 0.05
 
                 if "o(" in text_lower:
-                    extra_boost += 0.4
+                    extra_boost += 0.05
 
                 if "o(" in text_lower:
-                      extra_boost += 0.4
+                      extra_boost += 0.05
 
         # -----------------------------
         # FILENAME BOOST
@@ -498,7 +500,7 @@ def fusion_search(query):
             "PHRASE=", phrase_boost,
             "FINAL=", d["final_score"]
         )
-        reranked_docs.append(d)
+
         if keyword_score == 0 and coverage_score == 0:
               continue
         reranked_docs.append(d)
@@ -513,12 +515,8 @@ def fusion_search(query):
 
     docs = deduplicate(docs)
 
-    chunk_embeddings = embed_texts(
-        [d["text"] for d in docs]
-    )
+   
 
-    for d, emb in zip(docs, chunk_embeddings):
-        d["embedding"] = emb
     print("\n===== BEFORE MMR =====")
 
     for d in docs[:20]:

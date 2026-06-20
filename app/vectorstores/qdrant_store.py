@@ -157,7 +157,9 @@ class QdrantStore:
             collection_name=self.collection_name,
             query=query_vector,
             limit=top_k,
-            query_filter=query_filter
+            query_filter=query_filter,
+            with_payload=True,
+            with_vectors=True
         )
 
         points = getattr(results, "points", []) or []
@@ -165,17 +167,11 @@ class QdrantStore:
         parsed = []
 
         for r in points:
-
             parsed.append({
-
-                "id":
-                    getattr(r, "id", None),
-
-                "score":
-                    float(getattr(r, "score", 0.0)),
-
-                "payload":
-                    getattr(r, "payload", {}) or {}
+                "id": r.id,
+                "score": float(r.score),
+                "payload": r.payload,
+                "vector": r.vector
             })
 
         return parsed

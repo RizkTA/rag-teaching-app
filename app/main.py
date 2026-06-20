@@ -306,10 +306,15 @@ async def upload_file(file: UploadFile = File(...)):
         print("TEMP PATH:", temp_path)
 
         # call ingestion
+        print("BEFORE INGEST")
+
         result = ingest_file(
             temp_path,
             file.filename
         )
+
+        print("AFTER INGEST")
+       
 
         print("UPLOAD STEP 4")
         print("INGEST RESULT:", result)
