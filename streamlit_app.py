@@ -142,7 +142,7 @@ if submitted and query.strip():
 
             data = res.json()
 
-            print("BACKEND RESPONSE:", data)
+            #print("BACKEND RESPONSE:", data)
 
             answer = data.get("answer", "")
             st.write(data)
