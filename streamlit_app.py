@@ -114,7 +114,9 @@ with st.form("chat_form", clear_on_submit=True):
     col1, col2 = st.columns([8, 1])
 
     with col1:
-        query = st.text_input("Ask a question...", label_visibility="collapsed")
+       # query = st.text_input("Ask a question...", label_visibility="collapsed")
+
+        query = st.chat_input("Ask RIZK AI")
 
     with col2:
         submitted = st.form_submit_button("➤")
@@ -146,12 +148,12 @@ if submitted and query.strip():
 
             answer = data.get("answer", "")
            # st.write(data)
-            print("ANSWER:", answer)
-            print("ANSWER LENGTH:", len(answer))
-            print(answer[:1000])
-            sources = data.get("sources", [])
+           # print("ANSWER:", answer)
+           # print("ANSWER LENGTH:", len(answer))
+           # print(answer[:1000])
+            #sources = data.get("sources", [])
 
-            print("SOURCE COUNT:", len(sources))
+            #print("SOURCE COUNT:", len(sources))
 
 
             # CLEAN
@@ -299,8 +301,6 @@ if st.session_state.pinned:
     st.markdown("</div>", unsafe_allow_html=True )
     st.markdown()
 
-if st.session_state.messages:
-    st.write(st.session_state.messages[-1])
 # =================================
 # CHAT HISTORY (CLEAN)
 # =================================
