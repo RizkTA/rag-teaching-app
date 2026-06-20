@@ -1,85 +1,62 @@
-# app/rag/mmr.py
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 
-def mmr_rerank(
+def cosine_similarity(a, b):
+
+    a = np.array(a)
+    b = np.array(b)
+
+    return np.dot(a, b) / (
+        np.linalg.norm(a) *
+        np.linalg.norm(b) +
+        1e-9
+    )
+
+
+def apply_mmr(
     docs,
-    lambda_param=0.7,
-    top_k=5
+    top_k=5,
+    lambda_param=0.75
 ):
-    """
-    docs = [
-        {
-            "text": "...",
-            "final_score": ...
-        }
-    ]
-    """
-
-    if not docs:
-        return []
 
     if len(docs) <= top_k:
         return docs
 
-    texts = [
-        d["text"]
-        for d in docs
-    ]
+    selected = [docs[0]]
 
-    tfidf = TfidfVectorizer(
-        stop_words="english"
-    )
+    remaining = docs[1:]
 
-    matrix = tfidf.fit_transform(texts)
+    while remaining and len(selected) < top_k:
 
-    sim_matrix = cosine_similarity(matrix)
-
-    selected = [0]
-
-    candidates = list(
-        range(1, len(docs))
-    )
-
-    while (
-        len(selected) < top_k
-        and candidates
-    ):
-
-        best_idx = None
+        best_doc = None
         best_score = -999
 
-        for idx in candidates:
+        for candidate in remaining:
 
-            relevance = docs[idx].get(
-                "final_score",
-                0
-            )
+            relevance = candidate["final_score"]
 
             diversity = max(
-                sim_matrix[idx][s]
+
+                cosine_similarity(
+                    candidate["embedding"],
+                    s["embedding"]
+                )
+
                 for s in selected
             )
 
             mmr_score = (
                 lambda_param * relevance
                 -
-                (1 - lambda_param)
-                * diversity
+                (1 - lambda_param) * diversity
             )
 
             if mmr_score > best_score:
 
                 best_score = mmr_score
-                best_idx = idx
+                best_doc = candidate
 
-        selected.append(best_idx)
+        selected.append(best_doc)
+        remaining.remove(best_doc)
 
-        candidates.remove(best_idx)
-
-    return [
-        docs[i]
-        for i in selected
-    ]
+    return selected

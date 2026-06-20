@@ -52,55 +52,7 @@ def deduplicate(results):
         unique.append(r)
 
     return unique
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
-def apply_mmr(docs, top_k=5, lambda_param=0.7):
-
-    if len(docs) <= top_k:
-        return docs
-
-    selected = [docs[0]]
-    candidates = docs[1:]
-
-    while len(selected) < top_k and candidates:
-
-        best_doc = None
-        best_score = -999
-
-        for candidate in candidates:
-
-            relevance = candidate["score"]
-
-            max_similarity = 0
-
-            for chosen in selected:
-
-                sim = cosine_similarity(
-                    [candidate["embedding"]],
-                    [chosen["embedding"]]
-                )[0][0]
-
-                max_similarity = max(
-                    max_similarity,
-                    sim
-                )
-
-            mmr_score = (
-                lambda_param * relevance
-                -
-                (1 - lambda_param) * max_similarity
-            )
-
-            if mmr_score > best_score:
-
-                best_score = mmr_score
-                best_doc = candidate
-
-        selected.append(best_doc)
-        candidates.remove(best_doc)
-
-    return selected
 # =================================
 # MAIN FUSION SEARCH
 # =================================
@@ -501,6 +453,12 @@ def fusion_search(query):
     docs = deduplicate(docs)
 
     docs = docs[:20]
+    chunk_embeddings = embed_texts(
+        [d["text"] for d in docs]
+    )
+
+    for d, emb in zip(docs, chunk_embeddings):
+        d["embedding"] = emb
 
     docs = apply_mmr(
         docs,
