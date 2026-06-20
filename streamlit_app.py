@@ -503,29 +503,12 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
          key="knowledge_upload"
      )
 
-     # SAVE FILES TO SESSION
      if uploaded_files:
-         st.session_state.uploaded_files = [
-             {
-                 "name": f.name,
-                 "bytes": f.getvalue()
-             }
-             for f in uploaded_files
-         ]
-
-     # READ FROM SESSION
-     files_to_process = st.session_state.get(
-         "uploaded_files",
-         []
-     )
-
-     if files_to_process:
 
          st.markdown("### 📦 Files Ready")
 
-         for file in files_to_process:
+         for file in uploaded_files:
              ext = file.name.split(".")[-1].lower()
-
              icon = file_icon.get(ext, "📄")
 
              st.info(f"{icon} {file.name}")
@@ -536,53 +519,25 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
 
          if st.button("🚀 Upload & Ingest All"):
 
-             overall_progress = st.progress(0)
+             total_files = len(uploaded_files)
 
-             total_files = len(files_to_process)
+             for idx, uploaded_file in enumerate(uploaded_files):
 
-             for idx, uploaded_file in enumerate(files_to_process):
+                 file_bytes = uploaded_file.getvalue()
 
-                 ext = uploaded_file.name.split(".")[-1].lower()
+                 files = {
+                     "file": (
+                         uploaded_file.name,
+                         file_bytes,
+                         "application/octet-stream"
+                     )
+                 }
 
-                 for uploaded_file in files_to_process:
-                     file_bytes = uploaded_file["bytes"]
-                     filename = uploaded_file["name"]
-
-                 file_hash = compute_hash(file_bytes)
-
-                 with st.expander(f"📄 {uploaded_file.name}"):
-
-                     progress = st.progress(5)
-
-                     try:
-
-                         files = {
-                             "file": (
-                                 uploaded_file.name,
-                                 file_bytes,
-                                 "application/octet-stream"
-                             )
-                         }
-
-                         data = {
-                             "replace_existing": str(replace_existing),
-                             "file_hash": file_hash
-                         }
-
-                         progress.progress(25)
-
-
-
-                         st.write("Uploading:", uploaded_file.name)
-                         st.write("Calling:", f"{API_URL}/upload_file")
-
-                         res = requests.post(
-                             f"{API_URL}/upload_file",
-                             files=files,
-                             data=data,
-                             timeout=300
-                         )
-
+                 res = requests.post(
+                     f"{API_URL}/upload_file",
+                     files=files,
+                     timeout=300
+                 )
                          st.write("Response:", res.status_code)
 
 
