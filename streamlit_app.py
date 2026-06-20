@@ -578,90 +578,98 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
 
                  try:
 
-                     file_bytes = uploaded_file.getvalue()
+                         file_bytes = uploaded_file.getvalue()
 
-                     files = {
-                         "file": (
-                             uploaded_file.name,
-                             file_bytes,
-                             "application/octet-stream"
-                         )
-                     }
+                         files = {
+                             "file": (
+                                 uploaded_file.name,
+                                 file_bytes,
+                                 "application/octet-stream"
+                             )
+                         }
 
-                     data = {
-                         "replace_existing": str(replace_existing)
-                     }
+                         data = {
+                             "replace_existing": str(replace_existing)
+                         }
 
-                     progress.progress(25)
+                         progress.progress(25)
 
-                     res = requests.post(
-                         f"{API_URL}/upload_file",
-                         files=files,
-                         data=data,
-                         timeout=300
-                     )
-
-                     st.write(
-                         f"{uploaded_file.name}: HTTP {res.status_code}"
-                     )
-
-                     progress.progress(50)
-
-                     if res.status_code != 200:
-                         st.error(
-                             f"❌ Upload failed for {uploaded_file.name}"
+                         res = requests.post(
+                             f"{API_URL}/upload_file",
+                             files=files,
+                             data=data,
+                             timeout=300
                          )
 
-                         continue
-
-                     result = res.json()
-
-                     progress.progress(80)
-
-                     status = result.get(
-                         "status",
-                         "unknown"
-                     )
-
-                     if status == "skipped":
-
-                         st.warning(
-                             f"⚠️ {uploaded_file.name} already exists"
-                         )
-                         add_history(
-                             uploaded_file.name,
-                             ext.upper(),
-                             "Skipped"
-                         )
-                     elif status in ["ok", "uploaded"]:
-
-                         chunks = result.get(
-                             "chunks",
-                             0
+                         st.write(
+                             f"{uploaded_file.name}: HTTP {res.status_code}"
                          )
 
-                         st.success(
-                             f"✅ {uploaded_file.name} uploaded successfully "
-                             f"({chunks} chunks)"
-                         )
-                         add_history(
-                             uploaded_file.name,
-                             ext.upper(),
-                             "Uploaded"
-                         )
-                     else:
+                         progress.progress(50)
+                         try:
+                             if file_exists(store, file_hash):
+                                 return {
+                                     "status": "skipped",
+                                     "message": f"{filename} already exists",
+                                     "file_hash": file_hash
+                                 }
+                         except Exception as e:
+                             print("❌ Duplicate check failed:", e)
+                         if res.status_code != 200:
+                             st.error(
+                                 f"❌ Upload failed for {uploaded_file.name}"
+                             )
 
-                         st.error(
-                             f"❌ Upload failed for {uploaded_file.name}"
-                         )
-                         add_history(
-                             uploaded_file.name,
-                             ext.upper(),
-                             "Failed"
-                         )
-                         st.json(result)
+                             continue
 
-                     progress.progress(100)
+                         result = res.json()
+
+                         progress.progress(80)
+
+                         status = result.get(
+                             "status",
+                             "unknown"
+                         )
+
+                         if status == "skipped":
+
+                             st.warning(
+                                 f"⚠️ {uploaded_file.name} already exists"
+                             )
+                             add_history(
+                                 uploaded_file.name,
+                                 ext.upper(),
+                                 "Skipped"
+                             )
+                         elif status in ["ok", "uploaded"]:
+
+                             chunks = result.get(
+                                 "chunks",
+                                 0
+                             )
+
+                             st.success(
+                                 f"✅ {uploaded_file.name} uploaded successfully "
+                                 f"({chunks} chunks)"
+                             )
+                             add_history(
+                                 uploaded_file.name,
+                                 ext.upper(),
+                                 "Uploaded"
+                             )
+                         else:
+
+                             st.error(
+                                 f"❌ Upload failed for {uploaded_file.name}"
+                             )
+                             add_history(
+                                 uploaded_file.name,
+                                 ext.upper(),
+                                 "Failed"
+                             )
+                             st.json(result)
+
+                         progress.progress(100)
 
                  except Exception as e:
 

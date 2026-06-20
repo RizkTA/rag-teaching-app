@@ -115,122 +115,34 @@ def read_pdf(path: str) -> str:
 # ==========================================
 # CHUNKING
 # ==========================================
-def chunk_text(text: str):
-
-    text = clean_text(text)
+def chunk_text(text):
 
     if not text:
         return []
 
-    # ==========================
-    # Split into paragraphs
-    # ==========================
-    paragraphs = [
-        p.strip()
-        for p in text.split("\n\n")
-        if p.strip()
-    ]
-
     chunk_size = 1200
-    overlap_size = 250
+    overlap = 250
 
     chunks = []
 
-    current_chunk = ""
+    start = 0
 
-    for paragraph in paragraphs:
+    while start < len(text):
 
-        low = paragraph.lower()
+        end = min(start + chunk_size, len(text))
 
-        # ==========================
-        # Skip obvious TOC paragraphs
-        # ==========================
-        toc_words = [
-            "table of contents",
-            "contents",
-            "chapter 1",
-            "chapter 2",
-            "chapter 3",
-            "chapter 4",
-            "chapter 5",
-            "chapter 6"
-        ]
+        chunk = text[start:end].strip()
 
-        matches = sum(
-            1
-            for w in toc_words
-            if w in low
-        )
+        if chunk:
+            chunks.append(chunk)
 
-        if matches >= 5:
-            continue
-
-        if paragraph.count("...") > 20:
-            continue
-
-        # ==========================
-        # Build chunk
-        # ==========================
-        candidate = (
-            current_chunk + "\n\n" + paragraph
-            if current_chunk
-            else paragraph
-        )
-
-        if len(candidate) <= chunk_size:
-
-            current_chunk = candidate
-
-        else:
-
-            # save previous chunk
-            if current_chunk.strip():
-                chunks.append(current_chunk.strip())
-
-            # ==========================
-            # overlap from previous chunk
-            # ==========================
-            tail = current_chunk[-overlap_size:]
-
-            # avoid cutting word in half
-            space = tail.find(" ")
-            if space != -1:
-                tail = tail[space:]
-
-            current_chunk = tail.strip() + "\n\n" + paragraph
-
-    # ==========================
-    # last chunk
-    # ==========================
-    if current_chunk.strip():
-        chunks.append(current_chunk.strip())
-
-    # ==========================
-    # remove duplicates
-    # ==========================
-    unique_chunks = []
-    seen = set()
-
-    for c in chunks:
-
-        key = c[:200]
-
-        if key not in seen:
-            unique_chunks.append(c)
-            seen.add(key)
+        start += chunk_size - overlap
 
     print(
-        f"🔥 chunked into {len(unique_chunks)} chunks"
+        f"🔥 chunked into {len(chunks)} chunks"
     )
 
-    for i, c in enumerate(unique_chunks[:5]):
-        print(
-            f"\n----- CHUNK {i} -----"
-        )
-        print(c[:300])
-
-    return unique_chunks
-
+    return chunks
 # ==========================================
 # CODE DETECTION
 # ==========================================
@@ -325,9 +237,14 @@ def ingest_file(path: str, filename: str):
 
         if suffix == ".pdf":
 
-            text = clean_text(
-                read_pdf(path)
-            )
+            raw_text = read_pdf(path)
+
+            print("RAW TEXT LENGTH:", len(raw_text))
+            print(raw_text[:1000])
+
+            text = clean_text(raw_text)
+
+            print("CLEAN TEXT LENGTH:", len(text))
             print("STEP D")
         elif suffix in [".txt", ".md"]:
 
@@ -337,10 +254,16 @@ def ingest_file(path: str, filename: str):
                 encoding="utf-8",
                 errors="ignore"
             ) as f:
+                raw_text = read_pdf(path)
 
-                text = clean_text(
-                    f.read()
-                )
+                print("RAW LENGTH =", len(raw_text))
+                print(raw_text[:1000])
+
+                text = clean_text(raw_text)
+
+                print("CLEAN LENGTH =", len(text))
+               # text = clean_text(  f.read())
+
                 print("STEP DD")
         else:
 
