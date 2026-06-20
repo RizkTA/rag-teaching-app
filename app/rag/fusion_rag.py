@@ -197,8 +197,6 @@ def fusion_search(query):
 
             "score": score,
 
-            "embedding": r["vector"],
-
             "source":
                 payload.get("source", "unknown"),
 
