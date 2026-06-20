@@ -129,8 +129,6 @@ def fusion_search(query):
         if "time complexity" in text:
             print(r["score"])
             print(text[:500])
-    for r in vector_results:
-        print(r)
     count = 0
 
     for r in vector_results:
@@ -212,12 +210,7 @@ def fusion_search(query):
 
     from app.rag.mmr import mmr_rerank
 
-    docs = mmr_rerank(
-        query,
-        docs,
-        top_k=20,
-        lambda_param=0.7
-    )
+
     # =================================
     # BM25
     # =================================
@@ -310,14 +303,23 @@ def fusion_search(query):
     # =================================
     # RERANK
     # =================================
+    
+
+    reranked_docs = []
 
     for d in docs:
 
+        semantic_score = d["score"]
+
+        if semantic_score < 0.50:
+            continue
+
+
+
+
         text_lower = d["text"].lower()
 
-        semantic_score = d["score"]
-        if semantic_score < 0.60:
-            continue
+
 
         # -----------------------------
         # BM25
@@ -375,32 +377,26 @@ def fusion_search(query):
 
         if "time complexity" in query.lower():
 
-            docs = [
-                d for d in docs
-                if (
-                        "time complexity" in d["text"].lower()
-                        or "big o" in d["text"].lower()
-                        or "asymptotic" in d["text"].lower()
-                )
-            ]
+                if "time complexity" in text_lower:
+                    extra_boost += 0.4
 
-            if "time complexity" in text_lower:
-                extra_boost += 0.4
+                if "complexity" in text_lower:
+                    extra_boost += 0.4
 
+                if "running time" in text_lower:
+                    extra_boost += 0.4
 
-            if "complexity" in text_lower:
-                extra_boost += 0.4
+                if "big o" in text_lower:
+                    extra_boost += 0.4
 
-            if "running time" in text_lower:
-                extra_boost += 0.4
+                if "asymptotic" in text_lower:
+                    extra_boost += 0.4
 
-            if "big o" in text_lower:
-                extra_boost += 0.4
-            if "asymptotic" in text_lower:
-                extra_boost += 0.4
+                if "o(" in text_lower:
+                    extra_boost += 0.4
 
-            if "o(" in text_lower:
-                extra_boost += 0.4
+                if "o(" in text_lower:
+                      extra_boost += 0.4
 
         # -----------------------------
         # FILENAME BOOST
@@ -428,11 +424,14 @@ def fusion_search(query):
         # -----------------------------
 
         d["final_score"] = (
-                semantic_score * 0.70 +
-                keyword_score * 0.30 +
+                semantic_score * 0.55 +
+                keyword_score * 0.25 +
+                coverage_score * 0.10 +
                 phrase_boost +
                 extra_boost
         )
+
+
 
         if keyword_score < 0.05:
             d["final_score"] *= 0.5
@@ -441,6 +440,8 @@ def fusion_search(query):
         d["coverage_score"] = coverage_score
         d["keyword_score"] = keyword_score
         d["matched_words"] = matched_words
+
+        reranked_docs.append(d)
         print(
             d["filename"],
             "SEM=", semantic_score,
@@ -449,6 +450,7 @@ def fusion_search(query):
             "PHRASE=", phrase_boost,
             "FINAL=", d["final_score"]
         )
+    docs = reranked_docs
     # =================================
     # SORT
     # =================================
@@ -458,7 +460,7 @@ def fusion_search(query):
     )
 
     docs = deduplicate(docs)
-    docs = docs[:20]
+
     chunk_embeddings = embed_texts(
         [d["text"] for d in docs]
     )
@@ -473,12 +475,14 @@ def fusion_search(query):
             d["score"],
             d["text"][:150]
         )
+
+
     docs = mmr_rerank(
         query=query,
         docs=docs,
-        top_k=10
+        top_k=10,
+        lambda_param=0.7
     )
 
-
-    return docs[:10]
+    return docs
 
