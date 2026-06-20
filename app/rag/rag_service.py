@@ -10,7 +10,7 @@ from app.rag.fusion_rag import fusion_search
 
 from groq import Groq
 
-from app.rag.mmr import  apply_mmr
+from app.rag.mmr import  mmr_rerank
 
 # =================================
 # GROQ CLIENT
@@ -99,7 +99,7 @@ def retrieve(question, top_k=TOP_K):
     try:
 
         results = fusion_search(question)
-        results = apply_mmr(
+        results = mmr_rerank(
             question,
             results,
             top_k=5,
@@ -208,7 +208,7 @@ def answer(question: str):
     # ==========================
     # MMR
     # ==========================
-    results = apply_mmr(
+    results = mmr_rerank(
         results,
         top_k=5,
         lambda_param=0.75

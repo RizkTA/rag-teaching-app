@@ -3,7 +3,7 @@ from app.embeddings.embedder import embed_texts
 from app.vectorstores.store_provider import get_store
 import numpy as np
 import re
-
+from app.rag.mmr import mmr_rerank
 # =================================
 # CLEAN TEXT
 # =================================
@@ -210,9 +210,9 @@ def fusion_search(query):
                 detect_code(text)
         })
 
-    from app.rag.mmr import apply_mmr
+    from app.rag.mmr import mmr_rerank
 
-    docs = apply_mmr(
+    docs = mmr_rerank(
         query,
         docs,
         top_k=20,
@@ -449,7 +449,6 @@ def fusion_search(query):
     )
 
     docs = deduplicate(docs)
-
     docs = docs[:20]
     chunk_embeddings = embed_texts(
         [d["text"] for d in docs]
@@ -458,11 +457,12 @@ def fusion_search(query):
     for d, emb in zip(docs, chunk_embeddings):
         d["embedding"] = emb
 
-    docs = apply_mmr(
-        docs,
-        top_k=5,
-        lambda_param=0.75
+    docs = mmr_rerank(
+        query=query,
+        docs=docs,
+        top_k=10
     )
 
-    return docs
+
+    return docs[:10]
 
