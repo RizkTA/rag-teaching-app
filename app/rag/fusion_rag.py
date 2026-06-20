@@ -210,9 +210,9 @@ def fusion_search(query):
                 detect_code(text)
         })
 
-    from app.rag.mmr import mmr_rerank
+    from app.rag.mmr import apply_mmr
 
-    docs = mmr_rerank(
+    docs = apply_mmr(
         query,
         docs,
         top_k=20,
