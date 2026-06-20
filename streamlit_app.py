@@ -519,109 +519,129 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
 
          if st.button("🚀 Upload & Ingest All"):
 
+             overall_progress = st.progress(0)
+
              total_files = len(uploaded_files)
 
              for idx, uploaded_file in enumerate(uploaded_files):
 
-                 file_bytes = uploaded_file.getvalue()
+                 progress = st.progress(5)
 
-                 files = {
-                     "file": (
-                         uploaded_file.name,
-                         file_bytes,
-                         "application/octet-stream"
+                 try:
+
+                     file_bytes = uploaded_file.getvalue()
+
+                     files = {
+                         "file": (
+                             uploaded_file.name,
+                             file_bytes,
+                             "application/octet-stream"
+                         )
+                     }
+
+                     data = {
+                         "replace_existing": str(replace_existing)
+                     }
+
+                     progress.progress(25)
+
+                     res = requests.post(
+                         f"{API_URL}/upload_file",
+                         files=files,
+                         data=data,
+                         timeout=300
                      )
-                 }
 
-                 res = requests.post(
-                     f"{API_URL}/upload_file",
-                     files=files,
-                     timeout=300
-                 )
-                         st.write("Response:", res.status_code)
+                     st.write(
+                         f"{uploaded_file.name}: HTTP {res.status_code}"
+                     )
 
+                     progress.progress(50)
 
-
-                         progress.progress(50)
-
-                         if res.status_code != 200:
-                             st.error(
-                                 f"❌ Upload failed for {uploaded_file.name}"
-                             )
-
-                             continue
-
-                         result = res.json()
-
-                         progress.progress(80)
-
-                         status = result.get(
-                             "status",
-                             "unknown"
+                     if res.status_code != 200:
+                         st.error(
+                             f"❌ Upload failed for {uploaded_file.name}"
                          )
 
-                         if status == "skipped":
+                         continue
 
-                             st.warning(
-                                 f"⚠️ {uploaded_file.name} already exists"
-                             )
+                     result = res.json()
 
-                         elif status in ["ok", "uploaded"]:
+                     progress.progress(80)
 
-                             chunks = result.get(
-                                 "chunks",
-                                 0
-                             )
+                     status = result.get(
+                         "status",
+                         "unknown"
+                     )
 
-                             st.success(
-                                 f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
-                             )
+                     if status == "skipped":
 
-                         else:
+                         st.warning(
+                             f"⚠️ {uploaded_file.name} already exists"
+                         )
 
-                             st.error(
-                                 f"❌ Upload failed for {uploaded_file.name}"
-                             )
+                     elif status in ["ok", "uploaded"]:
 
-                         progress.progress(100)
+                         chunks = result.get(
+                             "chunks",
+                             0
+                         )
 
-                     except Exception as e:
+                         st.success(
+                             f"✅ {uploaded_file.name} uploaded successfully "
+                             f"({chunks} chunks)"
+                         )
 
-                         st.error(str(e))
+                     else:
+
+                         st.error(
+                             f"❌ Upload failed for {uploaded_file.name}"
+                         )
+
+                         st.json(result)
+
+                     progress.progress(100)
+
+                 except Exception as e:
+
+                     st.error(
+                         f"❌ Upload failed for {uploaded_file.name}"
+                     )
+
+                     st.code(str(e))
 
                  overall_progress.progress(
-                     int(((idx + 1) / total_files) * 100)
+                     int(
+                         ((idx + 1) / total_files) * 100
+                     )
                  )
 
-             # CLEAR AFTER SUCCESS
-             all_success = True
+     # =================================
+     # HISTORY (ALWAYS SHOW)
+     # =================================
 
- # =================================
- # HISTORY (ALWAYS SHOW)
- # =================================
+     history_df = load_history()
 
- history_df = load_history()
+     if not history_df.empty:
+         st.subheader("📜 Upload History")
 
- if not history_df.empty:
-     st.subheader("📜 Upload History")
+         st.dataframe(
+             history_df.sort_values(
+                 by=["date", "time"],
+                 ascending=False
+             ),
+             width="stretch"
+         )
 
-     st.dataframe(
-         history_df.sort_values(
-             by=["date", "time"],
-             ascending=False
-         ),
-         width="stretch"
-     )
+         csv = history_df.to_csv(index=False)
 
-     csv = history_df.to_csv(index=False)
-
-     st.download_button(
-         label="📥 Download Upload History",
-         data=csv,
-         file_name="upload_history.csv",
-         mime="text/csv",
-         key="download_upload_history"
-     )
+         st.download_button(
+             label="📥 Download Upload History",
+             data=csv,
+             file_name="upload_history.csv",
+             mime="text/csv",
+             key="download_upload_history"
+         )
 # =================================
 # SIDEBAR
 # =================================
