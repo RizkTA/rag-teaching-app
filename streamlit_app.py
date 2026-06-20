@@ -488,13 +488,13 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
 # =================================
 # HASH FUNCTION
 # =================================
-def compute_hash(file_bytes):
+ def compute_hash(file_bytes):
     return hashlib.md5(file_bytes).hexdigest()
 
 # =================================
 # MAIN UPLOAD UI
 # =================================
-if st.session_state.authenticated:
+ if st.session_state.authenticated:
 
     uploaded_files = st.file_uploader(
         "Drag & Drop files here",
