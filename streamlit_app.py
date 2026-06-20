@@ -139,7 +139,7 @@ if submitted and query.strip():
                 st.error("Backend error")
                 st.code(res.text)
                 st.stop()
-
+            """""
             data = res.json()
 
             print("BACKEND RESPONSE:", data)
@@ -153,7 +153,7 @@ if submitted and query.strip():
 
             print("SOURCE COUNT:", len(sources))
 
-
+            """
             # CLEAN
             answer = re.sub(r"dlab\d+_\d+", "", answer).strip()
 
@@ -298,7 +298,7 @@ if st.session_state.pinned:
 
     st.markdown("</div>", unsafe_allow_html=True )
     st.markdown()
-st.write("MESSAGE COUNT:", len(st.session_state.messages))
+
 if st.session_state.messages:
     st.write(st.session_state.messages[-1])
 # =================================
@@ -578,10 +578,10 @@ if st.session_state.authenticated:
                             "file_hash": file_hash
                         }
 
-                        st.write(
-                            "Calling URL:",
-                            f"{API_URL}/upload_file"
-                        )
+                       # st.write(
+                       #     "Calling URL:",
+                       #     f"{API_URL}/upload_file"
+                        #)
 
                         progress.progress(25)
 
@@ -596,14 +596,13 @@ if st.session_state.authenticated:
                         )
 
                         progress.progress(50)
-
+                        """"
                         st.write(
                             "HTTP Status:",
                             res.status_code
                         )
-
-                        st.code(res.text)
-
+                                             st.code(res.text)
+                         """
                         # =================================
                         # HTTP ERROR
                         # =================================

@@ -300,6 +300,21 @@ def fusion_search(query):
     if filtered_docs:
         docs = filtered_docs
    """
+    filtered_docs = []
+
+    for d in docs:
+        text_lower = d["text"].lower()
+
+        matches = sum(
+            1
+            for term in query_tokens
+            if term in text_lower
+        )
+
+        if matches >= max(2, len(query_tokens) // 2):
+            filtered_docs.append(d)
+    if filtered_docs:
+        docs = filtered_docs
     # =================================
     # RERANK
     # =================================
@@ -395,6 +410,20 @@ def fusion_search(query):
             ]
         """
         if "time complexity" in query.lower():
+            docs = [
+                d for d in docs
+                if any(
+                    x in d["text"].lower()
+                    for x in [
+                        "time complexity",
+                        "big o",
+                        "asymptotic",
+                        "running time",
+                        "complexity"
+                    ]
+                )
+            ]
+        if "time complexity" in query.lower():
 
                 if "time complexity" in text_lower:
                     extra_boost += 0.4
@@ -469,6 +498,9 @@ def fusion_search(query):
             "PHRASE=", phrase_boost,
             "FINAL=", d["final_score"]
         )
+        reranked_docs.append(d)
+        if keyword_score == 0 and coverage_score == 0:
+              continue
         reranked_docs.append(d)
     docs = reranked_docs
     # =================================
