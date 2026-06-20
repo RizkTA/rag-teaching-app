@@ -120,9 +120,17 @@ def fusion_search(query):
     # =========================
     vector_results = store.search(
         query_vector,
-        top_k=40
+        top_k=80
     )
     print("VECTOR RESULTS:", len(vector_results))
+    print("VECTOR RESULTS:", len(vector_results))
+
+    for r in vector_results:
+        print(
+            r["payload"]["chunk_id"],
+            r["payload"]["filename"],
+            r["score"]
+        )
     for r in vector_results:
         text = r["payload"]["text"].lower()
 
@@ -515,7 +523,7 @@ def fusion_search(query):
 
     docs = deduplicate(docs)
 
-   
+
 
     print("\n===== BEFORE MMR =====")
 

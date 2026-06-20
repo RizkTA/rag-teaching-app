@@ -122,72 +122,114 @@ def chunk_text(text: str):
     if not text:
         return []
 
-    # DELETE THIS
-    # text = text[:20000]
+    # ==========================
+    # Split into paragraphs
+    # ==========================
+    paragraphs = [
+        p.strip()
+        for p in text.split("\n\n")
+        if p.strip()
+    ]
 
-    chunk_size = 800
-    overlap = 80
+    chunk_size = 1200
+    overlap_size = 250
+
     chunks = []
 
-    start = 0
+    current_chunk = ""
 
-    while start < len(text):
+    for paragraph in paragraphs:
 
-        end = start + chunk_size
+        low = paragraph.lower()
 
-        chunk = text[start:end].strip()
+        # ==========================
+        # Skip obvious TOC paragraphs
+        # ==========================
+        toc_words = [
+            "table of contents",
+            "contents",
+            "chapter 1",
+            "chapter 2",
+            "chapter 3",
+            "chapter 4",
+            "chapter 5",
+            "chapter 6"
+        ]
 
-        if chunk:
+        matches = sum(
+            1
+            for w in toc_words
+            if w in low
+        )
 
-            low = chunk.lower()
+        if matches >= 5:
+            continue
 
-            skip = False
+        if paragraph.count("...") > 20:
+            continue
 
-            # ======================
-            # TOC DETECTION
-            # ======================
-            toc_words = [
-                "contents",
-                "chapter 1",
-                "chapter 2",
-                "chapter 3",
-                "chapter 4",
-                "chapter 5",
-                "chapter 6",
-            ]
+        # ==========================
+        # Build chunk
+        # ==========================
+        candidate = (
+            current_chunk + "\n\n" + paragraph
+            if current_chunk
+            else paragraph
+        )
 
-            matches = sum(
-                1 for w in toc_words
-                if w in low
-            )
+        if len(candidate) <= chunk_size:
 
-            if matches >= 3:
-                continue
+            current_chunk = candidate
 
-            # ======================
-            # EXISTING FILTERS
-            # ======================
-            if "table of contents" in low:
-                skip = True
+        else:
 
-            if chunk.count("...") > 5:
-                skip = True
+            # save previous chunk
+            if current_chunk.strip():
+                chunks.append(current_chunk.strip())
 
-            if len(chunk.split()) < 40:
-                skip = True
+            # ==========================
+            # overlap from previous chunk
+            # ==========================
+            tail = current_chunk[-overlap_size:]
 
-            # ======================
-            # KEEP CHUNK
-            # ======================
-            if not skip:
-                chunks.append(chunk)
+            # avoid cutting word in half
+            space = tail.find(" ")
+            if space != -1:
+                tail = tail[space:]
 
-        start += chunk_size - overlap
+            current_chunk = tail.strip() + "\n\n" + paragraph
+
+    # ==========================
+    # last chunk
+    # ==========================
+    if current_chunk.strip():
+        chunks.append(current_chunk.strip())
+
+    # ==========================
+    # remove duplicates
+    # ==========================
+    unique_chunks = []
+    seen = set()
+
+    for c in chunks:
+
+        key = c[:200]
+
+        if key not in seen:
+            unique_chunks.append(c)
+            seen.add(key)
+
     print(
-        f"🔥 chunked into {len(chunks)} chunks"
+        f"🔥 chunked into {len(unique_chunks)} chunks"
     )
 
-    return chunks
+    for i, c in enumerate(unique_chunks[:5]):
+        print(
+            f"\n----- CHUNK {i} -----"
+        )
+        print(c[:300])
+
+    return unique_chunks
 
 # ==========================================
 # CODE DETECTION
@@ -314,7 +356,10 @@ def ingest_file(path: str, filename: str):
                 "message": "File contains no text"
             }
 
+
         chunks = chunk_text(text)
+
+        print("TOTAL CHUNKS GENERATED:", len(chunks))
         print(chunks[:10])
         print("STEP E")
         if not chunks:
@@ -341,7 +386,7 @@ def ingest_file(path: str, filename: str):
                     "is_code": is_code_chunk(chunk)
                 }
             })
-
+        print("TOTAL STRUCTURED CHUNKS:", len(structured))
    #     print(f"🔥 generated {len(structured)} chunks")
    #     print("STEP F")
    #     result = get_upserter().upsert_chunks(
@@ -357,7 +402,7 @@ def ingest_file(path: str, filename: str):
         )
 
         print("STEP F")
-        MAX_CHUNKS = 3
+        MAX_CHUNKS = 40
 
         if len(structured) > MAX_CHUNKS:
             print(
@@ -381,7 +426,7 @@ def ingest_file(path: str, filename: str):
             t2 = time.time()
 
             result = get_upserter().upsert_chunks(structured)
-
+            print("UPSERT RESULT:", result)
             print("UPSERT:", time.time() - t2)
 
        # result = get_upserter().upsert_chunks(

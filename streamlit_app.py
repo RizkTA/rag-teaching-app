@@ -13,7 +13,56 @@ from datetime import datetime
 API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
 
+import pandas as pd
+from datetime import datetime
+import os
 
+UPLOAD_HISTORY_FILE = "upload_history.csv"
+
+
+def add_history(filename, filetype, status):
+
+    now = datetime.now()
+
+    new_row = {
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M:%S"),
+        "filename": filename,
+        "type": filetype,
+        "status": status
+    }
+
+    if os.path.exists(UPLOAD_HISTORY_FILE):
+        df = pd.read_csv(UPLOAD_HISTORY_FILE)
+    else:
+        df = pd.DataFrame(
+            columns=[
+                "date",
+                "time",
+                "filename",
+                "type",
+                "status"
+            ]
+        )
+
+    df = pd.concat(
+        [df, pd.DataFrame([new_row])],
+        ignore_index=True
+    )
+
+    df.to_csv(
+        UPLOAD_HISTORY_FILE,
+        index=False
+    )
+def load_history():
+
+    if os.path.exists(UPLOAD_HISTORY_FILE):
+
+        return pd.read_csv(
+            UPLOAD_HISTORY_FILE
+        )
+
+    return pd.DataFrame()
 # =================================
 # SESSION STATE
 # =================================
@@ -579,7 +628,11 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
                          st.warning(
                              f"⚠️ {uploaded_file.name} already exists"
                          )
-
+                         add_history(
+                             uploaded_file.name,
+                             ext.upper(),
+                             "Skipped"
+                         )
                      elif status in ["ok", "uploaded"]:
 
                          chunks = result.get(
@@ -591,13 +644,21 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
                              f"✅ {uploaded_file.name} uploaded successfully "
                              f"({chunks} chunks)"
                          )
-
+                         add_history(
+                             uploaded_file.name,
+                             ext.upper(),
+                             "Uploaded"
+                         )
                      else:
 
                          st.error(
                              f"❌ Upload failed for {uploaded_file.name}"
                          )
-
+                         add_history(
+                             uploaded_file.name,
+                             ext.upper(),
+                             "Failed"
+                         )
                          st.json(result)
 
                      progress.progress(100)
@@ -642,6 +703,37 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
              mime="text/csv",
              key="download_upload_history"
          )
+     st.divider()
+
+     history_df = load_history()
+
+     if not history_df.empty:
+         st.subheader("📜 Upload History")
+
+         st.dataframe(
+             history_df.sort_values(
+                 by=["date", "time"],
+                 ascending=False
+             ),
+             width="stretch"
+         )
+
+         csv = history_df.to_csv(
+             index=False
+         )
+
+         st.download_button(
+             "📥 Download Upload History",
+             csv,
+             file_name="upload_history.csv",
+             mime="text/csv"
+         )
+         if st.button("🗑 Clear Upload History"):
+
+             if os.path.exists(UPLOAD_HISTORY_FILE):
+                 os.remove(UPLOAD_HISTORY_FILE)
+
+             st.rerun()
 # =================================
 # SIDEBAR
 # =================================
