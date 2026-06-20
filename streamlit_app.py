@@ -157,7 +157,7 @@ if query:
 
     st.rerun()
 
-==================
+#==================
 # PINNED NOTEBOOK V2
 # =================================
 if st.session_state.pinned:
