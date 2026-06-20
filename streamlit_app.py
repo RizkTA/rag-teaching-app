@@ -139,7 +139,7 @@ if submitted and query.strip():
                 st.error("Backend error")
                 st.code(res.text)
                 st.stop()
-            """""
+
             data = res.json()
 
             print("BACKEND RESPONSE:", data)
@@ -153,7 +153,7 @@ if submitted and query.strip():
 
             print("SOURCE COUNT:", len(sources))
 
-            """
+
             # CLEAN
             answer = re.sub(r"dlab\d+_\d+", "", answer).strip()
 
