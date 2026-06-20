@@ -265,7 +265,7 @@ def fusion_search(query):
         "segment tree",
         "binary search"
     ]
-
+    """
     phrase_docs = []
 
     for d in docs:
@@ -277,7 +277,7 @@ def fusion_search(query):
                 break
 
     if phrase_docs:
-        docs = phrase_docs
+        docs.extend(phrase_docs)
 
     filtered_docs = []
 
@@ -299,20 +299,20 @@ def fusion_search(query):
             print(d["text"][:1000])
     if filtered_docs:
         docs = filtered_docs
-
+   """
     # =================================
     # RERANK
     # =================================
-    
+
 
     reranked_docs = []
 
     for d in docs:
 
         semantic_score = d["score"]
-
-        if semantic_score < 0.50:
-            continue
+   #remove semantic
+   #     if semantic_score < 0.45:
+   #         continue
 
 
 
@@ -373,8 +373,27 @@ def fusion_search(query):
 
 
             if "tabulation" in text_lower:
-                phrase_boost += 0.4
+                phrase_boost += 0.
+        """
+        if "time complexity" in query.lower():
+            complexity_terms = [
+                "time complexity",
+                "complexity",
+                "running time",
+                "big o",
+                "asymptotic",
+                "o(",
+            ]
 
+            docs = [
+                d
+                for d in docs
+                if any(
+                    term in d["text"].lower()
+                    for term in complexity_terms
+                )
+            ]
+        """
         if "time complexity" in query.lower():
 
                 if "time complexity" in text_lower:
@@ -441,7 +460,7 @@ def fusion_search(query):
         d["keyword_score"] = keyword_score
         d["matched_words"] = matched_words
 
-        reranked_docs.append(d)
+
         print(
             d["filename"],
             "SEM=", semantic_score,
@@ -450,6 +469,7 @@ def fusion_search(query):
             "PHRASE=", phrase_boost,
             "FINAL=", d["final_score"]
         )
+        reranked_docs.append(d)
     docs = reranked_docs
     # =================================
     # SORT
@@ -476,7 +496,7 @@ def fusion_search(query):
             d["text"][:150]
         )
 
-
+    print("DOCS BEFORE MMR", len(docs))
     docs = mmr_rerank(
         query=query,
         docs=docs,
