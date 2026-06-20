@@ -104,29 +104,22 @@ def load_lottie(url):
         return None
 
 lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsrox.json")
-
 # =================================
 # CHAT INPUT
 # =================================
 st.subheader("💬 Chat with RIZK AI")
 
-with st.form("chat_form", clear_on_submit=True):
-    col1, col2 = st.columns([8, 1])
-
-    with col1:
-       # query = st.text_input("Ask a question...", label_visibility="collapsed")
-
-        query = st.chat_input("Ask RIZK AI")
-
-    with col2:
-        submitted = st.form_submit_button("➤")
+query = st.chat_input("Ask RIZK AI")
 
 # =================================
 # CALL BACKEND
 # =================================
-if submitted and query.strip():
+if query:
 
-    st.session_state.messages.append({"role": "user", "content": query})
+    st.session_state.messages.append({
+        "role": "user",
+        "content": query
+    })
 
     with st.spinner("🧠 Thinking..."):
 
@@ -144,29 +137,14 @@ if submitted and query.strip():
 
             data = res.json()
 
-            #print("BACKEND RESPONSE:", data)
-
             answer = data.get("answer", "")
-           # st.write(data)
-           # print("ANSWER:", answer)
-           # print("ANSWER LENGTH:", len(answer))
-           # print(answer[:1000])
-            #sources = data.get("sources", [])
+            sources = data.get("sources", [])
 
-            #print("SOURCE COUNT:", len(sources))
-
-
-            # CLEAN
-            answer = re.sub(r"dlab\d+_\d+", "", answer).strip()
-
-            # STREAM
-            placeholder = st.empty()
-            streamed = ""
-
-            for word in answer.split():
-                streamed += word + " "
-                placeholder.markdown(streamed)
-                time.sleep(0.02)
+            answer = re.sub(
+                r"dlab\d+_\d+",
+                "",
+                answer
+            ).strip()
 
             st.session_state.messages.append({
                 "role": "assistant",
@@ -178,7 +156,8 @@ if submitted and query.strip():
             st.error(str(e))
 
     st.rerun()
-# =================================
+
+==================
 # PINNED NOTEBOOK V2
 # =================================
 if st.session_state.pinned:
