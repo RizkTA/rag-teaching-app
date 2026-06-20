@@ -316,6 +316,8 @@ def fusion_search(query):
         text_lower = d["text"].lower()
 
         semantic_score = d["score"]
+        if semantic_score < 0.60:
+            continue
 
         # -----------------------------
         # BM25
@@ -371,8 +373,16 @@ def fusion_search(query):
             if "tabulation" in text_lower:
                 phrase_boost += 0.4
 
-
         if "time complexity" in query.lower():
+
+            docs = [
+                d for d in docs
+                if (
+                        "time complexity" in d["text"].lower()
+                        or "big o" in d["text"].lower()
+                        or "asymptotic" in d["text"].lower()
+                )
+            ]
 
             if "time complexity" in text_lower:
                 extra_boost += 0.4
@@ -418,9 +428,8 @@ def fusion_search(query):
         # -----------------------------
 
         d["final_score"] = (
-                semantic_score * 0.65 +
-                keyword_score * 0.20 +
-                coverage_score * 0.15 +
+                semantic_score * 0.70 +
+                keyword_score * 0.30 +
                 phrase_boost +
                 extra_boost
         )
@@ -456,7 +465,14 @@ def fusion_search(query):
 
     for d, emb in zip(docs, chunk_embeddings):
         d["embedding"] = emb
+    print("\n===== BEFORE MMR =====")
 
+    for d in docs[:20]:
+        print(
+            d["filename"],
+            d["score"],
+            d["text"][:150]
+        )
     docs = mmr_rerank(
         query=query,
         docs=docs,
