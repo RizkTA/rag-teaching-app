@@ -456,15 +456,16 @@ if "upload_history" not in st.session_state:
 # HEADER
 # =================================
 st.divider()
-st.subheader("📄 Upload Knowledge Files (Admin)")
+with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
+ st.subheader("📄 Upload Knowledge Files (Admin)")
 
-password = st.text_input(
+ password = st.text_input(
     "Enter upload password",
     type="password",
     key="upload_password"
 )
 
-if password:
+ if password:
     st.session_state.authenticated = (
         password == UPLOAD_PASSWORD
     )
@@ -472,13 +473,13 @@ if password:
 # =================================
 # FILE COLORS
 # =================================
-progress_color = {
+ progress_color = {
     "pdf": "#ff4b4b",
     "md": "#00c853",
     "txt": "#2196f3"
 }
 
-file_icon = {
+ file_icon = {
     "pdf": "📕",
     "md": "🟢",
     "txt": "🔵"
@@ -737,43 +738,6 @@ if st.session_state.authenticated:
         #         int(((idx + 1) / total_files) * 100)  )
 
 
-# =================================
-# FOOTER
-# =================================
-st.divider()
-
-st.markdown(
-    """
-    <div style="
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        gap:10px;
-        padding:10px;
-        font-size:16px;
-        color:gray;
-    ">
-        <div style="
-            font-size:28px;
-            animation: floatBook 2s ease-in-out infinite;
-        ">
-            📖
-        </div>
-
-         Dr. Nouhad Rizk • AI Knowledge Base
-
-    </div>
-
-    <style>
-    @keyframes floatBook {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-5px); }
-        100% { transform: translateY(0px); }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
 
 # =================================
 # SIDEBAR
@@ -854,3 +818,42 @@ with st.sidebar:
             st.markdown("📘 RIZK AI Assistant")
     except Exception:
         st.markdown("📘 RIZK AI Assistant")
+with st.sidebar:
+    # =================================
+    # FOOTER
+    # =================================
+    st.divider()
+
+    st.markdown(
+        """
+        <div style="
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            padding:10px;
+            font-size:16px;
+            color:gray;
+        ">
+            <div style="
+                font-size:28px;
+                animation: floatBook 2s ease-in-out infinite;
+            ">
+                📖
+            </div>
+
+             Dr. Nouhad Rizk • AI Knowledge Base
+
+        </div>
+
+        <style>
+        @keyframes floatBook {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
