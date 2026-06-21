@@ -707,13 +707,14 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                              f"⚠️ {uploaded_file.name} already exists"
                          )
 
-                 elif status in ["ok", "uploaded"]:
+                     elif status in ["ok", "uploaded"]:
 
-                 chunks = result.get("chunks", 0)
+                         chunks = result.get("chunks", 0)
 
-                 st.success(
-                     f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
-                 )
+                         st.success(
+                             f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
+                         )
+
                      else:
 
                          st.error(
