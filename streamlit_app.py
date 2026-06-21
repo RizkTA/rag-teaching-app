@@ -712,10 +712,8 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                  chunks = result.get("chunks", 0)
 
                  st.success(
-
                      f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
-
-                 )")
+                 )
                      else:
 
                          st.error(
