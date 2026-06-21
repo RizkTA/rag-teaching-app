@@ -585,44 +585,35 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 
                  try:
 
-                         file_bytes = uploaded_file.getvalue()
+                     file_bytes = uploaded_file.getvalue()
 
-                         files = {
-                             "file": (
-                                 uploaded_file.name,
-                                 file_bytes,
-                                 "application/octet-stream"
-                             )
-                         }
-
-                         data = {
-                             "replace_existing": str(replace_existing)
-                         }
-
-                         progress.progress(25)
-
-                         res = requests.post(
-                             f"{API_URL}/upload_file",
-                             files=files,
-                             data=data,
-                             timeout=300
+                     files = {
+                         "file": (
+                             uploaded_file.name,
+                             file_bytes,
+                             "application/octet-stream"
                          )
+                     }
 
-                         st.write(
-                             f"{uploaded_file.name}: HTTP {res.status_code}"
-                         )
+                     data = {
+                         "replace_existing": str(replace_existing)
+                     }
 
-                         progress.progress(50)
+                     progress.progress(25)
 
-                         except Exception as e:
-                             print("❌ Duplicate check failed:", e)
-                         try:
-                             If file_exists(store, file_hash):
-                                return {
-                                                  "status": "skipped",
-                                                  "message": f"{filename} already exists",
-                                                  "file_hash": file_hash
-                                              }
+                     res = requests.post(
+                         f"{API_URL}/upload_file",
+                         files=files,
+                         data=data,
+                         timeout=300
+                     )
+
+                     st.write(
+                         f"{uploaded_file.name}: HTTP {res.status_code}"
+                     )
+
+                     progress.progress(50)
+
                      if res.status_code != 200:
                          st.error(
                              f"❌ Upload failed for {uploaded_file.name}"
@@ -632,6 +623,45 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 
                      result = res.json()
 
+                     status = result.get(
+                         "status",
+                         "unknown"
+                     )
+
+                     if status == "skipped":
+
+                         st.warning(
+                             f"⚠️ {uploaded_file.name} already exists"
+                         )
+
+                     elif status in ["ok", "uploaded"]:
+
+                         chunks = result.get(
+                             "chunks",
+                             0
+                         )
+
+                         st.success(
+                             f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
+                         )
+
+                     else:
+
+                         st.error(
+                             f"❌ Upload failed for {uploaded_file.name}"
+                         )
+
+                         st.json(result)
+
+                     progress.progress(100)
+
+                 except Exception as e:
+
+                     st.error(
+                         f"❌ Upload failed for {uploaded_file.name}"
+                     )
+
+                     st.code(str(e))
                      progress.progress(80)
 
                      status = result.get(
