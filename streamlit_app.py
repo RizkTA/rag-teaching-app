@@ -718,13 +718,12 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                              result = response.json()
 
                         if result.get("status") == "ok":
-                                 save_history(
+                             save_history(
                                      filename=result["filename"],
                                      chunks=result["chunks"],
                                      file_hash=result["file_hash"]
                                  )
-
-                         st.success("✅ File uploaded successfully")
+                             st.success("✅ File uploaded successfully")
                      else:
 
                          st.error(
