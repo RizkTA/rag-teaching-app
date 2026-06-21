@@ -717,13 +717,14 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                          if response.status_code == 200:
                              result = response.json()
 
-                             save_upload_history(
-                                 filename=result["filename"],
-                                 chunks=result.get("chunks", 0),
-                                 file_hash=result.get("file_hash", "")
-                             )
+                        if result.get("status") == "ok":
+                                 save_history(
+                                     filename=result["filename"],
+                                     chunks=result["chunks"],
+                                     file_hash=result["file_hash"]
+                                 )
 
-                             st.success("✅ File uploaded successfully")
+                         st.success("✅ File uploaded successfully")
                      else:
 
                          st.error(
@@ -762,11 +763,8 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 
      if not history_df.empty:
 
-         st.subheader("📜 Upload History")
-
-         history_df = history_df.sort_values(
-             by=["date", "time"],
-             ascending=False
+          history_df = history_df.sort_values(
+             by=["date", "time"],          ascending=False
          )
 
          st.dataframe(

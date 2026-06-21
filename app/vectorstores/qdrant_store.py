@@ -8,10 +8,13 @@ from qdrant_client.models import (
     FieldCondition,
     MatchValue
 )
+from qdrant_client import QdrantClient
+from qdrant_client.models import (
+    VectorParams,
+    Distance,
+    PayloadSchemaType
+)
 
-# =========================================
-# IMPORT CONFIG
-# =========================================
 from app.config import QDRANT_API_KEY
 
 
@@ -28,7 +31,7 @@ def ensure_indexes(client, collection_name):
             field_schema=PayloadSchemaType.KEYWORD
         )
 
-        print("✅ file_hash index created")
+        print("✅ file_hash index ready")
 
     except Exception as e:
 
@@ -40,43 +43,28 @@ def ensure_indexes(client, collection_name):
 # =========================================
 class QdrantStore:
 
-    def __init__(
-        self,
-        url,
-        collection_name,
-        embed_dim
-    ):
-
-        self.collection_name = collection_name
-        self.embed_dim = embed_dim
-        self._ensure_collection()
-
-        try:
-
-            self.client.create_payload_index(
-                collection_name=self.collection_name,
-                field_name="file_hash",
-                field_schema=PayloadSchemaType.KEYWORD
-            )
-
-            print("✅ file_hash index ready")
-
-        except Exception as e:
-
-            print("Index already exists:", e)
+    def __init__(self, url, collection_name, embed_dim):
 
         print("🔥 CONNECTING TO QDRANT")
         print("🔥 URL:", url)
         print("🔥 API KEY EXISTS:", bool(QDRANT_API_KEY))
 
+        self.collection_name = collection_name
+        self.embed_dim = embed_dim
+
+        # Create client FIRST
         self.client = QdrantClient(
             url=url,
             api_key=QDRANT_API_KEY,
             timeout=120
         )
 
+        print("✅ Qdrant client created")
+
+        # Create collection if missing
         self._ensure_collection()
 
+        # Create indexes
         ensure_indexes(
             self.client,
             self.collection_name
@@ -86,6 +74,8 @@ class QdrantStore:
     # CREATE COLLECTION IF MISSING
     # =========================================
     def _ensure_collection(self):
+
+        print("ENTER _ensure_collection")
 
         collections = self.client.get_collections()
 
@@ -108,6 +98,9 @@ class QdrantStore:
 
             print("✅ Collection created")
 
+        else:
+
+            print("✅ Collection already exists")
     # =========================================
     # UPSERT
     # =========================================

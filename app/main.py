@@ -1,6 +1,5 @@
 import uuid
-
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from pydantic import BaseModel
 import psutil
 import os
@@ -412,29 +411,30 @@ async def upload_file(file: UploadFile = File(...)):
             temp_path,
             file.filename
         )
-        print("STEP H BEFORE CSV SAVE")
-        print("AFTER INGEST")
-        save_history(
-            filename=result["filename"],
-            chunks=result["chunks"],
-            file_hash=result["file_hash"]
-        )
 
-        print("UPLOAD STEP 4")
-        print("INGEST RESULT:", result)
+        if result.get("status") == "ok":
+            save_history(
+                filename=result["filename"],
+                chunks=result["chunks"],
+                file_hash=result["file_hash"]
+            )
 
         return result
+
+
+
 
     except Exception as e:
 
         print("UPLOAD ERROR")
         traceback.print_exc()
+        raise HTTPException(
 
-        return {
-            "status": "error",
-            "message": str(e),
-            "traceback": traceback.format_exc()
-        }
+        status_code=500,
+
+         detail=str(e)
+
+        )
 
     finally:
 
