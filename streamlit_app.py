@@ -4,7 +4,7 @@ import base64
 import os
 import time
 import re
-from datetime import datetime
+
 
 # =================================
 # CONFIG
@@ -646,10 +646,7 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 
                      elif status in ["ok", "uploaded"]:
 
-                         chunks = result.get(
-                             "chunks",
-                             0
-                         )
+                         chunks = result.get("chunks", 0)
 
                          st.success(
                              f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
@@ -661,8 +658,6 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                              f"❌ Upload failed for {uploaded_file.name}"
                          )
 
-                         st.json(result)
-
                      progress.progress(100)
 
                  except Exception as e:
@@ -672,60 +667,6 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                      )
 
                      st.code(str(e))
-                     progress.progress(80)
-
-                     status = result.get(
-                         "status",
-                         "unknown"
-                     )
-
-                     if status == "skipped":
-
-                         st.warning(
-                             f"⚠️ {uploaded_file.name} already exists"
-                         )
-                         add_history(
-                             uploaded_file.name,
-                             ext.upper(),
-                             "Skipped"
-                         )
-                     elif status in ["ok", "uploaded"]:
-
-                         chunks = result.get(
-                             "chunks",
-                             0
-                         )
-
-                         st.success(
-                             f"✅ {uploaded_file.name} uploaded successfully "
-                             f"({chunks} chunks)"
-                         )
-                         add_history(
-                             uploaded_file.name,
-                             ext.upper(),
-                             "Uploaded"
-                         )
-                     else:
-
-                         st.error(
-                             f"❌ Upload failed for {uploaded_file.name}"
-                         )
-                         add_history(
-                             uploaded_file.name,
-                             ext.upper(),
-                             "Failed"
-                         )
-                         st.json(result)
-
-                     progress.progress(100)
-
-                 except Exception as e:
-
-                        st.error(
-                     f"❌ Upload failed for {uploaded_file.name}"
-                 )
-
-                        st.code(str(e))
 
              overall_progress.progress(
                  int(
@@ -867,7 +808,8 @@ with st.sidebar:
             )
         except Exception:
             st.markdown("📘 RIZK AI Assistant")
-
+    except Exception:
+            st.markdown("📘 RIZK AI Assistant")
 with st.sidebar:
     # =================================
     # FOOTER
