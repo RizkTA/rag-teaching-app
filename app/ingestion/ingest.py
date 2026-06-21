@@ -208,7 +208,7 @@ def file_exists(store, file_hash):
 
         return False
 
-
+from datetime import time
 # ==========================================
 # MAIN INGEST
 # ==========================================
@@ -334,23 +334,15 @@ def ingest_file(path: str, filename: str):
             )
 
             structured = structured[:MAX_CHUNKS]
-            import time
 
-            t0 = time.time()
+        t2 = time.time()
 
-            store = get_store()
-            print("GET STORE:", time.time() - t0)
+        result = get_upserter().upsert_chunks(structured)
 
-            t1 = time.time()
+        print("UPSERT RESULT:", result)
+        print("UPSERT:", time.time() - t2)
 
-            chunks = chunk_text(text)
-            print("CHUNKING:", time.time() - t1)
 
-            t2 = time.time()
-
-            result = get_upserter().upsert_chunks(structured)
-            print("UPSERT RESULT:", result)
-            print("UPSERT:", time.time() - t2)
 
        # result = get_upserter().upsert_chunks(
 

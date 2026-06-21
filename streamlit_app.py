@@ -749,8 +749,11 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
  # =================================
  # HISTORY (ALWAYS SHOW)
  # =================================
+ st.write("History file:", os.path.abspath(UPLOAD_HISTORY_FILE))
  history_df = load_history()
+ st.write("Rows loaded:", len(history_df))
 
+ st.dataframe(history_df)
  if not history_df.empty:
 
      st.subheader("📜 Upload History")

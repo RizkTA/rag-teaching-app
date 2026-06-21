@@ -24,7 +24,7 @@ def ensure_indexes(client, collection_name):
 
         client.create_payload_index(
             collection_name=collection_name,
-            field_name="metadata.file_hash",
+            field_name="file_hash",
             field_schema=PayloadSchemaType.KEYWORD
         )
 
@@ -49,6 +49,21 @@ class QdrantStore:
 
         self.collection_name = collection_name
         self.embed_dim = embed_dim
+        self._ensure_collection()
+
+        try:
+
+            self.client.create_payload_index(
+                collection_name=self.collection_name,
+                field_name="file_hash",
+                field_schema=PayloadSchemaType.KEYWORD
+            )
+
+            print("✅ file_hash index ready")
+
+        except Exception as e:
+
+            print("Index already exists:", e)
 
         print("🔥 CONNECTING TO QDRANT")
         print("🔥 URL:", url)
@@ -62,10 +77,10 @@ class QdrantStore:
 
         self._ensure_collection()
 
-       # ensure_indexes(
-       #     self.client,
-       #     self.collection_name
-        #)
+        ensure_indexes(
+            self.client,
+            self.collection_name
+        )
 
     # =========================================
     # CREATE COLLECTION IF MISSING

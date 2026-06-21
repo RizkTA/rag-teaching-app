@@ -10,7 +10,7 @@ class VectorUpsert:
     def upsert_chunks(self, chunks):
 
         print("🔥 upsert_chunks start")
-
+        print("upsert_chunks received", len(chunks), "chunks")
         # =================================
         # EMPTY CHECK
         # =================================
@@ -74,23 +74,8 @@ class VectorUpsert:
         t0 = time.time()
 
         print("Calling embed_texts")
-
-        all_vectors = []
-
-        BATCH_SIZE = 8
-
-        for i in range(0, len(texts), BATCH_SIZE):
-            batch = texts[i:i + BATCH_SIZE]
-
-            print(
-                f"Embedding batch {i // BATCH_SIZE + 1}"
-            )
-
-            batch_vectors = embed_texts(batch)
-
-            all_vectors.extend(batch_vectors)
-
-        vectors = all_vectors
+        print("LEN(texts) =", len(texts))
+        vectors = embed_texts(texts)
         print(
             "embed_texts returned in",
             time.time() - t0,
@@ -181,7 +166,7 @@ class VectorUpsert:
                 # ADD THIS
                 "embedding": vectors[idx]
             })
-            
+
 
         print(
             f"🔥 upserting {len(ids)} vectors"

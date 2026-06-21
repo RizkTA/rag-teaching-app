@@ -31,7 +31,7 @@ def save_history(filename, chunks, file_hash):
     df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
 
     df.to_csv(HISTORY_CSV, index=False)
-
+    print("Saving to:", os.path.abspath(UPLOAD_HISTORY_FILE))
     print("✅ HISTORY SAVED")
 #from app.ingestion.ingest import ingest_file
 
