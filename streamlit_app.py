@@ -717,7 +717,7 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                          if response.status_code == 200:
                              result = response.json()
 
-                        if result.get("status") == "ok":
+                    if result.get("status") == "ok":
                              save_history(
                                      filename=result["filename"],
                                      chunks=result["chunks"],
