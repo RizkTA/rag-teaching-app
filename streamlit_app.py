@@ -607,12 +607,13 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
 
                          progress.progress(50)
                          try:
-                         if file_exists(store, file_hash):
-                              return {
+                             if file_exists(store, file_hash):
+                                 return {
                                      "status": "skipped",
                                      "message": f"{filename} already exists",
                                      "file_hash": file_hash
                                  }
+
                          except Exception as e:
                              print("❌ Duplicate check failed:", e)
                          if res.status_code != 200:
