@@ -124,6 +124,16 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+st.markdown("""
+<style>
+section[data-testid="stSidebar"] {
+    width: 400px !important;
+}
+section[data-testid="stSidebar"] > div {
+    width: 400px !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # =================================
 # PAGE CONFIG
@@ -711,11 +721,11 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 
                  except Exception as e:
 
-                 st.error(
+                        st.error(
                      f"❌ Upload failed for {uploaded_file.name}"
                  )
 
-                 st.code(str(e))
+                        st.code(str(e))
 
              overall_progress.progress(
                  int(
