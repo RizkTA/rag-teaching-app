@@ -9,7 +9,30 @@ print(
     psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
 )
 print("🔥 BEFORE INGEST IMPORT")
+import os
+import pandas as pd
+from datetime import datetime
 
+HISTORY_CSV = "data/file_history.csv"
+
+def save_history(filename, chunks, file_hash):
+    row = {
+        "filename": filename,
+        "chunks": chunks,
+        "file_hash": file_hash,
+        "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    if os.path.exists(HISTORY_CSV):
+        df = pd.read_csv(HISTORY_CSV)
+    else:
+        df = pd.DataFrame()
+
+    df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+
+    df.to_csv(HISTORY_CSV, index=False)
+
+    print("✅ HISTORY SAVED")
 #from app.ingestion.ingest import ingest_file
 
 print("🔥 AFTER INGEST IMPORT")
@@ -271,7 +294,58 @@ import os
 import traceback
 
 from app.ingestion.ingest import ingest_file
+import os
+import pandas as pd
+from datetime import datetime
 
+UPLOAD_HISTORY_FILE = "upload_history.csv"
+
+
+def save_history(filename, chunks=0, file_hash=""):
+
+    row = {
+        "filename": filename,
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "time": datetime.now().strftime("%H:%M:%S"),
+        "chunks": chunks,
+        "file_hash": file_hash
+    }
+
+    try:
+
+        if os.path.exists(UPLOAD_HISTORY_FILE):
+
+            df = pd.read_csv(UPLOAD_HISTORY_FILE)
+
+        else:
+
+            df = pd.DataFrame(
+                columns=[
+                    "filename",
+                    "date",
+                    "time",
+                    "chunks",
+                    "file_hash"
+                ]
+            )
+
+        df = pd.concat(
+            [df, pd.DataFrame([row])],
+            ignore_index=True
+        )
+
+        df.to_csv(
+            UPLOAD_HISTORY_FILE,
+            index=False
+        )
+
+        print("✅ HISTORY SAVED")
+        print(df.tail())
+
+    except Exception as e:
+
+        print("❌ HISTORY SAVE ERROR:", e)
+        traceback.print_exc()
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...)):
 
@@ -312,9 +386,13 @@ async def upload_file(file: UploadFile = File(...)):
             temp_path,
             file.filename
         )
-
+        print("STEP H BEFORE CSV SAVE")
         print("AFTER INGEST")
-       
+        save_history(
+            filename=result["filename"],
+            chunks=result["chunks"],
+            file_hash=result["file_hash"]
+        )
 
         print("UPLOAD STEP 4")
         print("INGEST RESULT:", result)

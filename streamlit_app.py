@@ -5,7 +5,15 @@ import os
 import time
 import re
 
+def load_history():
 
+    if os.path.exists(UPLOAD_HISTORY_FILE):
+
+        return pd.read_csv(
+            UPLOAD_HISTORY_FILE
+        )
+
+    return pd.DataFrame()
 # =================================
 # CONFIG
 # =================================
@@ -18,8 +26,18 @@ from datetime import datetime
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
-UPLOAD_HISTORY_FILE = "upload_history.csv"
 
+
+UPLOAD_HISTORY_FILE = "upload_history.csv"
+import streamlit as st
+
+st.set_page_config(
+    page_title="RIZK AI ASSISTANT",
+    page_icon="📕",   # optional
+    layout="wide"
+)
+
+st.title("RIZK AI ASSISTANT")
 
 def add_history(filename, filetype, status):
 
@@ -61,6 +79,51 @@ def add_history(filename, filetype, status):
         UPLOAD_HISTORY_FILE,
         index=False
     )
+
+    def save_upload_history(filename, chunks=0, file_hash=""):
+
+        row = {
+            "filename": filename,
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "time": datetime.now().strftime("%H:%M:%S"),
+            "chunks": chunks,
+            "file_hash": file_hash
+        }
+
+        if os.path.exists(UPLOAD_HISTORY_FILE):
+            df = pd.read_csv(UPLOAD_HISTORY_FILE)
+        else:
+            df = pd.DataFrame(
+                columns=[
+                    "filename",
+                    "date",
+                    "time",
+                    "chunks",
+                    "file_hash"
+                ]
+            )
+
+        df = pd.concat(
+            [df, pd.DataFrame([row])],
+            ignore_index=True
+        )
+
+        df.to_csv(
+            UPLOAD_HISTORY_FILE,
+            index=False
+        )
+
+        print("✅ Upload history saved")
+
+    def load_history():
+
+        if os.path.exists(UPLOAD_HISTORY_FILE):
+            return pd.read_csv(
+                UPLOAD_HISTORY_FILE
+            )
+
+        return pd.DataFrame()
+    """""
 def load_history():
 
     if os.path.exists(UPLOAD_HISTORY_FILE):
@@ -69,7 +132,7 @@ def load_history():
             UPLOAD_HISTORY_FILE
         )
 
-    return pd.DataFrame()
+    return pd.DataFrame()"""
 # =================================
 # SESSION STATE
 # =================================
@@ -651,7 +714,16 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                          st.success(
                              f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
                          )
+                         if response.status_code == 200:
+                             result = response.json()
 
+                             save_upload_history(
+                                 filename=result["filename"],
+                                 chunks=result.get("chunks", 0),
+                                 file_hash=result.get("file_hash", "")
+                             )
+
+                             st.success("✅ File uploaded successfully")
                      else:
 
                          st.error(
@@ -677,55 +749,46 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
  # =================================
  # HISTORY (ALWAYS SHOW)
  # =================================
-
  history_df = load_history()
 
  if not history_df.empty:
+
      st.subheader("📜 Upload History")
 
-     st.dataframe(
-         history_df.sort_values(
+     history_df = load_history()
+
+     if not history_df.empty:
+
+         st.subheader("📜 Upload History")
+
+         history_df = history_df.sort_values(
              by=["date", "time"],
              ascending=False
-         ),
-         width="stretch"
-     )
+         )
 
-     csv = history_df.to_csv(index=False)
+         st.dataframe(
+             history_df,
+             use_container_width=True
+         )
 
-     st.download_button(
-         label="📥 Download Upload History",
-         data=csv,
-         file_name="upload_history.csv",
-         mime="text/csv",
-         key="download_upload_history"
-     )
- st.divider()
+     else:
 
- history_df = load_history()
+         st.info("No upload history found.")
+     import os
 
- if not history_df.empty:
-     st.subheader("📜 Upload History")
+     UPLOAD_HISTORY_FILE = "upload_history.csv"
 
-     st.dataframe(
-         history_df.sort_values(
-             by=["date", "time"],
-             ascending=False
-         ),
-         width="stretch"
-     )
-
-     csv = history_df.to_csv(
-         index=False
-     )
-
-     st.download_button(
-         "📥 Download Upload History",
-         csv,
-         file_name="upload_history.csv",
-         mime="text/csv"
-     )
-     if st.button("🗑 Clear Upload History"):
+     if os.path.exists(UPLOAD_HISTORY_FILE):
+         with open(UPLOAD_HISTORY_FILE, "rb") as f:
+             st.download_button(
+                 label="📥 Download Upload History",
+                 data=f,
+                 file_name="upload_history.csv",
+                 mime="text/csv"
+             )
+     else:
+           st.info("No upload history found.")
+ if st.button("🗑 Clear Upload History"):
 
          if os.path.exists(UPLOAD_HISTORY_FILE):
              os.remove(UPLOAD_HISTORY_FILE)

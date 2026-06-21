@@ -1,4 +1,5 @@
 import os
+import traceback
 from functools import lru_cache
 
 print("🔥 EMBEDDER.PY IMPORT START")
@@ -50,7 +51,8 @@ def sanitize_text(x):
     return str(x).strip()
 
 def embed_texts(texts):
-
+    print("ENTER embed_texts")
+    traceback.print_stack(limit=5)
     print("ENTER embed_texts")
 
     model = get_embedder()
