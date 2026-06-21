@@ -2,7 +2,6 @@ import os
 import uuid
 import hashlib
 
-from streamlit_app import replace_existing
 
 print("🔥 INGEST.PY IMPORT START")
 from pypdf import PdfReader

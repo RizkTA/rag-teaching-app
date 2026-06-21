@@ -372,12 +372,13 @@ def save_history(filename, chunks=0, file_hash=""):
 
         print("❌ HISTORY SAVE ERROR:", e)
         traceback.print_exc()
+from fastapi import Form
+
 @app.post("/upload_file")
 async def upload_file(
     file: UploadFile = File(...),
     replace_existing: bool = Form(False)
 ):
-
     print("UPLOAD STEP 1")
 
     temp_path = None
