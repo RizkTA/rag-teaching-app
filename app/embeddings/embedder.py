@@ -17,7 +17,6 @@ _EMBEDDER = TextEmbedding(
 
 print("🔥 FastEmbed singleton ready")
 
-
 @lru_cache(maxsize=1)
 def get_embedder():
     print("GET EMBEDDER")
@@ -51,13 +50,11 @@ def sanitize_text(x):
     return str(x).strip()
 
 def embed_texts(texts):
+
     print("ENTER embed_texts")
-    traceback.print_stack(limit=5)
-    print("ENTER embed_texts")
+    print("Number of texts =", len(texts))
 
     model = get_embedder()
-
-    print("MODEL LOADED")
 
     all_vectors = []
 
@@ -67,19 +64,14 @@ def embed_texts(texts):
 
         batch = texts[i:i+BATCH_SIZE]
 
-        print(f"Embedding batch {i//BATCH_SIZE+1}")
+        print(f"Embedding batch {i//BATCH_SIZE + 1}")
         print("Batch size =", len(batch))
 
-        print("BEFORE model.embed")
-
         batch_vectors = list(model.embed(batch))
-
-        print("AFTER model.embed")
 
         all_vectors.extend(batch_vectors)
 
     print("EXIT embed_texts")
 
     return [v.tolist() for v in all_vectors]
-
 print("🔥 EMBEDDER.PY IMPORT END")
