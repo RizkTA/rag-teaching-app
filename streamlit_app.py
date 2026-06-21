@@ -638,6 +638,7 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 
          for file in uploaded_files:
              ext = file.name.split(".")[-1].lower()
+
              icon = file_icon.get(ext, "📄")
 
              st.info(f"{icon} {file.name}")
@@ -654,7 +655,7 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 
              for idx, uploaded_file in enumerate(uploaded_files):
 
-                 progress = st.progress(5)
+                 progress = st.progress(0)
 
                  try:
 
@@ -731,12 +732,37 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 
                      st.code(str(e))
 
-             overall_progress.progress(
-                 int(
-                     ((idx + 1) / total_files) * 100
+                 overall_progress.progress(
+                     int(
+                         ((idx + 1) / total_files) * 100
+                     )
                  )
-             )
 
+ # ==========================================
+ # Upload History
+ # ==========================================
+ history_df = load_history()
+
+ if not history_df.empty:
+     st.subheader("📜 Upload History")
+
+     st.dataframe(
+         history_df.sort_values(
+             by=["date", "time"],
+             ascending=False
+         ),
+         width="stretch"
+     )
+
+     csv = history_df.to_csv(index=False)
+
+     st.download_button(
+         label="📥 Download Upload History",
+         data=csv,
+         file_name="upload_history.csv",
+         mime="text/csv",
+         key="download_upload_history"
+     )
  # =================================
  # HISTORY (ALWAYS SHOW)
  # =================================
