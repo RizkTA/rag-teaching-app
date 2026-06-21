@@ -16,14 +16,21 @@ UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
 import pandas as pd
 from datetime import datetime
 import os
-
+from datetime import datetime
+from zoneinfo import ZoneInfo
 UPLOAD_HISTORY_FILE = "upload_history.csv"
 
 
 def add_history(filename, filetype, status):
 
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("America/Chicago"))
 
+
+
+    history_entry = {
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M:%S")
+    }
     new_row = {
         "date": now.strftime("%Y-%m-%d"),
         "time": now.strftime("%H:%M:%S"),
@@ -505,7 +512,7 @@ if "upload_history" not in st.session_state:
 # HEADER
 # =================================
 st.divider()
-with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
+with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False):
  st.subheader("📄 Upload Knowledge Files (Admin)")
 
  password = st.text_input(
@@ -606,191 +613,191 @@ with st.sidebar.expander("  Upload Knowledge Files (Admin)", expanded=False):
                          )
 
                          progress.progress(50)
-                         try:
-                             if file_exists(store, file_hash):
-                                 return {
-                                     "status": "skipped",
-                                     "message": f"{filename} already exists",
-                                     "file_hash": file_hash
-                                 }
 
                          except Exception as e:
                              print("❌ Duplicate check failed:", e)
-                         if res.status_code != 200:
-                             st.error(
-                                 f"❌ Upload failed for {uploaded_file.name}"
-                             )
-
-                             continue
-
-                         result = res.json()
-
-                         progress.progress(80)
-
-                         status = result.get(
-                             "status",
-                             "unknown"
+                         try:
+                             If file_exists(store, file_hash):
+                                return {
+                                                  "status": "skipped",
+                                                  "message": f"{filename} already exists",
+                                                  "file_hash": file_hash
+                                              }
+                     if res.status_code != 200:
+                         st.error(
+                             f"❌ Upload failed for {uploaded_file.name}"
                          )
 
-                         if status == "skipped":
+                         continue
 
-                             st.warning(
-                                 f"⚠️ {uploaded_file.name} already exists"
-                             )
-                             add_history(
-                                 uploaded_file.name,
-                                 ext.upper(),
-                                 "Skipped"
-                             )
-                         elif status in ["ok", "uploaded"]:
+                     result = res.json()
 
-                             chunks = result.get(
-                                 "chunks",
-                                 0
-                             )
+                     progress.progress(80)
 
-                             st.success(
-                                 f"✅ {uploaded_file.name} uploaded successfully "
-                                 f"({chunks} chunks)"
-                             )
-                             add_history(
-                                 uploaded_file.name,
-                                 ext.upper(),
-                                 "Uploaded"
-                             )
-                         else:
-
-                             st.error(
-                                 f"❌ Upload failed for {uploaded_file.name}"
-                             )
-                             add_history(
-                                 uploaded_file.name,
-                                 ext.upper(),
-                                 "Failed"
-                             )
-                             st.json(result)
-
-                         progress.progress(100)
-
-                 except Exception as e:
-
-                     st.error(
-                         f"❌ Upload failed for {uploaded_file.name}"
+                     status = result.get(
+                         "status",
+                         "unknown"
                      )
 
-                     st.code(str(e))
+                     if status == "skipped":
 
-                 overall_progress.progress(
-                     int(
-                         ((idx + 1) / total_files) * 100
-                     )
+                         st.warning(
+                             f"⚠️ {uploaded_file.name} already exists"
+                         )
+                         add_history(
+                             uploaded_file.name,
+                             ext.upper(),
+                             "Skipped"
+                         )
+                     elif status in ["ok", "uploaded"]:
+
+                         chunks = result.get(
+                             "chunks",
+                             0
+                         )
+
+                         st.success(
+                             f"✅ {uploaded_file.name} uploaded successfully "
+                             f"({chunks} chunks)"
+                         )
+                         add_history(
+                             uploaded_file.name,
+                             ext.upper(),
+                             "Uploaded"
+                         )
+                     else:
+
+                         st.error(
+                             f"❌ Upload failed for {uploaded_file.name}"
+                         )
+                         add_history(
+                             uploaded_file.name,
+                             ext.upper(),
+                             "Failed"
+                         )
+                         st.json(result)
+
+                     progress.progress(100)
+
+             except Exception as e:
+
+                 st.error(
+                     f"❌ Upload failed for {uploaded_file.name}"
                  )
 
-     # =================================
-     # HISTORY (ALWAYS SHOW)
-     # =================================
+                 st.code(str(e))
 
-     history_df = load_history()
+             overall_progress.progress(
+                 int(
+                     ((idx + 1) / total_files) * 100
+                 )
+             )
 
-     if not history_df.empty:
-         st.subheader("📜 Upload History")
+ # =================================
+ # HISTORY (ALWAYS SHOW)
+ # =================================
 
-         st.dataframe(
-             history_df.sort_values(
-                 by=["date", "time"],
-                 ascending=False
-             ),
-             width="stretch"
-         )
+ history_df = load_history()
 
-         csv = history_df.to_csv(index=False)
+ if not history_df.empty:
+     st.subheader("📜 Upload History")
 
-         st.download_button(
-             label="📥 Download Upload History",
-             data=csv,
-             file_name="upload_history.csv",
-             mime="text/csv",
-             key="download_upload_history"
-         )
-     st.divider()
+     st.dataframe(
+         history_df.sort_values(
+             by=["date", "time"],
+             ascending=False
+         ),
+         width="stretch"
+     )
 
-     history_df = load_history()
+     csv = history_df.to_csv(index=False)
 
-     if not history_df.empty:
-         st.subheader("📜 Upload History")
+     st.download_button(
+         label="📥 Download Upload History",
+         data=csv,
+         file_name="upload_history.csv",
+         mime="text/csv",
+         key="download_upload_history"
+     )
+ st.divider()
 
-         st.dataframe(
-             history_df.sort_values(
-                 by=["date", "time"],
-                 ascending=False
-             ),
-             width="stretch"
-         )
+ history_df = load_history()
 
-         csv = history_df.to_csv(
-             index=False
-         )
+ if not history_df.empty:
+     st.subheader("📜 Upload History")
 
-         st.download_button(
-             "📥 Download Upload History",
-             csv,
-             file_name="upload_history.csv",
-             mime="text/csv"
-         )
-         if st.button("🗑 Clear Upload History"):
+     st.dataframe(
+         history_df.sort_values(
+             by=["date", "time"],
+             ascending=False
+         ),
+         width="stretch"
+     )
 
-             if os.path.exists(UPLOAD_HISTORY_FILE):
-                 os.remove(UPLOAD_HISTORY_FILE)
+     csv = history_df.to_csv(
+         index=False
+     )
 
-             st.rerun()
+     st.download_button(
+         "📥 Download Upload History",
+         csv,
+         file_name="upload_history.csv",
+         mime="text/csv"
+     )
+     if st.button("🗑 Clear Upload History"):
+
+         if os.path.exists(UPLOAD_HISTORY_FILE):
+             os.remove(UPLOAD_HISTORY_FILE)
+
+         st.rerun()
 # =================================
 # SIDEBAR
 # =================================
 with st.sidebar:
 
-    st.header("⚙️ Controls")
+st.header("⚙️ Controls")
 
-    # =========================
-    # CLEAR CHAT
-    # =========================
-    if st.button(
-        "🧹 Clear Chat",
-        key="clear_chat_button"
-    ):
+# =========================
+# CLEAR CHAT
+# =========================
+if st.button(
+    "🧹 Clear Chat",
+    key="clear_chat_button"
+):
 
-        st.session_state.messages = []
+    st.session_state.messages = []
+
+    st.rerun()
+
+# =========================
+# BACK BUTTON
+# =========================
+if st.button(
+    "⬅️ Back",
+    key="back_button"
+):
+
+    if len(st.session_state.messages) > 0:
+
+        st.session_state.messages.pop()
 
         st.rerun()
 
-    # =========================
-    # BACK BUTTON
-    # =========================
-    if st.button(
-        "⬅️ Back",
-        key="back_button"
-    ):
+st.markdown("---")
 
-        if len(st.session_state.messages) > 0:
+# =========================
+# LOGO + TITLE
+# =========================
+try:
 
-            st.session_state.messages.pop()
+    with open("RIZKRED.png", "rb") as f:
+        data = base64.b64encode(
+            f.read()
+        ).decode()
 
-            st.rerun()
-
-    st.markdown("---")
-
-    # =========================
-    # LOGO + TITLE
-    # =========================
     try:
-
-        with open("RIZKRED.png", "rb") as f:
-            data = base64.b64encode(
-                f.read()
-            ).decode()
-
-        try:
-            st.markdown(
-                """
+        st.markdown(
+            """
                 <div style="
                     display:flex;
                     flex-direction:column;
