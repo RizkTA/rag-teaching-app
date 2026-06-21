@@ -766,51 +766,140 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
  # =================================
  # HISTORY (ALWAYS SHOW)
  # =================================
- st.write("History file:", os.path.abspath(UPLOAD_HISTORY_FILE))
+ if st.session_state.authenticated:
+
+     uploaded_files = st.file_uploader(
+         "Drag & Drop files here",
+         type=["pdf", "md", "txt"],
+         accept_multiple_files=True,
+         key="knowledge_upload"
+     )
+
+     if uploaded_files:
+
+         st.markdown("### 📦 Files Ready")
+
+         for file in uploaded_files:
+             ext = file.name.split(".")[-1].lower()
+             icon = file_icon.get(ext, "📄")
+
+             st.info(f"{icon} {file.name}")
+
+         replace_existing = st.checkbox(
+             "♻ Replace existing files if duplicates found"
+         )
+
+         if st.button("🚀 Upload & Ingest All"):
+
+             overall_progress = st.progress(0)
+             total_files = len(uploaded_files)
+
+             for idx, uploaded_file in enumerate(uploaded_files):
+
+                 progress = st.progress(0)
+
+                 try:
+
+                     file_bytes = uploaded_file.getvalue()
+
+                     files = {
+                         "file": (
+                             uploaded_file.name,
+                             file_bytes,
+                             "application/octet-stream"
+                         )
+                     }
+
+                     data = {
+                         "replace_existing": str(replace_existing)
+                     }
+
+                     progress.progress(25)
+
+                     res = requests.post(
+                         f"{API_URL}/upload_file",
+                         files=files,
+                         data=data,
+                         timeout=300
+                     )
+
+                     st.write(
+                         f"{uploaded_file.name}: HTTP {res.status_code}"
+                     )
+
+                     progress.progress(50)
+
+                     if res.status_code != 200:
+
+                         st.error(
+                             f"❌ Upload failed for {uploaded_file.name}"
+                         )
+
+                     else:
+
+                         result = res.json()
+                         status = result.get("status", "unknown")
+
+                         if status == "skipped":
+
+                             st.warning(
+                                 f"⚠️ {uploaded_file.name} already exists"
+                             )
+
+                         elif status in ["ok", "uploaded"]:
+
+                             chunks = result.get("chunks", 0)
+
+                             st.success(
+                                 f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
+                             )
+
+                         else:
+
+                             st.error(
+                                 f"❌ Upload failed for {uploaded_file.name}"
+                             )
+
+                     progress.progress(100)
+
+                 except Exception as e:
+
+                     st.error(
+                         f"❌ Upload failed for {uploaded_file.name}"
+                     )
+
+                     st.code(str(e))
+
+                 overall_progress.progress(
+                     int(((idx + 1) / total_files) * 100)
+                 )
+
+ # ==========================
+ # Upload History
+ # ==========================
+
  history_df = load_history()
- st.write("Rows loaded:", len(history_df))
 
- st.dataframe(history_df)
  if not history_df.empty:
-
      st.subheader("📜 Upload History")
 
-     history_df = load_history()
+     st.dataframe(
+         history_df.sort_values(
+             by=["date", "time"],
+             ascending=False
+         ),
+         width="stretch"
+     )
 
-     if not history_df.empty:
+     csv = history_df.to_csv(index=False)
 
-          history_df = history_df.sort_values(
-             by=["date", "time"],          ascending=False
-         )
-
-         st.dataframe(
-             history_df,
-             use_container_width=True
-         )
-
-     else:
-
-         st.info("No upload history found.")
-     import os
-
-     UPLOAD_HISTORY_FILE = "upload_history.csv"
-
-     if os.path.exists(UPLOAD_HISTORY_FILE):
-         with open(UPLOAD_HISTORY_FILE, "rb") as f:
-             st.download_button(
-                 label="📥 Download Upload History",
-                 data=f,
-                 file_name="upload_history.csv",
-                 mime="text/csv"
-             )
-     else:
-           st.info("No upload history found.")
- if st.button("🗑 Clear Upload History"):
-
-         if os.path.exists(UPLOAD_HISTORY_FILE):
-             os.remove(UPLOAD_HISTORY_FILE)
-
-         st.rerun()
+     st.download_button(
+         label="📥 Download Upload History",
+         data=csv,
+         file_name="upload_history.csv",
+         mime="text/csv",
+         key="download_upload_history"
+     )
 # =================================
 # SIDEBAR
 # =================================
