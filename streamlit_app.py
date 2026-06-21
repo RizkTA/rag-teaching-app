@@ -707,23 +707,15 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                              f"⚠️ {uploaded_file.name} already exists"
                          )
 
-                     elif status in ["ok", "uploaded"]:
+                 elif status in ["ok", "uploaded"]:
 
-                         chunks = result.get("chunks", 0)
+                 chunks = result.get("chunks", 0)
 
-                         st.success(
-                             f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
-                         )
-                         if response.status_code == 200:
-                             result = response.json()
+                 st.success(
 
-                    if result.get("status") == "ok":
-                             save_history(
-                                     filename=result["filename"],
-                                     chunks=result["chunks"],
-                                     file_hash=result["file_hash"]
-                                 )
-                             st.success("✅ File uploaded successfully")
+                     f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
+
+                 )")
                      else:
 
                          st.error(
