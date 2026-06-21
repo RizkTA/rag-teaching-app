@@ -338,6 +338,8 @@ def ingest_file(
         )
 
         print("STEP F")
+        import time as pytime
+
         MAX_CHUNKS = 40
 
         if len(structured) > MAX_CHUNKS:
@@ -348,9 +350,12 @@ def ingest_file(
 
             structured = structured[:MAX_CHUNKS]
 
-        t2 = time.time()
+        t2 = pytime.time()
 
         result = get_upserter().upsert_chunks(structured)
+
+        print("UPSERT RESULT:", result)
+        print("UPSERT:", pytime.time() - t2)
 
         print("UPSERT RESULT:", result)
         print("UPSERT:", time.time() - t2)

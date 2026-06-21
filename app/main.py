@@ -318,13 +318,11 @@ from fastapi import UploadFile, File
 import tempfile
 import os
 import traceback
-
+from history import UPLOAD_HISTORY_FILE
 from app.ingestion.ingest import ingest_file
 import os
 import pandas as pd
 from datetime import datetime
-
-UPLOAD_HISTORY_FILE = "upload_history.csv"
 
 
 def save_history(filename, chunks=0, file_hash=""):

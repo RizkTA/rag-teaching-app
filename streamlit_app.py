@@ -7,20 +7,32 @@ import re
 
 def load_history():
 
+    print("READING FROM:", UPLOAD_HISTORY_FILE)
+
     if os.path.exists(UPLOAD_HISTORY_FILE):
 
-        return pd.read_csv(
-            UPLOAD_HISTORY_FILE
-        )
+        df = pd.read_csv(UPLOAD_HISTORY_FILE)
 
-    return pd.DataFrame()
+        print("ROWS =", len(df))
+
+        return df
+
+    return pd.DataFrame(
+        columns=[
+            "filename",
+            "date",
+            "time",
+            "chunks",
+            "file_hash"
+        ]
+    )
 # =================================
 # CONFIG
 # =================================
 
 API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
-
+from history import UPLOAD_HISTORY_FILE
 import pandas as pd
 from datetime import datetime
 import os
@@ -28,7 +40,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 
-UPLOAD_HISTORY_FILE = "upload_history.csv"
+
 import streamlit as st
 
 st.set_page_config(
@@ -79,6 +91,8 @@ def add_history(filename, filetype, status):
         UPLOAD_HISTORY_FILE,
         index=False
     )
+    print("SAVED TO:", UPLOAD_HISTORY_FILE)
+    print(df.tail())
 
     def save_upload_history(filename, chunks=0, file_hash=""):
 
@@ -732,6 +746,7 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
  # ==========================================
  # Upload History
  # ==========================================
+ st.write("History file:", UPLOAD_HISTORY_FILE)
  history_df = load_history()
 
  if not history_df.empty:
@@ -745,15 +760,42 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
          width="stretch"
      )
 
-     csv = history_df.to_csv(index=False)
+     col1, col2 = st.columns(2)
 
-     st.download_button(
-         label="📥 Download Upload History",
-         data=csv,
-         file_name="upload_history.csv",
-         mime="text/csv",
-         key="download_upload_history"
-     )
+     with col1:
+         st.download_button(
+             label="📥 Download Upload History",
+             data=history_df.to_csv(index=False),
+             file_name="upload_history.csv",
+             mime="text/csv",
+             key="download_upload_history"
+         )
+
+     with col2:
+         if st.button(
+                 "🗑 Clear History",
+                 key="clear_upload_history"
+         ):
+             # Create empty dataframe with same columns
+             empty_df = pd.DataFrame(
+                 columns=[
+                     "filename",
+                     "date",
+                     "time",
+                     "chunks",
+                     "file_hash"
+                 ]
+             )
+
+             # Overwrite CSV
+             empty_df.to_csv(
+                 UPLOAD_HISTORY_FILE,
+                 index=False
+             )
+
+             st.success("✅ Upload history cleared")
+
+             st.rerun()
 
 # =================================
 # SIDEBAR
@@ -799,79 +841,34 @@ with st.sidebar:
          data = base64.b64encode(
              f.read()
          ).decode()
-
      st.markdown(
-         """
-         <div style="
-             display:flex;
-             flex-direction:column;
-             justify-content:center;
-             height:100%;
-             padding-left:10px;
-         ">
-
+         '''
          📕📗📘📙📚📓📒📕📗📘📚📕
-
-         <div style="
-             font-family: Arial, sans-serif;
-             max-width: 400px;
-             padding: 20px;
-             border: 1px solid #e0e0e0;
-             border-radius: 8px;
-             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-         ">
-
          <h2 style="margin:0;color:#333;">
              Dr. Nouhad Rizk
          </h2>
 
-         <div style="
-             font-weight:bold;
-             color:#555;
-             margin-bottom:2px;
-         ">
-             Piper Professor & Director of Undergraduate Studies
-         </div>
-
-         <div style="
-             font-style:italic;
-             color:#777;
-             margin-bottom:15px;
-         ">
-             Computer Science Department
-         </div>
+         <b>Piper Professor & Director of Undergraduate Studies</b><br>
+         <i>Computer Science Department</i>
 
          <hr>
 
-         <div style="line-height:1.6;color:#444;">
+         📍 <b>Address:</b> 3551 Cullen Blvd, Houston, TX 77204<br>
 
-             <div>
-                 📍 <strong>Address:</strong>
-                 3551 Cullen Blvd, Houston, TX 77204
-             </div>
+         📞 <b>Phone:</b>
+         <a href="tel:7137433710">
+             713-743-3710
+         </a><br>
 
-             <div>
-                 📞 <strong>Phone:</strong>
-                 <a href="tel:7137433710">
-                     713-743-3710
-                 </a>
-             </div>
-
-             <div>
-                 🌐 <strong>Website:</strong>
-                 <a href="https://www.uh.edu/nouhadrizk"
-                    target="_blank">
-                     uh.edu/nouhadrizk
-                 </a>
-             </div>
-
-         </div>
-
-         </div>
-         </div>
-         """,
+         🌐 <b>Website:</b>
+         <a href="https://www.uh.edu/nouhadrizk"
+            target="_blank">
+            uh.edu/nouhadrizk
+         </a>
+         ''',
          unsafe_allow_html=True
      )
+
 
  except Exception:
 
