@@ -17,6 +17,7 @@ from qdrant_client.models import (
 
 from app.config import QDRANT_API_KEY
 
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 # =========================================
 # CREATE INDEXES
@@ -101,6 +102,25 @@ class QdrantStore:
         else:
 
             print("✅ Collection already exists")
+
+    def delete_by_file_hash(self, file_hash):
+
+        self.client.delete(
+            collection_name=self.collection_name,
+
+            points_selector=Filter(
+                must=[
+                    FieldCondition(
+                        key="file_hash",
+                        match=MatchValue(
+                            value=file_hash
+                        )
+                    )
+                ]
+            )
+        )
+
+        print("✅ Deleted old vectors")
     # =========================================
     # UPSERT
     # =========================================
@@ -183,3 +203,24 @@ class QdrantStore:
             })
 
         return parsed
+    # =========================================
+    # DELETE ENTIRE COLLECTION
+    # =========================================
+    def delete_all(self):
+
+        self.client.delete_collection(
+            collection_name=self.collection_name
+        )
+
+        print("✅ Collection deleted")
+
+        # recreate empty collection
+        self.client.create_collection(
+            collection_name=self.collection_name,
+            vectors_config=VectorParams(
+                size=self.embed_dim,
+                distance=Distance.COSINE
+            )
+        )
+
+        print("✅ Empty collection recreated")

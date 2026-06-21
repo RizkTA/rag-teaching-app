@@ -2,6 +2,8 @@ import os
 import uuid
 import hashlib
 
+from streamlit_app import replace_existing
+
 print("🔥 INGEST.PY IMPORT START")
 from pypdf import PdfReader
 
@@ -212,7 +214,11 @@ from datetime import time
 # ==========================================
 # MAIN INGEST
 # ==========================================
-def ingest_file(path: str, filename: str):
+def ingest_file(
+    path: str,
+    filename: str,
+    replace_existing=False
+):
 
     print("🔥 ingest start:", filename)
 
@@ -227,11 +233,19 @@ def ingest_file(path: str, filename: str):
         print("STEP C")
         if file_exists(store, file_hash):
 
-            return {
-                "status": "skipped",
-                "message": f"{filename} already exists",
-                "file_hash": file_hash
-            }
+            if replace_existing:
+
+                print("♻ Replacing existing file")
+
+                store.delete_by_file_hash(file_hash)
+
+            else:
+
+                return {
+                    "status": "skipped",
+                    "message": f"{filename} already exists",
+                    "file_hash": file_hash
+                }
 
         suffix = os.path.splitext(filename)[1].lower()
 

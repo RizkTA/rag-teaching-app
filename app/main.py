@@ -1,6 +1,7 @@
 import uuid
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from pydantic import BaseModel
+from fastapi import Form
 import psutil
 import os
 print(
@@ -372,7 +373,10 @@ def save_history(filename, chunks=0, file_hash=""):
         print("❌ HISTORY SAVE ERROR:", e)
         traceback.print_exc()
 @app.post("/upload_file")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(
+    file: UploadFile = File(...),
+    replace_existing: bool = Form(False)
+):
 
     print("UPLOAD STEP 1")
 
@@ -409,7 +413,8 @@ async def upload_file(file: UploadFile = File(...)):
 
         result = ingest_file(
             temp_path,
-            file.filename
+            file.filename,
+            replace_existing
         )
 
         if result.get("status") == "ok":
