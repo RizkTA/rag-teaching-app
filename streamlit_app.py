@@ -795,12 +795,12 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 # =================================
 with st.sidebar:
 
-st.header("⚙️ Controls")
+ st.header("⚙️ Controls")
 
 # =========================
 # CLEAR CHAT
 # =========================
-if st.button(
+ if st.button(
     "🧹 Clear Chat",
     key="clear_chat_button"
 ):
@@ -812,7 +812,7 @@ if st.button(
 # =========================
 # BACK BUTTON
 # =========================
-if st.button(
+ if st.button(
     "⬅️ Back",
     key="back_button"
 ):
@@ -823,12 +823,12 @@ if st.button(
 
         st.rerun()
 
-st.markdown("---")
+ st.markdown("---")
 
 # =========================
 # LOGO + TITLE
 # =========================
-try:
+ try:
 
     with open("RIZKRED.png", "rb") as f:
         data = base64.b64encode(
@@ -867,8 +867,7 @@ try:
             )
         except Exception:
             st.markdown("📘 RIZK AI Assistant")
-    except Exception:
-        st.markdown("📘 RIZK AI Assistant")
+
 with st.sidebar:
     # =================================
     # FOOTER
