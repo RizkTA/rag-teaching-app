@@ -709,7 +709,7 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 
                      progress.progress(100)
 
-             except Exception as e:
+                 except Exception as e:
 
                  st.error(
                      f"❌ Upload failed for {uploaded_file.name}"
