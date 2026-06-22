@@ -274,41 +274,7 @@ def fusion_search(query):
         "segment tree",
         "binary search"
     ]
-    """
-    phrase_docs = []
 
-    for d in docs:
-        text_lower = d["text"].lower()
-
-        for p in SPECIAL_PHRASES:
-            if p in query.lower() and p in text_lower:
-                phrase_docs.append(d)
-                break
-
-    if phrase_docs:
-        docs.extend(phrase_docs)
-
-    filtered_docs = []
-
-    for d in docs:
-
-        text_lower = d["text"].lower()
-
-        matches = sum(
-            1
-            for term in query_tokens
-            if term in text_lower
-        )
-
-        if matches >= 1:
-            filtered_docs.append(d)
-    for d in docs:
-        if "time complexity" in d["text"].lower():
-            print(d["filename"])
-            print(d["text"][:1000])
-    if filtered_docs:
-        docs = filtered_docs
-   """
     filtered_docs = []
 
     for d in docs:

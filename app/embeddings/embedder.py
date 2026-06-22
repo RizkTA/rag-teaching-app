@@ -12,7 +12,8 @@ from fastembed import TextEmbedding
 print("🔥 Creating FastEmbed singleton...")
 
 _EMBEDDER = TextEmbedding(
-    model_name="BAAI/bge-small-en-v1.5"
+    model_name="BAAI/bge-small-en-v1.5",
+    providers=["CPUExecutionProvider"]
 )
 
 print("🔥 FastEmbed singleton ready")
@@ -53,16 +54,6 @@ def embed_texts(texts):
 
     model = get_embedder()
 
-    BATCH_SIZE = 16
+    vectors = list(model.embed(texts))
 
-    all_vectors = []
-
-    for i in range(0, len(texts), BATCH_SIZE):
-
-        batch = texts[i:i+BATCH_SIZE]
-
-        batch_vectors = list(model.embed(batch))
-
-        all_vectors.extend(batch_vectors)
-
-    return [v.tolist() for v in all_vectors]
+    return [v.tolist() for v in vectors]

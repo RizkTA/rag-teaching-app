@@ -1,8 +1,11 @@
 import fitz  # PyMuPDF
 
-MAX_CHUNKS = 500
-CHUNK_SIZE = 1200
-CHUNK_OVERLAP = 200
+
+
+MAX_CHUNKS = 50
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 150
+
 
 
 def ingest_pdf(file_path):
@@ -32,8 +35,7 @@ def chunk_text(text):
         end = start + CHUNK_SIZE
 
         chunk = text[start:end].strip()
-        print("TEXT LENGTH:", len(text))
-        print("CHUNKS:", len(chunks))
+
         if chunk:
             chunks.append(chunk)
 
@@ -48,44 +50,36 @@ def extract_pdf_chunks(pdf_path):
 
     try:
 
-        doc = fitz.open(pdf_path)
-
-        print("PDF PAGES:", len(doc))
-
         all_chunks = []
 
-        for page_num in range(len(doc)):
+        with fitz.open(pdf_path) as doc:
 
-            print("READING PAGE", page_num + 1)
+            print("PDF PAGES:", len(doc))
 
-            page = doc[page_num]
+            for page_num in range(len(doc)):
 
-            try:
-                text = page.get_text("text")
-            except Exception as e:
-                print("PAGE READ ERROR:", e)
-                continue
+                page = doc[page_num]
 
-            if not text or not text.strip():
-                continue
+                try:
+                    text = page.get_text("text")
+                except Exception as e:
+                    print("PAGE READ ERROR:", e)
+                    continue
 
-            print("PAGE CHARS:", len(text))
+                if not text or not text.strip():
+                    continue
 
-            page_chunks = chunk_text(text)
+                page_chunks = chunk_text(text)
 
-            all_chunks.extend(page_chunks)
+                for chunk in page_chunks:
 
-            print("CURRENT CHUNKS:", len(all_chunks))
+                    all_chunks.append(chunk)
 
-            if len(all_chunks) >= MAX_CHUNKS:
+                    if len(all_chunks) >= MAX_CHUNKS:
 
-                print("⚠️ MAX CHUNKS REACHED")
+                        print("⚠️ MAX CHUNKS REACHED")
 
-                all_chunks = all_chunks[:MAX_CHUNKS]
-
-                break
-
-        doc.close()
+                        return all_chunks
 
         print("TOTAL CHUNKS:", len(all_chunks))
 

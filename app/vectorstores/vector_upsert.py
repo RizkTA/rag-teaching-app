@@ -65,9 +65,7 @@ class VectorUpsert:
         # =================================
         # EMBEDDINGS
         # =================================
-        print("STEP A")
-        #vectors = embed_texts(texts)
-        print("STEP A")
+
 
         import time
 
@@ -75,115 +73,74 @@ class VectorUpsert:
 
         print("Calling embed_texts")
         print("LEN(texts) =", len(texts))
-        vectors = embed_texts(texts)
-        print(
-            "embed_texts returned in",
-            time.time() - t0,
-            "seconds"
-        )
-        print("STEP B")
-        print("STEP B")
-        if vectors is None:
+        BATCH_SIZE = 16
 
-            raise Exception(
-                "embed_texts returned None"
+        total_inserted = 0
+
+        for i in range(0, len(valid_chunks), BATCH_SIZE):
+
+            print(f"Processing batch {i // BATCH_SIZE + 1}")
+
+            batch_chunks = valid_chunks[i:i + BATCH_SIZE]
+
+            batch_texts = [
+                str(c["text"]).strip()
+                for c in batch_chunks
+            ]
+
+            print("Embedding", len(batch_texts), "texts")
+
+            vectors = embed_texts(batch_texts)
+
+            ids = []
+            payloads = []
+
+            for j, chunk in enumerate(batch_chunks):
+                metadata = chunk.get("metadata", {})
+
+                ids.append(chunk["id"])
+
+                payloads.append({
+                    "text": batch_texts[j],
+                    "source": chunk.get("source", "unknown"),
+                    "filename": metadata.get(
+                        "filename",
+                        chunk.get("source", "unknown")
+                    ),
+                    "chunk_id": chunk.get(
+                        "chunk_id",
+                        i + j
+                    ),
+                    "language": chunk.get(
+                        "language",
+                        "text"
+                    ),
+                    "topic": chunk.get(
+                        "topic",
+                        "general"
+                    ),
+                    "file_hash": metadata.get(
+                        "file_hash"
+                    ),
+                    "is_code": metadata.get(
+                        "is_code",
+                        False
+                    )
+                })
+
+            print("Upserting", len(ids), "vectors")
+
+            self.store.upsert(
+                ids,
+                vectors,
+                payloads
             )
 
-        if len(vectors) == 0:
-
-            raise Exception(
-                "No embeddings generated"
-            )
-
-        print(
-            f"🔥 embeddings generated: {len(vectors)}"
-        )
-
-        # =================================
-        # SAFETY CHECK
-        # =================================
-        if len(vectors) != len(valid_chunks):
-
-            raise Exception(
-                f"Vector count mismatch "
-                f"({len(vectors)} vs {len(valid_chunks)})"
-            )
-
-        # =================================
-        # BUILD IDS + PAYLOADS
-        # =================================
-        ids = []
-        payloads = []
-
-        for idx, chunk in enumerate(valid_chunks):
-
-            metadata = chunk.get(
-                "metadata",
-                {}
-            )
-
-            ids.append(
-                chunk["id"]
-            )
-
-            payloads.append({
-                "text": texts[idx],
-
-                "source": chunk.get(
-                    "source",
-                    "unknown"
-                ),
-
-                "filename": metadata.get(
-                    "filename",
-                    chunk.get("source", "unknown")
-                ),
-
-                "chunk_id": chunk.get(
-                    "chunk_id",
-                    idx
-                ),
-
-                "language": chunk.get(
-                    "language",
-                    "text"
-                ),
-
-                "topic": chunk.get(
-                    "topic",
-                    "general"
-                ),
-
-                "file_hash": metadata.get(
-                    "file_hash"
-                ),
-
-                "is_code": metadata.get(
-                    "is_code",
-                    False
-                )
-            })
-
-
-        print(
-            f"🔥 upserting {len(ids)} vectors"
-        )
-
-        # =================================
-        # UPSERT
-        # =================================
-        self.store.upsert(
-            ids,
-            vectors,
-            payloads
-        )
+            total_inserted += len(ids)
 
         print("🔥 qdrant complete")
 
         return {
-
             "status": "ok",
-
-            "inserted":
-                len(payloads)
+            "inserted": total_inserted
         }

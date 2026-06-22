@@ -260,7 +260,7 @@ def ingest_file(
             raw_text = read_pdf(path)
 
             print("RAW TEXT LENGTH:", len(raw_text))
-            print(raw_text[:1000])
+
 
             text = clean_text(raw_text)
 
@@ -277,7 +277,7 @@ def ingest_file(
                 raw_text = read_pdf(path)
 
                 print("RAW LENGTH =", len(raw_text))
-                print(raw_text[:1000])
+               
 
                 text = clean_text(raw_text)
 
