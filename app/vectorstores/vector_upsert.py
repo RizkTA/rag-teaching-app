@@ -161,10 +161,7 @@ class VectorUpsert:
                 "is_code": metadata.get(
                     "is_code",
                     False
-                ),
-
-                # ADD THIS
-                "embedding": vectors[idx]
+                )
             })
 
 

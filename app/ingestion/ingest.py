@@ -20,7 +20,14 @@ from app.config import (
 
 from app.vectorstores.qdrant_store import QdrantStore
 from app.vectorstores.vector_upsert import VectorUpsert
+import psutil
 
+def mem(label):
+    print(
+        label,
+        psutil.Process().memory_info().rss / 1024 / 1024,
+        "MB"
+    )
 # ==========================================
 # SINGLETONS
 # ==========================================
@@ -292,22 +299,40 @@ def ingest_file(
                 "message": "File contains no text"
             }
 
+        mem("Before chunking")
 
         chunks = chunk_text(text)
 
+        mem("After chunking")
+
         print("TOTAL CHUNKS GENERATED:", len(chunks))
-        print(chunks[:10])
-        print("STEP E")
+
+        MAX_CHUNKS = 40
+
+        if len(chunks) > MAX_CHUNKS:
+            print(
+                f"LIMITING {len(chunks)} -> {MAX_CHUNKS}"
+            )
+
+            chunks = chunks[:MAX_CHUNKS]
+
+        print("CHUNKS TO PROCESS:", len(chunks))
+
+        print("A")
         if not chunks:
 
             return {
                 "status": "error",
                 "message": "No chunks generated"
             }
+        print("STEP .. BEFORE STRUCTURED")
 
         structured = []
 
+        print("B")
+
         for i, chunk in enumerate(chunks):
+            print("chunk", i)
 
             structured.append({
                 "id": str(uuid.uuid4()),
@@ -322,47 +347,28 @@ def ingest_file(
                     "is_code": is_code_chunk(chunk)
                 }
             })
-        print("TOTAL STRUCTURED CHUNKS:", len(structured))
-   #     print(f"🔥 generated {len(structured)} chunks")
-   #     print("STEP F")
-   #     result = get_upserter().upsert_chunks(
-#        structured
- #       )
-        print(f"🔥 generated {len(structured)} chunks")
-
-        # TEMP TEST
-       # structured = structured[:5]
-
-        print(
-            f"🔥 TEST MODE: sending {len(structured)} chunks"
-        )
-
-        print("STEP F")
         import time as pytime
+        print("C")
+        print("TOTAL STRUCTURED CHUNKS:", len(structured))
 
-        MAX_CHUNKS = 40
-
-        if len(structured) > MAX_CHUNKS:
-            print(
-                f"⚠️ limiting chunks "
-                f"{len(structured)} -> {MAX_CHUNKS}"
-            )
-
-            structured = structured[:MAX_CHUNKS]
-
+        print("D BEFORE UPSERT")
         t2 = pytime.time()
-
+        mem("After structured")
         result = get_upserter().upsert_chunks(structured)
+        t2 = pytime.time()
+        mem("After structured")
+        print("E AFTER UPSERT")
+
+
 
         print("UPSERT RESULT:", result)
         print("UPSERT:", pytime.time() - t2)
 
         print("UPSERT RESULT:", result)
-        print("UPSERT:", time.time() - t2)
+        print("UPSERT:", pytime.time() - t2)
 
 
 
-       # result = get_upserter().upsert_chunks(
 
         print("STEP G")
         print("🔥 upsert complete")
