@@ -156,7 +156,21 @@ def test():
         "status": "test_ok"
     }
 
+@app.get("/debug_sources")
+def debug_sources():
 
+    store = get_store()
+
+    points, _ = store.client.scroll(
+        collection_name=os.getenv("QDRANT_COLLECTION", "docs"),
+        limit=20,
+        with_payload=True
+    )
+
+    return [
+        p.payload.get("source")
+        for p in points
+    ]
 # =====================================
 # UPLOAD TEST
 # =====================================

@@ -18,7 +18,6 @@ def cosine_similarity(a, b):
 
 import numpy as np
 
-
 def mmr_rerank(
     query,
     docs,
@@ -29,16 +28,24 @@ def mmr_rerank(
     if not docs:
         return []
 
-    # keep only docs that already have embeddings
-    docs = [
+    valid_docs = [
         d
         for d in docs
         if d.get("embedding") is not None
     ]
 
-    if not docs:
-        return []
+    if not valid_docs:
 
+        print(
+            "⚠ No embeddings found. "
+            "Skipping MMR."
+        )
+
+        return docs[:top_k]
+
+    docs = valid_docs
+
+    
     # query embedding only
     query_embedding = embed_texts([query])[0]
 

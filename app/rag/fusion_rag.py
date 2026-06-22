@@ -475,13 +475,17 @@ def fusion_search(query):
             "FINAL=", d["final_score"]
         )
 
-        if keyword_score == 0 and coverage_score == 0:
-              continue
+        #if keyword_score == 0 and coverage_score == 0:
+        #      continue
         reranked_docs.append(d)
     docs = reranked_docs
     # =================================
     # SORT
     # =================================
+    # =================================
+    # SORT
+    # =================================
+
     docs.sort(
         key=lambda x: x["final_score"],
         reverse=True
@@ -489,24 +493,37 @@ def fusion_search(query):
 
     docs = deduplicate(docs)
 
+    # =================================
+    # MINIMUM SCORE FILTER
+    # =================================
 
+    MIN_SCORE = 0.25
 
-    print("\n===== BEFORE MMR =====")
+    docs = [
+        d
+        for d in docs
+        if d["final_score"] >= MIN_SCORE
+    ]
 
-    for d in docs[:20]:
-        print(
-            d["filename"],
-            d["score"],
-            d["text"][:150]
-        )
-
-    print("DOCS BEFORE MMR", len(docs))
-    docs = mmr_rerank(
-        query=query,
-        docs=docs,
-        top_k=10,
-        lambda_param=0.7
+    print(
+        f"AFTER MIN_SCORE FILTER: {len(docs)} docs"
     )
 
-    return docs
+    # =================================
+    # DEBUG
+    # =================================
 
+    print("\n===== FINAL RESULTS =====")
+
+    for d in docs[:10]:
+        print(
+            d["filename"],
+            "FINAL=",
+            round(d["final_score"], 3)
+        )
+
+    # =================================
+    # RETURN TOP RESULTS
+    # =================================
+
+    return docs[:10]

@@ -99,13 +99,14 @@ def retrieve(question, top_k=TOP_K):
     try:
 
         results = fusion_search(question)
-        results = mmr_rerank(
-            question,
-            results,
-            top_k=5,
-            lambda_param=0.7
-        )
-        results = results[:4]
+      #  results = mmr_rerank(
+      #      question,
+      #      results,
+      #      top_k=5,
+       #     lambda_param=0.7
+       # )
+        results = results[:5]
+       # results = results[:4]
         contexts = []
 
         citations = []
@@ -195,6 +196,9 @@ def answer(question: str):
     # ==========================
     # RETRIEVE
     # ==========================
+    # ==========================
+    # RETRIEVE
+    # ==========================
     results = fusion_search(question)
 
     if not results:
@@ -206,25 +210,30 @@ def answer(question: str):
         }
 
     # ==========================
-    # MMR
+    # SCORE FILTER
     # ==========================
-    results = mmr_rerank(
-        results,
-        top_k=5,
-        lambda_param=0.75
-    )
-
-    # ==========================
-    # KEEP STRONG RESULTS ONLY
-    # ==========================
-    best_score = results[0]["final_score"]
+    MIN_SCORE = 0.25
 
     results = [
         r
         for r in results
-        if r["final_score"] >= best_score * 0.85
+        if r.get("final_score", 0) >= MIN_SCORE
     ]
 
+    results = results[:5]
+
+    if not results:
+        return {
+            "answer":
+                "I don't know based on the documents.",
+            "citations": [],
+            "context_length": 0
+        }
+
+    # ==========================
+    # KEEP STRONG RESULTS ONLY
+    # ==========================
+    
     # ==========================
     # LIMIT RESULTS
     # ==========================

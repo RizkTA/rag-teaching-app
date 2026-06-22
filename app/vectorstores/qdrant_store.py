@@ -107,7 +107,6 @@ class QdrantStore:
 
         self.client.delete(
             collection_name=self.collection_name,
-
             points_selector=Filter(
                 must=[
                     FieldCondition(
@@ -117,10 +116,13 @@ class QdrantStore:
                         )
                     )
                 ]
-            )
+            ),
+            wait=True
         )
 
-        print("✅ Deleted old vectors")
+        print(
+            f"✅ Deleted vectors for hash: {file_hash}"
+        )
     # =========================================
     # UPSERT
     # =========================================

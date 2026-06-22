@@ -223,27 +223,55 @@ from datetime import time
 def ingest_file(
     path: str,
     filename: str,
-    replace_existing=False
+    replace_existing=True
 ):
+    """
+    Ingest a file into Qdrant.
 
-    print("🔥 ingest start:", filename)
+    Features:
+    - Deduplication using file hash
+    - Optional replacement of existing vectors
+    - PDF/TXT/MD support
+    - Chunk limiting
+    - Validation
+    - Detailed logging
+    """
 
+    print("=" * 80)
+    print("🔥 INGEST START:", filename)
+    print("=" * 80)
 
     try:
-        print("BEFORE GET_STORE")
+
         store = get_store()
-        print("AFTER GET_STORE")
+
         file_hash = get_file_hash(path)
 
-        print("🔥 file hash:", file_hash)
-        print("STEP C")
-        if file_exists(store, file_hash):
+        if not file_hash:
+            raise Exception("Failed to generate file hash")
+
+        print("FILE HASH:", file_hash)
+
+        # --------------------------------------------------
+        # Existing file handling
+        # --------------------------------------------------
+
+        exists = file_exists(store, file_hash)
+
+        print("FILE EXISTS:", exists)
+
+        if exists:
 
             if replace_existing:
 
-                print("♻ Replacing existing file")
+                print("♻ Removing existing vectors")
 
                 store.delete_by_file_hash(file_hash)
+
+                import time
+                time.sleep(1)
+
+                print("✅ Old vectors removed")
 
             else:
 
@@ -253,46 +281,45 @@ def ingest_file(
                     "file_hash": file_hash
                 }
 
+        # --------------------------------------------------
+        # Read file
+        # --------------------------------------------------
+
         suffix = os.path.splitext(filename)[1].lower()
 
         if suffix == ".pdf":
 
-            try:
+            print("📄 Reading PDF")
 
-                raw_text = read_pdf(path)
-
-            except Exception as e:
-
-                return {
-                    "status": "error",
-                    "message": f"PDF read failed: {e}"
-                }
+            raw_text = read_pdf(path)
 
             text = clean_text(raw_text)
+
         elif suffix in [".txt", ".md"]:
 
+            print("📄 Reading text file")
+
             with open(
-                    path,
-                    "r",
-                    encoding="utf-8",
-                    errors="ignore"
+                path,
+                "r",
+                encoding="utf-8",
+                errors="ignore"
             ) as f:
 
                 raw_text = f.read()
 
-            print("RAW LENGTH =", len(raw_text))
-
             text = clean_text(raw_text)
 
-            print("CLEAN LENGTH =", len(text))
-
-            print("STEP DD")
         else:
 
             return {
                 "status": "error",
                 "message": f"Unsupported file type: {suffix}"
             }
+
+        # --------------------------------------------------
+        # Validate content
+        # --------------------------------------------------
 
         if not text:
 
@@ -301,85 +328,131 @@ def ingest_file(
                 "message": "File contains no text"
             }
 
+        print("TEXT LENGTH:", len(text))
+
+        # --------------------------------------------------
+        # Chunking
+        # --------------------------------------------------
+
         mem("Before chunking")
 
         chunks = chunk_text(text)
 
         mem("After chunking")
 
-        print("TOTAL CHUNKS GENERATED:", len(chunks))
+        print("TOTAL CHUNKS:", len(chunks))
 
         MAX_CHUNKS = 40
 
         if len(chunks) > MAX_CHUNKS:
+
             print(
-                f"LIMITING {len(chunks)} -> {MAX_CHUNKS}"
+                f"⚠ Limiting chunks "
+                f"{len(chunks)} -> {MAX_CHUNKS}"
             )
 
             chunks = chunks[:MAX_CHUNKS]
 
-        print("CHUNKS TO PROCESS:", len(chunks))
-
-        print("A")
         if not chunks:
 
             return {
                 "status": "error",
                 "message": "No chunks generated"
             }
-        print("STEP .. BEFORE STRUCTURED")
+
+        # --------------------------------------------------
+        # Build chunk objects
+        # --------------------------------------------------
 
         structured = []
 
-        print("B")
-
         for i, chunk in enumerate(chunks):
-            print("chunk", i)
+
+            if not chunk:
+                continue
+
+            chunk = str(chunk).strip()
+
+            if not chunk:
+                continue
 
             structured.append({
+
                 "id": str(uuid.uuid4()),
+
                 "text": chunk,
+
                 "source": filename,
+
                 "chunk_id": i,
+
                 "language": "text",
+
                 "topic": "general",
+
                 "metadata": {
+
                     "file_hash": file_hash,
+
                     "filename": filename,
+
                     "is_code": is_code_chunk(chunk)
+
                 }
             })
-        import time as pytime
-        print("C")
-        print("TOTAL STRUCTURED CHUNKS:", len(structured))
 
-        print("D BEFORE UPSERT")
-        t2 = pytime.time()
-        mem("After structured")
-        result = get_upserter().upsert_chunks(structured)
-        t2 = pytime.time()
-        mem("After structured")
-        print("E AFTER UPSERT")
+        print(
+            "STRUCTURED CHUNKS:",
+            len(structured)
+        )
 
+        if not structured:
 
+            return {
+                "status": "error",
+                "message": "No valid chunks after processing"
+            }
+
+        # --------------------------------------------------
+        # Upsert
+        # --------------------------------------------------
+
+        import time
+
+        mem("Before upsert")
+
+        start = time.time()
+
+        result = get_upserter().upsert_chunks(
+            structured
+        )
+
+        elapsed = round(
+            time.time() - start,
+            2
+        )
+
+        mem("After upsert")
 
         print("UPSERT RESULT:", result)
-        print("UPSERT:", pytime.time() - t2)
+        print("UPSERT TIME:", elapsed, "sec")
 
-        print("UPSERT RESULT:", result)
-        print("UPSERT:", pytime.time() - t2)
-
-
-
-
-        print("STEP G")
-        print("🔥 upsert complete")
+        # --------------------------------------------------
+        # Success
+        # --------------------------------------------------
 
         return {
+
             "status": "ok",
+
             "filename": filename,
-            "chunks": len(structured),
+
             "file_hash": file_hash,
+
+            "chunks": len(structured),
+
+            "upsert_time": elapsed,
+
             "qdrant": result
         }
 
@@ -391,10 +464,8 @@ def ingest_file(
         traceback.print_exc()
 
         return {
+
             "status": "error",
+
             "message": str(e)
         }
-
-
-
-print("🔥 INGEST.PY IMPORT COMPLETE")
