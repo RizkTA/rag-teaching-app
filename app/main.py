@@ -291,7 +291,6 @@ from fastapi import UploadFile, File
 import tempfile
 import os
 import traceback
-from history import UPLOAD_HISTORY_FILE
 from app.ingestion.ingest import ingest_file
 import os
 import pandas as pd
