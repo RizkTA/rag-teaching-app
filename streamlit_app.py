@@ -610,8 +610,7 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
  # SIDEBAR
  # =================================
 
- with st.sidebar:
-
+with st.sidebar:
      st.header("⚙️ Controls")
 
      # =========================
@@ -643,11 +642,11 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 # =========================
     try:
 
-     with open("RIZKRED.png", "rb") as f:
+        with open("RIZKRED.png", "rb") as f:
          data = base64.b64encode(
              f.read()
          ).decode()
-     st.markdown(
+        st.markdown(
          '''
          📕📗📘📙📚📓📒📕📗📘📚📕
          <h2 style="margin:0;color:#333;">
