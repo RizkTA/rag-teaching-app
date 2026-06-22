@@ -557,9 +557,11 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
  # Upload History
  # ==========================================
  st.write("History file:", UPLOAD_HISTORY_FILE)
+
  history_df = load_history()
 
  if not history_df.empty:
+
      st.subheader("📜 Upload History")
 
      st.dataframe(
@@ -586,7 +588,6 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                  "🗑 Clear History",
                  key="clear_upload_history"
          ):
-             # Create empty dataframe with same columns
              empty_df = pd.DataFrame(
                  columns=[
                      "filename",
@@ -597,55 +598,50 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
                  ]
              )
 
-             # Overwrite CSV
              empty_df.to_csv(
                  UPLOAD_HISTORY_FILE,
                  index=False
              )
 
              st.success("✅ Upload history cleared")
-
              st.rerun()
 
-# =================================
-# SIDEBAR
-# =================================
-with st.sidebar:
+ # =================================
+ # SIDEBAR
+ # =================================
 
- st.header("⚙️ Controls")
+ with st.sidebar:
 
-# =========================
-# CLEAR CHAT
-# =========================
- if st.button(
-    "🧹 Clear Chat",
-    key="clear_chat_button"
-):
+     st.header("⚙️ Controls")
 
-    st.session_state.messages = []
+     # =========================
+     # CLEAR CHAT
+     # =========================
+     if st.button(
+             "🧹 Clear Chat",
+             key="clear_chat_button"
+     ):
+         st.session_state.messages = []
+         st.rerun()
 
-    st.rerun()
+     # =========================
+     # BACK BUTTON
+     # =========================
+     if st.button(
+             "⬅️ Back",
+             key="back_button"
+     ):
 
-# =========================
-# BACK BUTTON
-# =========================
- if st.button(
-    "⬅️ Back",
-    key="back_button"
-):
+         if len(st.session_state.messages) > 0:
+             st.session_state.messages.pop()
+             st.rerun()
 
-    if len(st.session_state.messages) > 0:
-
-        st.session_state.messages.pop()
-
-        st.rerun()
-
- st.markdown("---")
+     st.markdown("---")
 
 # =========================
 # LOGO + TITLE
 # =========================
- try:
+    try:
 
      with open("RIZKRED.png", "rb") as f:
          data = base64.b64encode(
@@ -680,7 +676,7 @@ with st.sidebar:
      )
 
 
- except Exception:
+     except Exception:
 
      st.markdown("📘 RIZK AI Assistant")
 with st.sidebar:

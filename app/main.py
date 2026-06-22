@@ -298,12 +298,12 @@ from datetime import datetime
 
 
 from fastapi import Form
-
 @app.post("/upload_file")
 async def upload_file(
     file: UploadFile = File(...),
     replace_existing: bool = Form(False)
 ):
+
     print("UPLOAD STEP 1")
 
     temp_path = None
@@ -312,12 +312,17 @@ async def upload_file(
 
         print("UPLOAD STEP 2")
 
-        # preserve extension
-        suffix = os.path.splitext(file.filename)[1]
+        suffix = os.path.splitext(
+            file.filename
+        )[1]
 
-        print("UPLOAD FILENAME:", file.filename)
+        filename = file.filename
 
-        # save uploaded file
+        print(
+            "UPLOAD FILENAME:",
+            filename
+        )
+
         with tempfile.NamedTemporaryFile(
             delete=False,
             suffix=suffix
@@ -325,7 +330,10 @@ async def upload_file(
 
             contents = await file.read()
 
-            print("UPLOAD SIZE:", len(contents))
+            print(
+                "UPLOAD SIZE:",
+                len(contents)
+            )
 
             tmp.write(contents)
 
@@ -334,52 +342,81 @@ async def upload_file(
         print("UPLOAD STEP 3")
         print("TEMP PATH:", temp_path)
 
-        # call ingestion
         print("BEFORE INGEST")
 
         result = ingest_file(
             temp_path,
-            file.filename,
+            filename,
             replace_existing
         )
 
+        print("AFTER INGEST")
+
+        if result.get("status") == "error":
+
+            raise HTTPException(
+                status_code=500,
+                detail=result.get(
+                    "message",
+                    "Upload failed"
+                )
+            )
+
         if result.get("status") == "ok":
+
             save_history(
-                filename=result["filename"],
+                filename=result.get(
+                    "filename",
+                    filename
+                ),
+
                 status="uploaded",
-                filetype="pdf",
-                chunks=result["chunks"],
-                file_hash=result["file_hash"]
+
+                filetype=filename.split(".")[-1].lower(),
+
+                chunks=result.get(
+                    "chunks",
+                    0
+                ),
+
+                file_hash=result.get(
+                    "file_hash",
+                    ""
+                )
             )
 
         return result
 
-
-
-
     except Exception as e:
 
         print("UPLOAD ERROR")
+
         traceback.print_exc()
+
         raise HTTPException(
-
-        status_code=500,
-
-         detail=str(e)
-
+            status_code=500,
+            detail=str(e)
         )
 
     finally:
 
         print("UPLOAD STEP 5")
 
-        if temp_path and os.path.exists(temp_path):
+        if (
+            temp_path
+            and
+            os.path.exists(temp_path)
+        ):
 
             try:
 
-                os.remove(temp_path)
+                os.remove(
+                    temp_path
+                )
 
-                print("TEMP FILE REMOVED")
+                print(
+                    "TEMP FILE REMOVED"
+                )
 
             except Exception as cleanup_error:
 

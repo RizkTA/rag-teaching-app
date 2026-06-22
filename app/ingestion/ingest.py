@@ -257,34 +257,36 @@ def ingest_file(
 
         if suffix == ".pdf":
 
-            raw_text = read_pdf(path)
+            try:
 
-            print("RAW TEXT LENGTH:", len(raw_text))
+                raw_text = read_pdf(path)
 
+            except Exception as e:
+
+                return {
+                    "status": "error",
+                    "message": f"PDF read failed: {e}"
+                }
 
             text = clean_text(raw_text)
-
-            print("CLEAN TEXT LENGTH:", len(text))
-            print("STEP D")
         elif suffix in [".txt", ".md"]:
 
             with open(
-                path,
-                "r",
-                encoding="utf-8",
-                errors="ignore"
+                    path,
+                    "r",
+                    encoding="utf-8",
+                    errors="ignore"
             ) as f:
-                raw_text = read_pdf(path)
 
-                print("RAW LENGTH =", len(raw_text))
-               
+                raw_text = f.read()
 
-                text = clean_text(raw_text)
+            print("RAW LENGTH =", len(raw_text))
 
-                print("CLEAN LENGTH =", len(text))
-               # text = clean_text(  f.read())
+            text = clean_text(raw_text)
 
-                print("STEP DD")
+            print("CLEAN LENGTH =", len(text))
+
+            print("STEP DD")
         else:
 
             return {
