@@ -1,42 +1,12 @@
-import streamlit as st
 import requests
 import base64
 import os
-import time
 import re
-
-def load_history():
-
-    print("READING FROM:", UPLOAD_HISTORY_FILE)
-
-    if os.path.exists(UPLOAD_HISTORY_FILE):
-
-        df = pd.read_csv(UPLOAD_HISTORY_FILE)
-
-        print("ROWS =", len(df))
-
-        return df
-
-    return pd.DataFrame(
-        columns=[
-            "filename",
-            "date",
-            "time",
-            "chunks",
-            "file_hash"
-        ]
-    )
-# =================================
-# CONFIG
-# =================================
+from app.history.history import save_history,load_history
 
 API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
-from history import UPLOAD_HISTORY_FILE
-import pandas as pd
-from datetime import datetime
-import os
-from datetime import datetime
+from app.history.history import UPLOAD_HISTORY_FILE
 from zoneinfo import ZoneInfo
 
 
@@ -50,94 +20,6 @@ st.set_page_config(
 )
 
 st.title("RIZK AI ASSISTANT")
-
-def add_history(filename, filetype, status):
-
-    now = datetime.now(ZoneInfo("America/Chicago"))
-
-
-
-    history_entry = {
-        "date": now.strftime("%Y-%m-%d"),
-        "time": now.strftime("%H:%M:%S")
-    }
-    new_row = {
-        "date": now.strftime("%Y-%m-%d"),
-        "time": now.strftime("%H:%M:%S"),
-        "filename": filename,
-        "type": filetype,
-        "status": status
-    }
-
-    if os.path.exists(UPLOAD_HISTORY_FILE):
-        df = pd.read_csv(UPLOAD_HISTORY_FILE)
-    else:
-        df = pd.DataFrame(
-            columns=[
-                "date",
-                "time",
-                "filename",
-                "type",
-                "status"
-            ]
-        )
-
-    df = pd.concat(
-        [df, pd.DataFrame([new_row])],
-        ignore_index=True
-    )
-
-    df.to_csv(
-        UPLOAD_HISTORY_FILE,
-        index=False
-    )
-    print("SAVED TO:", UPLOAD_HISTORY_FILE)
-    print(df.tail())
-
-    def save_upload_history(filename, chunks=0, file_hash=""):
-
-        row = {
-            "filename": filename,
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "time": datetime.now().strftime("%H:%M:%S"),
-            "chunks": chunks,
-            "file_hash": file_hash
-        }
-
-        if os.path.exists(UPLOAD_HISTORY_FILE):
-            df = pd.read_csv(UPLOAD_HISTORY_FILE)
-        else:
-            df = pd.DataFrame(
-                columns=[
-                    "filename",
-                    "date",
-                    "time",
-                    "chunks",
-                    "file_hash"
-                ]
-            )
-
-        df = pd.concat(
-            [df, pd.DataFrame([row])],
-            ignore_index=True
-        )
-
-        df.to_csv(
-            UPLOAD_HISTORY_FILE,
-            index=False
-        )
-
-        print("✅ Upload history saved")
-
-    def load_history():
-
-        if os.path.exists(UPLOAD_HISTORY_FILE):
-            return pd.read_csv(
-                UPLOAD_HISTORY_FILE
-            )
-
-        return pd.DataFrame()
-
 # =================================
 # SESSION STATE
 # =================================
@@ -502,10 +384,9 @@ for i, msg in enumerate(st.session_state.messages):
                 )
 
 import os
-import pandas as pd
 from datetime import datetime
 
-HISTORY_FILE = "upload_history.csv"
+
 
 
 def load_history():
@@ -528,13 +409,6 @@ def load_history():
         ]
     )
 
-
-def save_history(df):
-
-    df.to_csv(
-        HISTORY_FILE,
-        index=False
-    )
 
 
 def add_history(
