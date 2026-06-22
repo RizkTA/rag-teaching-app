@@ -386,63 +386,6 @@ for i, msg in enumerate(st.session_state.messages):
 import os
 from datetime import datetime
 
-
-
-
-def load_history():
-
-    if os.path.exists(HISTORY_FILE):
-
-        try:
-            return pd.read_csv(HISTORY_FILE)
-
-        except Exception:
-            pass
-
-    return pd.DataFrame(
-        columns=[
-            "date",
-            "time",
-            "file",
-            "type",
-            "status"
-        ]
-    )
-
-
-
-def add_history(
-    filename,
-    filetype,
-    status
-):
-    from datetime import datetime
-    from zoneinfo import ZoneInfo
-
-    now = datetime.now(ZoneInfo("America/Chicago"))
-
-
-
-    history = load_history()
-
-    new_row = pd.DataFrame([{
-        "date": now.strftime("%Y-%m-%d"),
-        "time": now.strftime("%H:%M:%S"),
-        "file": filename,
-        "type": filetype,
-        "status": status
-    }])
-
-    history = pd.concat(
-        [history, new_row],
-        ignore_index=True
-    )
-
-    save_history(history)
-
-    st.session_state.upload_history = (
-        history.to_dict("records")
-    )
 # =================================
 # UPLOAD SECTION
 # =================================
@@ -452,12 +395,6 @@ def add_history(
 
 import hashlib
 import pandas as pd
-
-# =================================
-# SESSION STATE
-# =================================
-if "upload_history" not in st.session_state:
-    st.session_state.upload_history = []
 
 # =================================
 # HEADER
