@@ -124,7 +124,18 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # CHAT INPUT
 # =================================
 #st.subheader("💬 Chat with RIZK AI")
+from PIL import Image
+import base64
+from io import BytesIO
 
+def encode_small(path, size=(100,100)):
+    img = Image.open(path).resize(size)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+black = encode_small("black.png")
+red   = encode_small("red.png")
 n = 20
 
 html = "<div style='display:flex; width:100%;'>"
