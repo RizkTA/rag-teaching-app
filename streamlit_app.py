@@ -123,7 +123,20 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # =================================
 # CHAT INPUT
 # =================================
-st.subheader("💬 Chat with RIZK AI")
+#st.subheader("💬 Chat with RIZK AI")
+
+n = 20
+
+html = "<div style='display:flex; width:100%;'>"
+
+for i in range(n):
+    img = "red.png" if i % 2 == 0 else "black.png"
+    html += f"<img src='{img}' style='width:{100/n}%; height:auto;'>"
+
+html += "</div>"
+
+st.markdown(html, unsafe_allow_html=True)
+
 query = st.chat_input("Ask RIZK AI")
 
 # =================================
