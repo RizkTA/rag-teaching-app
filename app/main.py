@@ -296,53 +296,51 @@ import os
 import pandas as pd
 from datetime import datetime
 
+from fastapi import UploadFile, File, Form, HTTPException
+import os
+import tempfile
+import traceback
 
-from fastapi import Form
 @app.post("/upload_file")
 async def upload_file(
     file: UploadFile = File(...),
     replace_existing: bool = Form(False)
 ):
 
-    print("UPLOAD STEP 1")
-
     temp_path = None
 
     try:
 
-        print("UPLOAD STEP 2")
+        print("=" * 80)
+        print("UPLOAD STARTED")
+        print("Filename:", file.filename)
+        print("Replace Existing:", replace_existing)
 
-        suffix = os.path.splitext(
-            file.filename
-        )[1]
-
+        suffix = os.path.splitext(file.filename)[1]
         filename = file.filename
 
-        print(
-            "UPLOAD FILENAME:",
-            filename
-        )
+        contents = await file.read()
+
+        print("File Size:", len(contents))
+
+        if len(contents) == 0:
+            raise Exception("Uploaded file is empty")
 
         with tempfile.NamedTemporaryFile(
             delete=False,
             suffix=suffix
         ) as tmp:
 
-            contents = await file.read()
-
-            print(
-                "UPLOAD SIZE:",
-                len(contents)
-            )
-
             tmp.write(contents)
-
             temp_path = tmp.name
 
-        print("UPLOAD STEP 3")
-        print("TEMP PATH:", temp_path)
+        print("Temporary File:", temp_path)
 
-        print("BEFORE INGEST")
+        # -------------------------
+        # INGEST
+        # -------------------------
+
+        print("CALLING INGEST_FILE")
 
         result = ingest_file(
             temp_path,
@@ -350,48 +348,104 @@ async def upload_file(
             replace_existing
         )
 
-        print("AFTER INGEST")
+        print("INGEST RESULT:")
+        print(result)
 
-        if result.get("status") == "error":
+        if not isinstance(result, dict):
 
-            raise HTTPException(
-                status_code=500,
-                detail=result.get(
-                    "message",
-                    "Upload failed"
-                )
+            raise Exception(
+                f"ingest_file returned {type(result)} instead of dict"
             )
 
-        if result.get("status") == "ok":
+        status = result.get("status")
+
+        # -------------------------
+        # SUCCESS
+        # -------------------------
+
+        if status in ["ok", "uploaded"]:
 
             save_history(
                 filename=result.get(
                     "filename",
                     filename
                 ),
-
                 status="uploaded",
-
-                filetype=filename.split(".")[-1].lower(),
-
+                filetype=suffix.replace(".", ""),
                 chunks=result.get(
                     "chunks",
                     0
                 ),
-
                 file_hash=result.get(
                     "file_hash",
                     ""
                 )
             )
 
-        return result
+            print("HISTORY SAVED")
+
+            return result
+
+        # -------------------------
+        # SKIPPED
+        # -------------------------
+
+        if status == "skipped":
+
+            save_history(
+                filename=filename,
+                status="skipped",
+                filetype=suffix.replace(".", ""),
+                chunks=0,
+                file_hash=result.get(
+                    "file_hash",
+                    ""
+                )
+            )
+
+            return result
+
+        # -------------------------
+        # ERROR FROM INGEST
+        # -------------------------
+
+        save_history(
+            filename=filename,
+            status="failed",
+            filetype=suffix.replace(".", ""),
+            chunks=0,
+            file_hash=""
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=result.get(
+                "message",
+                "Unknown ingest error"
+            )
+        )
 
     except Exception as e:
 
         print("UPLOAD ERROR")
-
         traceback.print_exc()
+
+        try:
+
+            save_history(
+                filename=file.filename,
+                status=f"error: {str(e)}",
+                filetype=file.filename.split(".")[-1],
+                chunks=0,
+                file_hash=""
+            )
+
+        except Exception as history_error:
+
+            print(
+                "HISTORY SAVE FAILED:",
+                history_error
+            )
 
         raise HTTPException(
             status_code=500,
@@ -399,8 +453,6 @@ async def upload_file(
         )
 
     finally:
-
-        print("UPLOAD STEP 5")
 
         if (
             temp_path
@@ -410,13 +462,7 @@ async def upload_file(
 
             try:
 
-                os.remove(
-                    temp_path
-                )
-
-                print(
-                    "TEMP FILE REMOVED"
-                )
+                os.remove(temp_path)
 
             except Exception as cleanup_error:
 

@@ -144,7 +144,14 @@ if query:
                 json={"q": query},
                 timeout=120
             )
+            #to delet by nouhad
+            st.write("Status Code:", res.status_code)
 
+            try:
+                st.json(res.json())
+            except Exception:
+                st.code(res.text)
+            #to delete by nouhad
             if res.status_code != 200:
                 st.error("Backend error")
                 st.code(res.text)
