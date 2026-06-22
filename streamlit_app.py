@@ -382,48 +382,52 @@ for i, msg in enumerate(st.session_state.messages):
                 st.caption(
                     best.get("text", "")[:250]
                 )
-
 import os
+import hashlib
+import base64
 from datetime import datetime
+
+import pandas as pd
+import requests
 
 # =================================
 # UPLOAD SECTION
 # =================================
-# ============================================
-# 🚀 RIZK AI Upload System v3
-# ============================================
 
-import hashlib
-import pandas as pd
-
-# =================================
-# HEADER
-# =================================
 st.divider()
-with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False):
- st.subheader("📄 Upload Knowledge Files (Admin)")
 
- password = st.text_input(
-    "Enter upload password",
-    type="password",
-    key="upload_password"
-)
+# =================================
+# ADMIN UPLOAD PANEL
+# =================================
 
- if password:
-    st.session_state.authenticated = (
-        password == UPLOAD_PASSWORD
+with st.sidebar.expander(
+    "📄 Upload Knowledge Files (Admin)",
+    expanded=False
+):
+    st.subheader("📄 Upload Knowledge Files (Admin)")
+
+    password = st.text_input(
+        "Enter upload password",
+        type="password",
+        key="upload_password"
     )
+
+    if password:
+        st.session_state.authenticated = (
+            password == UPLOAD_PASSWORD
+        )
 
 # =================================
 # FILE COLORS
 # =================================
- progress_color = {
+
+progress_color = {
     "pdf": "#ff4b4b",
     "md": "#00c853",
     "txt": "#2196f3"
 }
 
- file_icon = {
+file_icon = {
     "pdf": "📕",
     "md": "🟢",
     "txt": "🔵"
@@ -432,256 +436,286 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
 # =================================
 # HASH FUNCTION
 # =================================
- def compute_hash(file_bytes):
+
+def compute_hash(file_bytes):
     return hashlib.md5(file_bytes).hexdigest()
 
 # =================================
 # MAIN UPLOAD UI
 # =================================
- if st.session_state.authenticated:
 
-     uploaded_files = st.file_uploader(
-         "Drag & Drop files here",
-         type=["pdf", "md", "txt"],
-         accept_multiple_files=True,
-         key="knowledge_upload"
-     )
+if st.session_state.get("authenticated", False):
 
-     if uploaded_files:
+    uploaded_files = st.file_uploader(
+        "Drag & Drop files here",
+        type=["pdf", "md", "txt"],
+        accept_multiple_files=True,
+        key="knowledge_upload"
+    )
 
-         st.markdown("### 📦 Files Ready")
+    if uploaded_files:
 
-         for file in uploaded_files:
-             ext = file.name.split(".")[-1].lower()
+        st.markdown("### 📦 Files Ready")
 
-             icon = file_icon.get(ext, "📄")
+        for file in uploaded_files:
+            ext = file.name.split(".")[-1].lower()
+            icon = file_icon.get(ext, "📄")
+            st.info(f"{icon} {file.name}")
 
-             st.info(f"{icon} {file.name}")
+        replace_existing = st.checkbox(
+            "♻ Replace existing files if duplicates found"
+        )
 
-         replace_existing = st.checkbox(
-             "♻ Replace existing files if duplicates found"
-         )
+        if st.button("🚀 Upload & Ingest All"):
 
-         if st.button("🚀 Upload & Ingest All"):
+            overall_progress = st.progress(0)
+            total_files = len(uploaded_files)
 
-             overall_progress = st.progress(0)
+            for idx, uploaded_file in enumerate(uploaded_files):
 
-             total_files = len(uploaded_files)
+                progress = st.progress(0)
 
-             for idx, uploaded_file in enumerate(uploaded_files):
+                try:
+                    file_bytes = uploaded_file.getvalue()
 
-                 progress = st.progress(0)
+                    files = {
+                        "file": (
+                            uploaded_file.name,
+                            file_bytes,
+                            "application/octet-stream"
+                        )
+                    }
 
-                 try:
+                    data = {
+                        "replace_existing": str(
+                            replace_existing
+                        )
+                    }
 
-                     file_bytes = uploaded_file.getvalue()
+                    progress.progress(25)
 
-                     files = {
-                         "file": (
-                             uploaded_file.name,
-                             file_bytes,
-                             "application/octet-stream"
-                         )
-                     }
+                    res = requests.post(
+                        f"{API_URL}/upload_file",
+                        files=files,
+                        data=data,
+                        timeout=300
+                    )
 
-                     data = {
-                         "replace_existing": str(replace_existing)
-                     }
+                    st.write(
+                        f"{uploaded_file.name}: HTTP {res.status_code}"
+                    )
 
-                     progress.progress(25)
+                    progress.progress(50)
 
-                     res = requests.post(
-                         f"{API_URL}/upload_file",
-                         files=files,
-                         data=data,
-                         timeout=300
-                     )
+                    if res.status_code != 200:
 
-                     st.write(
-                         f"{uploaded_file.name}: HTTP {res.status_code}"
-                     )
+                        st.error(
+                            f"❌ Upload failed for {uploaded_file.name}"
+                        )
+                        continue
 
-                     progress.progress(50)
+                    result = res.json()
 
-                     if res.status_code != 200:
-                         st.error(
-                             f"❌ Upload failed for {uploaded_file.name}"
-                         )
+                    status = result.get(
+                        "status",
+                        "unknown"
+                    )
 
-                         continue
+                    if status == "skipped":
 
-                     result = res.json()
+                        st.warning(
+                            f"⚠️ {uploaded_file.name} already exists"
+                        )
 
-                     status = result.get(
-                         "status",
-                         "unknown"
-                     )
+                    elif status in ["ok", "uploaded"]:
 
-                     if status == "skipped":
+                        chunks = result.get(
+                            "chunks",
+                            0
+                        )
 
-                         st.warning(
-                             f"⚠️ {uploaded_file.name} already exists"
-                         )
+                        st.success(
+                            f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
+                        )
 
-                     elif status in ["ok", "uploaded"]:
+                    else:
 
-                         chunks = result.get("chunks", 0)
+                        st.error(
+                            f"❌ Upload failed for {uploaded_file.name}"
+                        )
 
-                         st.success(
-                             f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
-                         )
+                    progress.progress(100)
 
-                     else:
+                except Exception as e:
 
-                         st.error(
-                             f"❌ Upload failed for {uploaded_file.name}"
-                         )
+                    st.error(
+                        f"❌ Upload failed for {uploaded_file.name}"
+                    )
 
-                     progress.progress(100)
+                    st.code(str(e))
 
-                 except Exception as e:
+                overall_progress.progress(
+                    int(
+                        ((idx + 1) / total_files) * 100
+                    )
+                )
 
-                     st.error(
-                         f"❌ Upload failed for {uploaded_file.name}"
-                     )
+    # ==========================================
+    # Upload History
+    # ==========================================
 
-                     st.code(str(e))
+    st.write(
+        "History file:",
+        UPLOAD_HISTORY_FILE
+    )
 
-                 overall_progress.progress(
-                     int(
-                         ((idx + 1) / total_files) * 100
-                     )
-                 )
+    history_df = load_history()
 
- # ==========================================
- # Upload History
- # ==========================================
- st.write("History file:", UPLOAD_HISTORY_FILE)
+    if not history_df.empty:
 
- history_df = load_history()
+        st.subheader("📜 Upload History")
 
- if not history_df.empty:
+        st.dataframe(
+            history_df.sort_values(
+                by=["date", "time"],
+                ascending=False
+            ),
+            width="stretch"
+        )
 
-     st.subheader("📜 Upload History")
+        col1, col2 = st.columns(2)
 
-     st.dataframe(
-         history_df.sort_values(
-             by=["date", "time"],
-             ascending=False
-         ),
-         width="stretch"
-     )
+        with col1:
 
-     col1, col2 = st.columns(2)
+            st.download_button(
+                label="📥 Download Upload History",
+                data=history_df.to_csv(
+                    index=False
+                ),
+                file_name="upload_history.csv",
+                mime="text/csv",
+                key="download_upload_history"
+            )
 
-     with col1:
-         st.download_button(
-             label="📥 Download Upload History",
-             data=history_df.to_csv(index=False),
-             file_name="upload_history.csv",
-             mime="text/csv",
-             key="download_upload_history"
-         )
+        with col2:
 
-     with col2:
-         if st.button(
-                 "🗑 Clear History",
-                 key="clear_upload_history"
-         ):
-             empty_df = pd.DataFrame(
-                 columns=[
-                     "filename",
-                     "date",
-                     "time",
-                     "chunks",
-                     "file_hash"
-                 ]
-             )
+            if st.button(
+                "🗑 Clear History",
+                key="clear_upload_history"
+            ):
 
-             empty_df.to_csv(
-                 UPLOAD_HISTORY_FILE,
-                 index=False
-             )
+                empty_df = pd.DataFrame(
+                    columns=[
+                        "filename",
+                        "date",
+                        "time",
+                        "chunks",
+                        "file_hash"
+                    ]
+                )
 
-             st.success("✅ Upload history cleared")
-             st.rerun()
+                empty_df.to_csv(
+                    UPLOAD_HISTORY_FILE,
+                    index=False
+                )
 
- # =================================
- # SIDEBAR
- # =================================
+                st.success(
+                    "✅ Upload history cleared"
+                )
+
+                st.rerun()
+
+# =================================
+# SIDEBAR
+# =================================
 
 with st.sidebar:
-     st.header("⚙️ Controls")
 
-     # =========================
-     # CLEAR CHAT
-     # =========================
-     if st.button(
-             "🧹 Clear Chat",
-             key="clear_chat_button"
-     ):
-         st.session_state.messages = []
-         st.rerun()
+    st.header("⚙️ Controls")
 
-     # =========================
-     # BACK BUTTON
-     # =========================
-     if st.button(
-             "⬅️ Back",
-             key="back_button"
-     ):
+    # =========================
+    # CLEAR CHAT
+    # =========================
 
-         if len(st.session_state.messages) > 0:
-             st.session_state.messages.pop()
-             st.rerun()
+    if st.button(
+        "🧹 Clear Chat",
+        key="clear_chat_button"
+    ):
 
-     st.markdown("---")
+        st.session_state.messages = []
+        st.rerun()
 
-# =========================
-# LOGO + TITLE
-# =========================
+    # =========================
+    # BACK BUTTON
+    # =========================
+
+    if st.button(
+        "⬅️ Back",
+        key="back_button"
+    ):
+
+        if len(st.session_state.messages) > 0:
+
+            st.session_state.messages.pop()
+            st.rerun()
+
+    st.markdown("---")
+
+    # =========================
+    # LOGO + TITLE
+    # =========================
+
     try:
 
-        with open("RIZKRED.png", "rb") as f:
-         data = base64.b64encode(
-             f.read()
-         ).decode()
+        with open(
+            "RIZKRED.png",
+            "rb"
+        ) as f:
+
+            data = base64.b64encode(
+                f.read()
+            ).decode()
+
         st.markdown(
-         '''
-         📕📗📘📙📚📓📒📕📗📘📚📕
-         <h2 style="margin:0;color:#333;">
-             Dr. Nouhad Rizk
-         </h2>
+            """
+            📕📗📘📙📚📓📒📕📗📘📚📕
 
-         <b>Piper Professor & Director of Undergraduate Studies</b><br>
-         <i>Computer Science Department</i>
+            <h2 style="margin:0;color:#333;">
+                Dr. Nouhad Rizk
+            </h2>
 
-         <hr>
+            <b>Piper Professor & Director of Undergraduate Studies</b><br>
+            <i>Computer Science Department</i>
 
-         📍 <b>Address:</b> 3551 Cullen Blvd, Houston, TX 77204<br>
+            <hr>
 
-         📞 <b>Phone:</b>
-         <a href="tel:7137433710">
-             713-743-3710
-         </a><br>
+            📍 <b>Address:</b>
+            3551 Cullen Blvd, Houston, TX 77204<br>
 
-         🌐 <b>Website:</b>
-         <a href="https://www.uh.edu/nouhadrizk"
-            target="_blank">
-            uh.edu/nouhadrizk
-         </a>
-         ''',
-         unsafe_allow_html=True
-     )
+            📞 <b>Phone:</b>
+            <a href="tel:7137433710">
+                713-743-3710
+            </a><br>
 
+            🌐 <b>Website:</b>
+            <a href="https://www.uh.edu/nouhadrizk"
+               target="_blank">
+               uh.edu/nouhadrizk
+            </a>
+            """,
+            unsafe_allow_html=True
+        )
 
     except Exception:
 
-     st.markdown("📘 RIZK AI Assistant")
-with st.sidebar:
+        st.markdown(
+            "📘 RIZK AI Assistant"
+        )
+
     # =================================
     # FOOTER
     # =================================
+
     st.divider()
 
     st.markdown(
@@ -702,7 +736,7 @@ with st.sidebar:
                 📖
             </div>
 
-             Dr. Nouhad Rizk • AI Knowledge Base
+            Dr. Nouhad Rizk • AI Knowledge Base
 
         </div>
 
@@ -716,4 +750,3 @@ with st.sidebar:
         """,
         unsafe_allow_html=True
     )
-
