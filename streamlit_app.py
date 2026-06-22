@@ -676,7 +676,7 @@ with st.sidebar.expander(" 📄 Upload Knowledge Files (Admin)", expanded=False)
      )
 
 
-     except Exception:
+    except Exception:
 
      st.markdown("📘 RIZK AI Assistant")
 with st.sidebar:
