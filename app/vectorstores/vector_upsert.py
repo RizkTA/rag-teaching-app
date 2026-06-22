@@ -1,5 +1,6 @@
 from app.embeddings.embedder import embed_texts
-
+import gc
+import psutil
 
 class VectorUpsert:
 
@@ -10,24 +11,18 @@ class VectorUpsert:
     def upsert_chunks(self, chunks):
 
         print("🔥 upsert_chunks start")
-        print("upsert_chunks received", len(chunks), "chunks")
-        # =================================
-        # EMPTY CHECK
-        # =================================
-        if not chunks:
 
-            print("⚠️ No chunks received")
+        if not chunks:
 
             return {
                 "status": "empty",
                 "inserted": 0
             }
 
-        # =================================
+        # =====================
         # CLEAN CHUNKS
-        # =================================
+        # =====================
         valid_chunks = []
-        texts = []
 
         for c in chunks:
 
@@ -46,12 +41,9 @@ class VectorUpsert:
             if not text:
                 continue
 
-            texts.append(text)
             valid_chunks.append(c)
 
-        if not texts:
-
-            print("⚠️ No valid texts")
+        if not valid_chunks:
 
             return {
                 "status": "empty_text",
@@ -59,76 +51,140 @@ class VectorUpsert:
             }
 
         print(
-            f"🔥 embedding {len(texts)} chunks"
+            "Valid chunks:",
+            len(valid_chunks)
         )
 
-        # =================================
-        # EMBEDDINGS
-        # =================================
-
-
-        import time
-
-        t0 = time.time()
-
-        print("Calling embed_texts")
-        print("LEN(texts) =", len(texts))
-        BATCH_SIZE = 16
+        # =====================
+        # BATCH PROCESSING
+        # =====================
+        BATCH_SIZE = 8
 
         total_inserted = 0
 
-        for i in range(0, len(valid_chunks), BATCH_SIZE):
+        total_batches = (
+            len(valid_chunks) + BATCH_SIZE - 1
+        ) // BATCH_SIZE
 
-            print(f"Processing batch {i // BATCH_SIZE + 1}")
+        for i in range(
+                0,
+                len(valid_chunks),
+                BATCH_SIZE
+        ):
 
-            batch_chunks = valid_chunks[i:i + BATCH_SIZE]
+            batch_num = i // BATCH_SIZE + 1
 
-            batch_texts = [
-                str(c["text"]).strip()
-                for c in batch_chunks
+            print(
+                f"🔥 Processing batch "
+                f"{batch_num}/{total_batches}"
+            )
+
+            batch_chunks = valid_chunks[
+                i:i + BATCH_SIZE
             ]
 
-            print("Embedding", len(batch_texts), "texts")
+            batch_texts = []
 
-            vectors = embed_texts(batch_texts)
+            for c in batch_chunks:
+
+                batch_texts.append(
+                    str(c["text"]).strip()
+                )
+
+            print(
+                "Embedding",
+                len(batch_texts),
+                "texts"
+            )
+
+            vectors = embed_texts(
+                batch_texts
+            )
+
+            if vectors is None:
+
+                raise Exception(
+                    "embed_texts returned None"
+                )
+
+            if len(vectors) != len(batch_chunks):
+
+                raise Exception(
+                    f"Vector mismatch "
+                    f"{len(vectors)} vs "
+                    f"{len(batch_chunks)}"
+                )
 
             ids = []
+
             payloads = []
 
             for j, chunk in enumerate(batch_chunks):
-                metadata = chunk.get("metadata", {})
 
-                ids.append(chunk["id"])
+                metadata = chunk.get(
+                    "metadata",
+                    {}
+                )
+
+                ids.append(
+                    chunk["id"]
+                )
 
                 payloads.append({
-                    "text": batch_texts[j],
-                    "source": chunk.get("source", "unknown"),
-                    "filename": metadata.get(
-                        "filename",
-                        chunk.get("source", "unknown")
-                    ),
-                    "chunk_id": chunk.get(
-                        "chunk_id",
-                        i + j
-                    ),
-                    "language": chunk.get(
-                        "language",
-                        "text"
-                    ),
-                    "topic": chunk.get(
-                        "topic",
-                        "general"
-                    ),
-                    "file_hash": metadata.get(
-                        "file_hash"
-                    ),
-                    "is_code": metadata.get(
-                        "is_code",
-                        False
-                    )
+
+                    "text":
+                        batch_texts[j],
+
+                    "source":
+                        chunk.get(
+                            "source",
+                            "unknown"
+                        ),
+
+                    "filename":
+                        metadata.get(
+                            "filename",
+                            chunk.get(
+                                "source",
+                                "unknown"
+                            )
+                        ),
+
+                    "chunk_id":
+                        chunk.get(
+                            "chunk_id",
+                            i + j
+                        ),
+
+                    "language":
+                        chunk.get(
+                            "language",
+                            "text"
+                        ),
+
+                    "topic":
+                        chunk.get(
+                            "topic",
+                            "general"
+                        ),
+
+                    "file_hash":
+                        metadata.get(
+                            "file_hash"
+                        ),
+
+                    "is_code":
+                        metadata.get(
+                            "is_code",
+                            False
+                        )
                 })
 
-            print("Upserting", len(ids), "vectors")
+            print(
+                "Upserting",
+                len(ids),
+                "vectors"
+            )
 
             self.store.upsert(
                 ids,
@@ -138,9 +194,30 @@ class VectorUpsert:
 
             total_inserted += len(ids)
 
+            print(
+                "MEMORY MB:",
+                round(
+                    psutil.Process()
+                    .memory_info()
+                    .rss / 1024 / 1024,
+                    1
+                )
+            )
+
+            del vectors
+            del ids
+            del payloads
+            del batch_texts
+            del batch_chunks
+
+            gc.collect()
+
         print("🔥 qdrant complete")
 
         return {
+
             "status": "ok",
-            "inserted": total_inserted
+
+            "inserted":
+                total_inserted
         }

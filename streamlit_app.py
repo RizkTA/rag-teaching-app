@@ -222,8 +222,8 @@ with col1:
         st.write("📕")
 
 with col2:
-    st.title("📕 RIZK AI Assistant")
-    st.markdown("AI-powered Teaching Assistant")
+    st.title("📕 AI-powered Teaching Assistant")
+   # st.markdown("   AI-powered Teaching Assistant")
 
 st.divider()
 
@@ -242,7 +242,6 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # CHAT INPUT
 # =================================
 st.subheader("💬 Chat with RIZK AI")
-
 query = st.chat_input("Ask RIZK AI")
 
 # =================================

@@ -54,6 +54,11 @@ def embed_texts(texts):
 
     model = get_embedder()
 
-    vectors = list(model.embed(texts))
+    vectors = list(
+        model.embed(texts)
+    )
 
-    return [v.tolist() for v in vectors]
+    return [
+        v.tolist()
+        for v in vectors
+    ]
