@@ -123,10 +123,10 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # =================================
 # CHAT INPUT
 # =================================
-<link rel="icon" href="favicon.ico" type="image/x-icon">
+#<link rel="icon" href="favicon.ico" type="image/x-icon">
 st.set_page_config(
     page_title="Your App",
-    page_icon="favicon_black.ico"
+    page_icon="favicon.ico"
 )
 query = st.chat_input("Ask RIZK AI")
 
