@@ -20,6 +20,19 @@ st.set_page_config(
 )
 
 st.title("RIZK AI ASSISTANT")
+
+
+icon_files = [
+    "favicon.ico",
+    "favicon_black.ico"
+
+]
+
+cols = st.columns(9)
+
+for i, col in enumerate(cols):
+    with col:
+        st.image(icon_files[i % 3], width=40)
 # =================================
 # SESSION STATE
 # =================================
@@ -104,7 +117,7 @@ with col1:
         st.write("📕")
 
 with col2:
-    st.title("📕 AI-powered Teaching Assistant")
+    st.title("📕 AI-powered TA")
    # st.markdown("   AI-powered Teaching Assistant")
 
 st.divider()
