@@ -298,6 +298,7 @@ from fastapi import UploadFile, File, Form, HTTPException
 import os
 import tempfile
 import traceback
+
 @app.post("/upload_file")
 async def upload_file(
     file: UploadFile = File(...),
@@ -352,24 +353,19 @@ async def upload_file(
 
         print("AFTER INGEST")
 
-        save_history(
-            filename=filename,
-            status=result["status"],
-            filetype="pdf",
-            chunks=result.get("chunks", 0),
-            file_hash=result.get("file_hash", "")
-        )
-
-        if result.get("status") == "error":
-
-            raise HTTPException(
-                status_code=500,
-                detail=result.get(
-                    "message",
-                    "Upload failed"
-                )
+        if result.get("status") in ["ok", "uploaded"]:
+            save_history(
+                filename=filename,
+                status="uploaded",
+                filetype=filename.split(".")[-1].lower(),
+                chunks=result.get("chunks", 0),
+                file_hash=result.get("file_hash", "")
             )
-
+        if result.get("status") == "skipped":
+            return {
+                "status": "skipped",
+                "message": result.get("message", "")
+            }
         if result.get("status") == "ok":
 
             save_history(

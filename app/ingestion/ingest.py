@@ -257,10 +257,16 @@ def ingest_file(
         # --------------------------------------------------
 
         exists = file_exists(store, file_hash)
+        print("FILE EXISTS:", exists)
+        print("REPLACE EXISTING:", replace_existing)
 
         print("FILE EXISTS:", exists)
 
         if exists:
+
+            print("Deleting old version")
+
+            store.delete_by_file_hash(file_hash)
 
             if replace_existing:
 
@@ -290,10 +296,28 @@ def ingest_file(
         if suffix == ".pdf":
 
             print("📄 Reading PDF")
+            import psutil
 
+            print(
+                "MEMORY MB:",
+                round(
+                    psutil.Process().memory_info().rss
+                    / 1024 / 1024,
+                    1
+                )
+            )
             raw_text = read_pdf(path)
-
+            print(
+                "PDF rawww TEXT LENGTH:",
+                len(raw_text)
+            )
             text = clean_text(raw_text)
+            print(
+                "PDF TEXT LENGTH:",
+                len(text)
+            )
+            print("UPLOAD SIZE MB:",
+                  round(len(raw_text) / 1024 / 1024, 2))
 
         elif suffix in [".txt", ".md"]:
 
@@ -337,12 +361,12 @@ def ingest_file(
         mem("Before chunking")
 
         chunks = chunk_text(text)
-
+        print("TOTAL CHUNKS:", len(chunks))
         mem("After chunking")
 
         print("TOTAL CHUNKS:", len(chunks))
 
-        MAX_CHUNKS = 40
+        MAX_CHUNKS = 25
 
         if len(chunks) > MAX_CHUNKS:
 

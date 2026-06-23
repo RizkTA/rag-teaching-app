@@ -109,10 +109,9 @@ st.divider()
 
 
 icon_files = [
-    "red.png",
-    "black.png",
-    "red_transparent.png",
-    "black_transparent.png","white_red_reversed"
+     "red_transparent.png",
+    "black_transparent.png",
+    "white_red_reversed"
 
 ]
 
@@ -120,7 +119,7 @@ cols = st.columns(8)
 
 for i, col in enumerate(cols):
     with col:
-        st.image(icon_files[i % 4], width=30)
+        st.image(icon_files[i % 3], width=45)
 # =================================
 # LOTTIE ICON
 # =================================
