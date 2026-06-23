@@ -111,7 +111,7 @@ st.divider()
 icon_files = [
      "red_transparent.png",
     "black_transparent.png",
-    "white_red_reversed"
+    "white_red_reversed.png"
 
 ]
 
