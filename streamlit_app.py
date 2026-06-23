@@ -2,7 +2,7 @@ import requests
 import base64
 import os
 import re
-from history import load_history
+from history import load_history, save_history
 
 API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
@@ -536,11 +536,18 @@ if st.session_state.get("authenticated", False):
 
                     result = res.json()
 
+                    save_history(
+                        filename=uploaded_file.name,
+                        status=result.get("status", "unknown"),
+                        filetype=uploaded_file.name.split(".")[-1].lower(),
+                        chunks=result.get("chunks", 0),
+                        file_hash=result.get("file_hash", "")
+                    )
+
                     status = result.get(
                         "status",
                         "unknown"
                     )
-
                     if status == "skipped":
 
                         st.warning(
@@ -583,7 +590,16 @@ if st.session_state.get("authenticated", False):
     # ==========================================
     # Upload History
     # ==========================================
+    st.write(
+        "CSV exists:",
+        os.path.exists(UPLOAD_HISTORY_FILE)
+    )
 
+    if os.path.exists(UPLOAD_HISTORY_FILE):
+        st.write(
+            "CSV size:",
+            os.path.getsize(UPLOAD_HISTORY_FILE)
+        )
 
 
     history_df = load_history()
