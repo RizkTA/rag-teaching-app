@@ -2,7 +2,15 @@ import os
 import pandas as pd
 from datetime import datetime
 
-UPLOAD_HISTORY_FILE = "upload_history.csv"
+#UPLOAD_HISTORY_FILE = "upload_history.csv"
+import os
+import pandas as pd
+
+UPLOAD_HISTORY_FILE = os.path.join(
+    os.path.dirname(__file__),
+    "upload_history.csv"
+)
+
 def load_history():
 
     print(
@@ -11,9 +19,19 @@ def load_history():
             UPLOAD_HISTORY_FILE
         )
     )
+    #print("READING:", os.path.abspath(UPLOAD_HISTORY_FILE))
+    columns = [
+        "date",
+        "time",
+        "filename",
+        "type",
+        "status",
+        "chunks",
+        "file_hash"
+    ]
 
     if os.path.exists(
-            UPLOAD_HISTORY_FILE
+        UPLOAD_HISTORY_FILE
     ):
 
         try:
@@ -22,17 +40,25 @@ def load_history():
                 UPLOAD_HISTORY_FILE
             )
 
-            for col in [
-                "date",
-                "time",
-                "filename",
-                "status",
-                "chunks",
-                "file_hash"
-            ]:
+            print(
+                "ROWS READ:",
+                len(df)
+            )
+
+            print(
+                "CSV COLUMNS:",
+                list(df.columns)
+            )
+
+            # Add missing columns
+            for col in columns:
 
                 if col not in df.columns:
+
                     df[col] = ""
+
+            # Reorder columns
+            df = df[columns]
 
             return df
 
@@ -43,17 +69,15 @@ def load_history():
                 e
             )
 
-    return pd.DataFrame(
-        columns=[
-            "date",
-            "time",
-            "filename",
-            "status",
-            "chunks",
-            "file_hash"
-        ]
-    )
+    else:
 
+        print(
+            "⚠ History file does not exist"
+        )
+
+    return pd.DataFrame(
+        columns=columns
+    )
 def save_history(
         filename,
         status="uploaded",
@@ -118,7 +142,7 @@ def save_history(
         UPLOAD_HISTORY_FILE,
         index=False
     )
-
+    print("WRITING:", os.path.abspath(UPLOAD_HISTORY_FILE))
     print(
         "✅ HISTORY SAVED"
     )

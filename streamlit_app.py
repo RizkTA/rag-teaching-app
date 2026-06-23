@@ -127,15 +127,15 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 from PIL import Image
 import base64
 from io import BytesIO
+import base64
 
-def encode_small(path, size=(100,100)):
-    img = Image.open(path).resize(size)
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+def to_base64(path):
+    with open(path, "rb") as f:
+        return "data:image/png;base64," + base64.b64encode(f.read()).decode()
 
-black = encode_small("black.png")
-red   = encode_small("red.png")
+black_icon = to_base64("black_icon.ico")
+red_icon = to_base64("red_icon.ico")
+
 n = 20
 
 html = "<div style='display:flex; width:100%;'>"
@@ -595,16 +595,38 @@ if st.session_state.get("authenticated", False):
     # Upload History
     # ==========================================
 
+
+
+    history_df = load_history()
     st.write(
         "History file:",
         UPLOAD_HISTORY_FILE
     )
+    st.write(
+        "History file:",
+        os.path.abspath(
+            UPLOAD_HISTORY_FILE
+        )
+    )
 
-    history_df = load_history()
+    st.write(
+        "Rows:",
+        len(history_df)
+    )
 
-    if not history_df.empty:
+    st.write(
+        "Columns:",
+        history_df.columns.tolist()
+    )
 
-        st.subheader("📜 Upload History")
+
+    st.subheader("📜 Upload History")
+
+    if history_df.empty:
+
+        st.info("No upload history found.")
+
+    else:
 
         st.dataframe(
             history_df.sort_values(
@@ -614,47 +636,46 @@ if st.session_state.get("authenticated", False):
             width="stretch"
         )
 
-        col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-        with col1:
+    with col1:
 
-            st.download_button(
-                label="📥 Download Upload History",
-                data=history_df.to_csv(
-                    index=False
-                ),
-                file_name="upload_history.csv",
-                mime="text/csv",
-                key="download_upload_history"
-            )
+        st.download_button(
+            label="📥 Download Upload History",
+            data=history_df.to_csv(index=False),
+            file_name="upload_history.csv",
+            mime="text/csv",
+            key="download_upload_history"
+        )
 
-        with col2:
+    with col2:
 
-            if st.button(
+        if st.button(
                 "🗑 Clear History",
                 key="clear_upload_history"
-            ):
+        ):
+            empty_df = pd.DataFrame(
+                columns=[
+                    "date",
+                    "time",
+                    "filename",
+                    "type",
+                    "status",
+                    "chunks",
+                    "file_hash"
+                ]
+            )
 
-                empty_df = pd.DataFrame(
-                    columns=[
-                        "filename",
-                        "date",
-                        "time",
-                        "chunks",
-                        "file_hash"
-                    ]
-                )
+            empty_df.to_csv(
+                UPLOAD_HISTORY_FILE,
+                index=False
+            )
 
-                empty_df.to_csv(
-                    UPLOAD_HISTORY_FILE,
-                    index=False
-                )
+            st.success(
+                "✅ Upload history cleared"
+            )
 
-                st.success(
-                    "✅ Upload history cleared"
-                )
-
-                st.rerun()
+            st.rerun()
 
 # =================================
 # SIDEBAR
