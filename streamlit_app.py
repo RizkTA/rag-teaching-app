@@ -128,14 +128,15 @@ from PIL import Image
 import base64
 from io import BytesIO
 import base64
+from io import BytesIO
 
-def to_base64(path):
-    with open(path, "rb") as f:
-        return "data:image/png;base64," + base64.b64encode(f.read()).decode()
+def image_to_base64(img):
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
-black_icon = to_base64("black_icon.ico")
-red_icon = to_base64("red_icon.ico")
-
+black_icon = image_to_base64(black_img.resize((64,64)))
+red_icon   = image_to_base64(red_img.resize((64,64)))
 n = 20
 
 html = "<div style='display:flex; width:100%;'>"
