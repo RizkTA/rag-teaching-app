@@ -2,7 +2,6 @@ import os
 import pandas as pd
 from datetime import datetime
 
-#UPLOAD_HISTORY_FILE = "upload_history.csv"
 import os
 import pandas as pd
 

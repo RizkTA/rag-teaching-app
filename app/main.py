@@ -1,7 +1,5 @@
-import uuid
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
-from fastapi import Form
 import psutil
 import os
 print(
@@ -9,10 +7,7 @@ print(
     psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
 )
 print("🔥 BEFORE INGEST IMPORT")
-import os
-import pandas as pd
-from datetime import datetime
-from app.history.history import save_history
+from history import save_history
 print("🔥 AFTER INGEST IMPORT")
 print("🔥 MAIN.PY LOADED")
 
@@ -68,7 +63,7 @@ def qdrant_count():
     )
 
     return count
-from app.embeddings.embedder import get_embedder
+
 
 @app.get("/versions")
 def versions():
@@ -294,21 +289,10 @@ def query(req: QueryRequest):
 # =====================================
 # FILE UPLOAD
 # =====================================
-from fastapi import UploadFile, File
-import tempfile
-import os
 
-from app.ingestion.ingest import ingest_file, get_file_hash, file_exists,chunk_text,get_upserter, get_store
+from app.ingestion.ingest import get_store
 
-
-from fastapi import UploadFile, File
-import tempfile
-import os
-import traceback
 from app.ingestion.ingest import ingest_file
-import os
-import pandas as pd
-from datetime import datetime
 
 from fastapi import UploadFile, File, Form, HTTPException
 import os
@@ -367,6 +351,14 @@ async def upload_file(
         )
 
         print("AFTER INGEST")
+
+        save_history(
+            filename=filename,
+            status=result["status"],
+            filetype="pdf",
+            chunks=result.get("chunks", 0),
+            file_hash=result.get("file_hash", "")
+        )
 
         if result.get("status") == "error":
 

@@ -2,14 +2,11 @@ import requests
 import base64
 import os
 import re
-from app.history.history import save_history,load_history
+from history import load_history
 
 API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
-from app.history.history import UPLOAD_HISTORY_FILE
-from zoneinfo import ZoneInfo
-
-
+from history import UPLOAD_HISTORY_FILE
 
 import streamlit as st
 
@@ -409,7 +406,6 @@ for i, msg in enumerate(st.session_state.messages):
 import os
 import hashlib
 import base64
-from datetime import datetime
 
 import pandas as pd
 import requests
@@ -615,18 +611,20 @@ if st.session_state.get("authenticated", False):
 
     st.subheader("📜 Upload History")
 
-    if history_df.empty:
-
-        st.info("No upload history found.")
-
-    else:
+    if len(history_df) > 0:
 
         st.dataframe(
             history_df.sort_values(
                 by=["date", "time"],
                 ascending=False
             ),
-            width="stretch"
+            use_container_width=True
+        )
+
+    else:
+
+        st.warning(
+            "No upload history found."
         )
 
     col1, col2 = st.columns(2)
