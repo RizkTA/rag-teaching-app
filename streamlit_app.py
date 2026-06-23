@@ -109,16 +109,18 @@ st.divider()
 
 
 icon_files = [
-    "favicon.ico",
-    "favicon_black.ico"
+    "red.png",
+    "black.png",
+    "red_transparent.png",
+    "black_transparent.png","white_red_reversed"
 
 ]
 
-cols = st.columns(6)
+cols = st.columns(8)
 
 for i, col in enumerate(cols):
     with col:
-        st.image(icon_files[i % 2], width=40)
+        st.image(icon_files[i % 4], width=30)
 # =================================
 # LOTTIE ICON
 # =================================
@@ -590,39 +592,9 @@ if st.session_state.get("authenticated", False):
     # ==========================================
     # Upload History
     # ==========================================
-    st.write(
-        "CSV exists:",
-        os.path.exists(UPLOAD_HISTORY_FILE)
-    )
-
-    if os.path.exists(UPLOAD_HISTORY_FILE):
-        st.write(
-            "CSV size:",
-            os.path.getsize(UPLOAD_HISTORY_FILE)
-        )
 
 
     history_df = load_history()
-    st.write(
-        "History file:",
-        UPLOAD_HISTORY_FILE
-    )
-    st.write(
-        "History file:",
-        os.path.abspath(
-            UPLOAD_HISTORY_FILE
-        )
-    )
-
-    st.write(
-        "Rows:",
-        len(history_df)
-    )
-
-    st.write(
-        "Columns:",
-        history_df.columns.tolist()
-    )
 
 
     st.subheader("📜 Upload History")
