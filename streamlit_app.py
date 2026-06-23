@@ -28,11 +28,11 @@ icon_files = [
 
 ]
 
-cols = st.columns(9)
+cols = st.columns(6)
 
 for i, col in enumerate(cols):
     with col:
-        st.image(icon_files[i % 3], width=40)
+        st.image(icon_files[i % 2], width=40)
 # =================================
 # SESSION STATE
 # =================================
@@ -138,7 +138,7 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # =================================
 #<link rel="icon" href="favicon.ico" type="image/x-icon">
 st.set_page_config(
-    page_title="Your App",
+    page_title="RIZK AI ASSISTANT",
     page_icon="favicon.ico"
 )
 query = st.chat_input("Ask RIZK AI")
