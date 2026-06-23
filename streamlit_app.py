@@ -21,18 +21,6 @@ st.set_page_config(
 
 st.title("RIZK AI ASSISTANT")
 
-
-icon_files = [
-    "favicon.ico",
-    "favicon_black.ico"
-
-]
-
-cols = st.columns(6)
-
-for i, col in enumerate(cols):
-    with col:
-        st.image(icon_files[i % 2], width=40)
 # =================================
 # SESSION STATE
 # =================================
@@ -122,6 +110,18 @@ with col2:
 
 st.divider()
 
+
+icon_files = [
+    "favicon.ico",
+    "favicon_black.ico"
+
+]
+
+cols = st.columns(6)
+
+for i, col in enumerate(cols):
+    with col:
+        st.image(icon_files[i % 2], width=40)
 # =================================
 # LOTTIE ICON
 # =================================
