@@ -100,25 +100,59 @@ def clean_text(text):
 # ==========================================
 # PDF
 # ==========================================
+import fitz
+import psutil
+
+
 def read_pdf(path: str) -> str:
-    reader = PdfReader(path)
+
+    print("📖 START PDF READ")
+
+    doc = fitz.open(path)
 
     pages = []
 
-    for page in reader.pages:
+    MAX_PAGES = 200
+
+    total_pages = min(
+        len(doc),
+        MAX_PAGES
+    )
+
+    print(
+        f"READING {total_pages} PAGES"
+    )
+
+    for page_num in range(total_pages):
 
         try:
 
-            content = page.extract_text()
+            page = doc[page_num]
 
-            if content:
-                pages.append(content)
+            text = page.get_text()
 
-        except Exception:
-            continue
+            if text:
+                pages.append(text)
 
-    return "\n".join(pages)
+        except Exception as e:
 
+            print(
+                f"PAGE {page_num} ERROR:",
+                e
+            )
+
+    doc.close()
+
+    full_text = "\n".join(pages)
+
+    print(
+        "TEXT LENGTH:",
+        len(full_text)
+    )
+
+    print("✅ PDF READ COMPLETE")
+
+    return full_text
 
 # ==========================================
 # CHUNKING

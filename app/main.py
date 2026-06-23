@@ -329,14 +329,23 @@ async def upload_file(
             suffix=suffix
         ) as tmp:
 
-            contents = await file.read()
+            total_size = 0
+
+            while True:
+
+                chunk = await file.read(1024 * 1024)
+
+                if not chunk:
+                    break
+
+                total_size += len(chunk)
+
+                tmp.write(chunk)
 
             print(
                 "UPLOAD SIZE:",
-                len(contents)
+                total_size
             )
-
-            tmp.write(contents)
 
             temp_path = tmp.name
 
