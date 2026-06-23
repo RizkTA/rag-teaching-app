@@ -123,32 +123,11 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # =================================
 # CHAT INPUT
 # =================================
-#st.subheader("💬 Chat with RIZK AI")
-from PIL import Image
-import base64
-from io import BytesIO
-import base64
-from io import BytesIO
-
-def image_to_base64(img):
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
-
-black_icon = image_to_base64(black_img.resize((64,64)))
-red_icon   = image_to_base64(red_img.resize((64,64)))
-n = 20
-
-html = "<div style='display:flex; width:100%;'>"
-
-for i in range(n):
-    img = "red.png" if i % 2 == 0 else "black.png"
-    html += f"<img src='{img}' style='width:{100/n}%; height:auto;'>"
-
-html += "</div>"
-
-st.markdown(html, unsafe_allow_html=True)
-
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+st.set_page_config(
+    page_title="Your App",
+    page_icon="favicon_black.ico"
+)
 query = st.chat_input("Ask RIZK AI")
 
 # =================================
