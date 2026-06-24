@@ -351,16 +351,7 @@ async def upload_file(
                 "UPLOAD SIZE MB:",
                 round(size_mb, 2)
             )
-            from fastapi import HTTPException
-            # TEMP TEST
-            if size_mb > 15:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        f"PDF too large "
-                        f"({round(size_mb, 2)} MB)"
-                    )
-                )
+
 
             temp_path = tmp.name
 

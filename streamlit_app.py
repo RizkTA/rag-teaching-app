@@ -91,17 +91,6 @@ st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 # HEADER
 # =================================
 
-# 1. Create columns (adjust the width ratio as needed, e.g., 1 for the icon, 5 for the title)
-col1, col2 = st.columns([1, 5])
-
-# 2. Display the image in the first column
-with col1:
-       st.image("white_red_reversed.png", width=45)  # Adjust the width to fit your layout
-
-   # 3. Display the heading in the second column
-with col2:
-       st.markdown("## AI-powered TA")
-
 st.divider()
 cols = st.columns(8)
 
