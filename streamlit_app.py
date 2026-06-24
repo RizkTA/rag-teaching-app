@@ -9,11 +9,11 @@ from app.history import UPLOAD_HISTORY_FILE
 
 import streamlit as st
 
-#st.set_page_config(
-#    page_title="RIZK AI ASSISTANT",
-#    page_icon="📕",   # optional
-#    layout="wide"
-#)
+st.set_page_config(
+   page_title="RIZK AI ASSISTANT",
+   page_icon="favicon.ico",   # optional
+   layout="wide"
+)
 
 #st.title("RIZK AI ASSISTANT")
 st.markdown("""
@@ -120,11 +120,11 @@ st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 # =================================
 
 st.divider()
-cols = st.columns(11)
+#cols = st.columns(11)
 
-for i, col in enumerate(cols):
-    with col:
-        st.image("white_red_reversed.png", width=50)
+#for i, col in enumerate(cols):
+#    with col:
+#        st.image("white_red_reversed.png", width= 50)
 
 # =================================
 # LOTTIE ICON
@@ -141,10 +141,7 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # CHAT INPUT
 # =================================
 #<link rel="icon" href="favicon.ico" type="image/x-icon">
-st.set_page_config(
-    page_title="RIZK AI ASSISTANT",
-    page_icon="favicon.ico"
-)
+
 query = st.chat_input("Ask RIZK AI anything.....")
 
 # =================================
@@ -425,7 +422,8 @@ st.divider()
 # =================================
 # ADMIN UPLOAD PANEL
 # =================================
-
+with st.sidebar:
+    st.image("white_red_reversed.png", width=200)
 with st.sidebar.expander(
     "📄 Upload Knowledge Files (Admin)",
     expanded=False
@@ -710,14 +708,14 @@ with st.sidebar:
             data = base64.b64encode(
                 f.read()
             ).decode()
-        st.markdown("📕📗📘📙📚📓📒📕📗📘📚📕")
+        st.markdown("   📕📗📘📙📚📓📒📕📗📘📚📕")
         col1, col2, col3 = st.columns([1, 2, 1])
 
         with col2:
             st.image("RIZKRED.png", width=150)
         st.markdown(
             """
-            📕📗📘📙📚📓📒📕📗📘📚📕
+               📕📗📘📙📚📓📒📕📗📘📚📕
           
             <h2 style="margin:0;color:#333;">
                 Dr. Nouhad Rizk
