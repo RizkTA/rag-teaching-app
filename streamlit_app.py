@@ -121,7 +121,6 @@ st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 # =================================
 
 st.divider()
-📕📗📘📙📚📓📒📕📗📘📚📕
 #cols = st.columns(11)
 
 #for i, col in enumerate(cols):
@@ -716,7 +715,7 @@ with st.sidebar:
     try:
 
         with open(
-            "RIZKRED.png",
+            "RIZKRED2.png.png",
             "rb"
         ) as f:
 
