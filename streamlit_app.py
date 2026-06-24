@@ -40,10 +40,11 @@ with col1:
     - Textbooks
     - Research Papers
     - Coding Assignments
+     📕📗📘📙📚📓📒📕📗📘📚📕
     """)
 
 with col2:
-    st.image("white_red_reversed.png", width=180)
+    st.markdown("")
 
 # =================================
 # SESSION STATE
@@ -423,7 +424,20 @@ st.divider()
 # ADMIN UPLOAD PANEL
 # =================================
 with st.sidebar:
-    st.image("white_red_reversed.png", width=200)
+
+        with open(
+            "white_red_reversed.png",
+            "rb"
+        ) as f:
+            data = base64.b64encode(
+                f.read()
+            ).decode()
+        st.markdown("   📕📗📘📙📚📓📒📕📗📘📚📕")
+        col1, col2, col3 = st.columns([1, 2, 1])
+
+        with col2:
+            st.image("white_red_reversed.png", width=150)
+
 with st.sidebar.expander(
     "📄 Upload Knowledge Files (Admin)",
     expanded=False
@@ -708,14 +722,14 @@ with st.sidebar:
             data = base64.b64encode(
                 f.read()
             ).decode()
-        st.markdown("   📕📗📘📙📚📓📒📕📗📘📚📕")
+
         col1, col2, col3 = st.columns([1, 2, 1])
 
         with col2:
             st.image("RIZKRED.png", width=150)
         st.markdown(
             """
-               📕📗📘📙📚📓📒📕📗📘📚📕
+              
           
             <h2 style="margin:0;color:#333;">
                 Dr. Nouhad Rizk
