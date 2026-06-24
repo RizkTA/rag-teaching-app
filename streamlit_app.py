@@ -91,6 +91,20 @@ st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 # =================================
 # HEADER
 # =================================
+import base64
+
+with open("RIZKRED.png", "rb") as f:
+    b64 = base64.b64encode(f.read()).decode()
+
+st.markdown(
+    f"""
+    <div style="text-align:center;">
+        <h1>RIZK AI Assistant</h1>
+        <img src="data:image/png;base64,{b64}" style="max-width:300px;">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 col1, col2 = st.columns([1, 6])
 
 with col1:
@@ -102,12 +116,21 @@ with col1:
         st.write("📕")
 
 with col2:
-    st.title("📕 AI-powered TA")
+   st.title("📕 AI-powered TA")
    # st.markdown("   AI-powered Teaching Assistant")
 
+   # 1. Create columns (adjust the width ratio as needed, e.g., 1 for the icon, 5 for the title)
+   col1, col2 = st.columns([1, 5])
+
+   # 2. Display the image in the first column
+   with col1:
+       st.image("white_red_reversed.png", width=45)  # Adjust the width to fit your layout
+
+   # 3. Display the heading in the second column
+   with col2:
+       st.markdown("## AI-powered TA")
+
 st.divider()
-
-
 icon_files = [
      "red_transparent.png",
     "black_transparent.png",
@@ -119,7 +142,7 @@ cols = st.columns(8)
 
 for i, col in enumerate(cols):
     with col:
-        st.image(icon_files[i % 3], width=45)
+        st.image("white_red_reversed.png", width=45)
 # =================================
 # LOTTIE ICON
 # =================================
