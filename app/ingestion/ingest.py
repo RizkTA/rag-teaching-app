@@ -69,12 +69,16 @@ def get_upserter():
 # ==========================================
 # HASH
 # ==========================================
-def get_file_hash(path: str) -> str:
-    with open(path, "rb") as f:
-        return hashlib.md5(
-            f.read()
-        ).hexdigest()
+import hashlib
 
+def get_file_hash(path: str) -> str:
+    sha = hashlib.sha256()
+
+    with open(path, "rb") as f:
+        while chunk := f.read(8192):
+            sha.update(chunk)
+
+    return sha.hexdigest()
 
 # ==========================================
 # CLEAN TEXT
@@ -298,10 +302,6 @@ def ingest_file(
 
         if exists:
 
-            print("Deleting old version")
-
-            store.delete_by_file_hash(file_hash)
-
             if replace_existing:
 
                 print("♻ Removing existing vectors")
@@ -320,7 +320,6 @@ def ingest_file(
                     "message": f"{filename} already exists",
                     "file_hash": file_hash
                 }
-
         # --------------------------------------------------
         # Read file
         # --------------------------------------------------
@@ -402,14 +401,14 @@ def ingest_file(
 
         MAX_CHUNKS = 25
 
-        if len(chunks) > MAX_CHUNKS:
+       # if len(chunks) > MAX_CHUNKS:
 
-            print(
+        print(
                 f"⚠ Limiting chunks "
                 f"{len(chunks)} -> {MAX_CHUNKS}"
             )
 
-            chunks = chunks[:MAX_CHUNKS]
+        chunks = chunks[:MAX_CHUNKS]
 
         if not chunks:
 
