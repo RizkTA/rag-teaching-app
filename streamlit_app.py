@@ -43,7 +43,7 @@ with col1:
     """)
 
 with col2:
-    st.image("white_red_reversed", width=180)
+    st.image("white_red_reversed.png", width=180)
 
 # =================================
 # SESSION STATE
