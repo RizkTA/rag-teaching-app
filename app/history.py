@@ -5,76 +5,12 @@ import pandas as pd
 
 UPLOAD_HISTORY_FILE = os.path.join(
     os.path.dirname(__file__),
-    "upload_history.csv"
-)
+    "upload_history.csv")
 
-def load_history():
 
-    print(
-        "READING:",
-        os.path.abspath(
-            UPLOAD_HISTORY_FILE
-        )
-    )
-    #print("READING:", os.path.abspath(UPLOAD_HISTORY_FILE))
-    columns = [
-        "date",
-        "time",
-        "filename",
-        "type",
-        "status",
-        "chunks",
-        "file_hash"
-    ]
 
-    if os.path.exists(
-        UPLOAD_HISTORY_FILE
-    ):
 
-        try:
 
-            df = pd.read_csv(
-                UPLOAD_HISTORY_FILE
-            )
-
-            print(
-                "ROWS READ:",
-                len(df)
-            )
-
-            print(
-                "CSV COLUMNS:",
-                list(df.columns)
-            )
-
-            # Add missing columns
-            for col in columns:
-
-                if col not in df.columns:
-
-                    df[col] = ""
-
-            # Reorder columns
-            df = df[columns]
-
-            return df
-
-        except Exception as e:
-
-            print(
-                "❌ HISTORY READ ERROR:",
-                e
-            )
-
-    else:
-
-        print(
-            "⚠ History file does not exist"
-        )
-
-    return pd.DataFrame(
-        columns=columns
-    )
 def save_history(
         filename,
         status="uploaded",
@@ -148,4 +84,71 @@ def save_history(
         os.path.abspath(
             UPLOAD_HISTORY_FILE
         )
+    )
+def load_history():
+
+    print(
+        "READING:",
+        os.path.abspath(
+            UPLOAD_HISTORY_FILE
+        )
+    )
+    #print("READING:", os.path.abspath(UPLOAD_HISTORY_FILE))
+    columns = [
+        "date",
+        "time",
+        "filename",
+        "type",
+        "status",
+        "chunks",
+        "file_hash"
+    ]
+
+    if os.path.exists(
+        UPLOAD_HISTORY_FILE
+    ):
+
+        try:
+
+            df = pd.read_csv(
+                UPLOAD_HISTORY_FILE
+            )
+
+            print(
+                "ROWS READ:",
+                len(df)
+            )
+
+            print(
+                "CSV COLUMNS:",
+                list(df.columns)
+            )
+
+            # Add missing columns
+            for col in columns:
+
+                if col not in df.columns:
+
+                    df[col] = ""
+
+            # Reorder columns
+            df = df[columns]
+
+            return df
+
+        except Exception as e:
+
+            print(
+                "❌ HISTORY READ ERROR:",
+                e
+            )
+
+    else:
+
+        print(
+            "⚠ History file does not exist"
+        )
+
+    return pd.DataFrame(
+        columns=columns
     )

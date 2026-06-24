@@ -3,7 +3,6 @@ from pydantic import BaseModel
 import psutil
 import os
 
-from app.history import load_history, save_history
 print(
     "MEMORY MB:",
     psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
@@ -297,7 +296,8 @@ from app.ingestion.ingest import get_store
 from app.ingestion.ingest import ingest_file
 
 from fastapi import UploadFile, File, Form, HTTPException
-from history import load_history, save_history
+
+from app.history import load_history, save_history
 import os
 import tempfile
 import traceback
