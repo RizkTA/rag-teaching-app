@@ -15,7 +15,35 @@ import streamlit as st
 #    layout="wide"
 #)
 
-st.title("RIZK AI ASSISTANT")
+#st.title("RIZK AI ASSISTANT")
+st.markdown("""
+<div style="
+    padding:20px;
+    border-radius:10px;
+    background:#f8f9fa;
+    border-left:6px solid #d90429;">
+    <h1 style="margin:0;">🎓 RIZK AI ASSISTANT</h1>
+    <p style="margin:0;color:gray;">
+        AI-Powered Learning, Research, and Academic Support
+    </p>
+</div>
+""", unsafe_allow_html=True)
+col1, col2 = st.columns([3,1])
+
+with col1:
+    st.markdown("""
+    ### Welcome to RIZK AI
+
+    Ask questions from:
+    - PDFs
+    - Lecture Notes
+    - Textbooks
+    - Research Papers
+    - Coding Assignments
+    """)
+
+with col2:
+    st.image("white_red_reversed", width=180)
 
 # =================================
 # SESSION STATE
@@ -92,11 +120,11 @@ st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 # =================================
 
 st.divider()
-cols = st.columns(8)
+cols = st.columns(11)
 
 for i, col in enumerate(cols):
     with col:
-        st.image("white_red_reversed.png", width=45)
+        st.image("white_red_reversed.png", width=50)
 
 # =================================
 # LOTTIE ICON
@@ -117,7 +145,7 @@ st.set_page_config(
     page_title="RIZK AI ASSISTANT",
     page_icon="favicon.ico"
 )
-query = st.chat_input("Ask RIZK AI")
+query = st.chat_input("Ask RIZK AI anything.....")
 
 # =================================
 # CALL BACKEND
@@ -682,7 +710,11 @@ with st.sidebar:
             data = base64.b64encode(
                 f.read()
             ).decode()
-        st.image("RIZKRED.png", width=300)
+        st.markdown("📕📗📘📙📚📓📒📕📗📘📚📕")
+        col1, col2, col3 = st.columns([1, 2, 1])
+
+        with col2:
+            st.image("RIZKRED.png", width=150)
         st.markdown(
             """
             📕📗📘📙📚📓📒📕📗📘📚📕
