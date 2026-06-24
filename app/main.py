@@ -3,8 +3,7 @@ from pydantic import BaseModel
 import psutil
 import os
 
-from history import save_history
-
+from app.history import load_history, save_history
 print(
     "MEMORY MB:",
     psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
