@@ -289,7 +289,7 @@ def ingest_file(
         # --------------------------------------------------
         # Existing file handling
         # --------------------------------------------------
-
+        print("Generated hash:", file_hash)
         exists = file_exists(store, file_hash)
         print("FILE EXISTS:", exists)
         print("REPLACE EXISTING:", replace_existing)

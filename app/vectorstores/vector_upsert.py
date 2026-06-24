@@ -125,11 +125,11 @@ class VectorUpsert:
                     "metadata",
                     {}
                 )
-
+                print("METADATA =", metadata)
                 ids.append(
                     chunk["id"]
                 )
-
+                print("DEBUG file_hash =", metadata.get("file_hash"))
                 payloads.append({
 
                     "text":
