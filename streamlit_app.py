@@ -436,7 +436,7 @@ with st.sidebar:
         col1, col2, col3 = st.columns([1, 2, 1])
 
         with col2:
-            st.image("white_red_reversed.png", width=150)
+            st.image("white_red_reversed2.png", width=150)
 
 with st.sidebar.expander(
     "📄 Upload Knowledge Files (Admin)",
@@ -715,7 +715,7 @@ with st.sidebar:
     try:
 
         with open(
-            "RIZKRED2.png.png",
+            "RIZKRED2.png",
             "rb"
         ) as f:
 
