@@ -1,12 +1,11 @@
 import requests
-import base64
 import os
 import re
-from history import load_history, save_history
+from app.history import load_history, save_history
 
 API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
-from history import UPLOAD_HISTORY_FILE
+from app.history import UPLOAD_HISTORY_FILE
 
 import streamlit as st
 
@@ -16,7 +15,7 @@ import streamlit as st
 #    layout="wide"
 #)
 
-#st.title("RIZK AI ASSISTANT")
+st.title("RIZK AI ASSISTANT")
 
 # =================================
 # SESSION STATE
@@ -91,20 +90,7 @@ st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 # =================================
 # HEADER
 # =================================
-import base64
 
-with open("RIZKRED.png", "rb") as f:
-    b64 = base64.b64encode(f.read()).decode()
-
-st.markdown(
-    f"""
-    <div style="text-align:left;">
-        <h1>RIZK AI Assistant</h1>
-        <img src="data:image/png;base64,{b64}" style="max-width:300px;">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 # 1. Create columns (adjust the width ratio as needed, e.g., 1 for the icon, 5 for the title)
 col1, col2 = st.columns([1, 5])
 
@@ -117,18 +103,12 @@ with col2:
        st.markdown("## AI-powered TA")
 
 st.divider()
-icon_files = [
-     "red_transparent.png",
-    "black_transparent.png",
-    "white_red_reversed.png"
-
-]
-
 cols = st.columns(8)
 
 for i, col in enumerate(cols):
     with col:
         st.image("white_red_reversed.png", width=45)
+
 # =================================
 # LOTTIE ICON
 # =================================
@@ -413,7 +393,6 @@ for i, msg in enumerate(st.session_state.messages):
                 st.caption(
                     best.get("text", "")[:250]
                 )
-import os
 import hashlib
 import base64
 
@@ -714,11 +693,11 @@ with st.sidebar:
             data = base64.b64encode(
                 f.read()
             ).decode()
-
+        st.image("RIZKRED.png", width=300)
         st.markdown(
             """
             📕📗📘📙📚📓📒📕📗📘📚📕
-
+          
             <h2 style="margin:0;color:#333;">
                 Dr. Nouhad Rizk
             </h2>

@@ -2,12 +2,15 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import psutil
 import os
+
+from history import save_history
+
 print(
     "MEMORY MB:",
     psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
 )
 print("🔥 BEFORE INGEST IMPORT")
-from history import save_history
+
 print("🔥 AFTER INGEST IMPORT")
 print("🔥 MAIN.PY LOADED")
 
@@ -295,6 +298,7 @@ from app.ingestion.ingest import get_store
 from app.ingestion.ingest import ingest_file
 
 from fastapi import UploadFile, File, Form, HTTPException
+from history import load_history, save_history
 import os
 import tempfile
 import traceback
@@ -348,7 +352,7 @@ async def upload_file(
                 "UPLOAD SIZE MB:",
                 round(size_mb, 2)
             )
-
+            from fastapi import HTTPException
             # TEMP TEST
             if size_mb > 15:
                 raise HTTPException(
@@ -382,13 +386,18 @@ async def upload_file(
                 chunks=result.get("chunks", 0),
                 file_hash=result.get("file_hash", "")
             )
+
         if result.get("status") == "skipped":
             return {
                 "status": "skipped",
                 "message": result.get("message", "")
             }
-        
+
         return result
+
+    except HTTPException:
+
+        raise
 
     except Exception as e:
 
@@ -406,16 +415,14 @@ async def upload_file(
         print("UPLOAD STEP 5")
 
         if (
-            temp_path
-            and
-            os.path.exists(temp_path)
+                temp_path
+                and
+                os.path.exists(temp_path)
         ):
 
             try:
 
-                os.remove(
-                    temp_path
-                )
+                os.remove(temp_path)
 
                 print(
                     "TEMP FILE REMOVED"
