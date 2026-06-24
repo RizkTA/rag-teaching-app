@@ -325,8 +325,8 @@ async def upload_file(
         )
 
         with tempfile.NamedTemporaryFile(
-            delete=False,
-            suffix=suffix
+                delete=False,
+                suffix=suffix
         ) as tmp:
 
             total_size = 0
@@ -342,10 +342,22 @@ async def upload_file(
 
                 tmp.write(chunk)
 
+            size_mb = total_size / 1024 / 1024
+
             print(
-                "UPLOAD SIZE:",
-                total_size
+                "UPLOAD SIZE MB:",
+                round(size_mb, 2)
             )
+
+            # TEMP TEST
+            if size_mb > 15:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"PDF too large "
+                        f"({round(size_mb, 2)} MB)"
+                    )
+                )
 
             temp_path = tmp.name
 
@@ -375,29 +387,7 @@ async def upload_file(
                 "status": "skipped",
                 "message": result.get("message", "")
             }
-        if result.get("status") == "ok":
-
-            save_history(
-                filename=result.get(
-                    "filename",
-                    filename
-                ),
-
-                status="uploaded",
-
-                filetype=filename.split(".")[-1].lower(),
-
-                chunks=result.get(
-                    "chunks",
-                    0
-                ),
-
-                file_hash=result.get(
-                    "file_hash",
-                    ""
-                )
-            )
-
+        
         return result
 
     except Exception as e:

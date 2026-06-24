@@ -10,13 +10,13 @@ from history import UPLOAD_HISTORY_FILE
 
 import streamlit as st
 
-st.set_page_config(
-    page_title="RIZK AI ASSISTANT",
-    page_icon="📕",   # optional
-    layout="wide"
-)
+#st.set_page_config(
+#    page_title="RIZK AI ASSISTANT",
+#    page_icon="📕",   # optional
+#    layout="wide"
+#)
 
-st.title("RIZK AI ASSISTANT")
+#st.title("RIZK AI ASSISTANT")
 
 # =================================
 # SESSION STATE
@@ -98,36 +98,22 @@ with open("RIZKRED.png", "rb") as f:
 
 st.markdown(
     f"""
-    <div style="text-align:center;">
+    <div style="text-align:left;">
         <h1>RIZK AI Assistant</h1>
         <img src="data:image/png;base64,{b64}" style="max-width:300px;">
     </div>
     """,
     unsafe_allow_html=True
 )
-col1, col2 = st.columns([1, 6])
+# 1. Create columns (adjust the width ratio as needed, e.g., 1 for the icon, 5 for the title)
+col1, col2 = st.columns([1, 5])
 
+# 2. Display the image in the first column
 with col1:
-    try:
-        with open("RIZKRED.png", "rb") as f:
-            data = base64.b64encode(f.read()).decode()
-        st.markdown(f"<img src='data:image/png;base64,{data}' width='120'>", unsafe_allow_html=True)
-    except:
-        st.write("📕")
-
-with col2:
-   st.title("📕 AI-powered TA")
-   # st.markdown("   AI-powered Teaching Assistant")
-
-   # 1. Create columns (adjust the width ratio as needed, e.g., 1 for the icon, 5 for the title)
-   col1, col2 = st.columns([1, 5])
-
-   # 2. Display the image in the first column
-   with col1:
        st.image("white_red_reversed.png", width=45)  # Adjust the width to fit your layout
 
    # 3. Display the heading in the second column
-   with col2:
+with col2:
        st.markdown("## AI-powered TA")
 
 st.divider()
