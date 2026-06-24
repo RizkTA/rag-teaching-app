@@ -40,7 +40,7 @@ with col1:
     - Textbooks
     - Research Papers
     - Coding Assignments
-     📕📗📘📙📚📓📒📕📗📘📚📕
+     
     """)
 
 with col2:
@@ -121,6 +121,7 @@ st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 # =================================
 
 st.divider()
+📕📗📘📙📚📓📒📕📗📘📚📕
 #cols = st.columns(11)
 
 #for i, col in enumerate(cols):
@@ -426,13 +427,13 @@ st.divider()
 with st.sidebar:
 
         with open(
-            "white_red_reversed.png",
+            "white_red_reversed2.png",
             "rb"
         ) as f:
             data = base64.b64encode(
                 f.read()
             ).decode()
-        st.markdown("   📕📗📘📙📚📓📒📕📗📘📚📕")
+
         col1, col2, col3 = st.columns([1, 2, 1])
 
         with col2:
