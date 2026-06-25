@@ -126,14 +126,22 @@ def read_pdf(path: str) -> str:
     print(
         f"READING {total_pages} PAGES"
     )
+    for page_num in range(total_pages):
+        page = doc[page_num]
 
+        text = page.get_text("text")
+
+        print(
+            f"PAGE {page_num}:",
+            len(text)
+        )
     for page_num in range(total_pages):
 
         try:
 
             page = doc[page_num]
 
-            text = page.get_text()
+            text = page.get_text("text")
 
             if text:
                 pages.append(text)
