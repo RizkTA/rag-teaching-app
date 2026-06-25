@@ -29,7 +29,56 @@ except Exception as e:
 app = FastAPI()
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PayloadSchemaType
+@app.delete("/delete_file_by_name")
+async def delete_file_by_name(
+    filename: str = Query(...)
+):
 
+    try:
+
+        store = get_store()
+
+        store.delete_by_filename(
+            filename
+        )
+
+        return {
+            "status": "deleted",
+            "filename": filename
+        }
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+@app.delete("/delete_file")
+async def delete_file(
+    file_hash: str = Query(...)
+):
+
+    try:
+
+        store = get_store()
+
+        store.delete_by_file_hash(
+            file_hash
+        )
+
+        return {
+            "status": "deleted",
+            "file_hash": file_hash
+        }
+
+    except Exception as e:
+
+        print("DELETE ERROR:", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 def create_qdrant_indexes():
     import os
     QDRANT_URL = os.getenv("QDRANT_URL")
@@ -297,7 +346,7 @@ from app.ingestion.ingest import ingest_file
 
 from fastapi import UploadFile, File, Form, HTTPException
 
-from app.history import load_history, save_history
+from app.history import load_history, save_history, save_uploaded_file
 import os
 import tempfile
 import traceback
@@ -365,7 +414,15 @@ async def upload_file(
             filename,
             replace_existing
         )
+        if result.get("status") == "ok":
+            save_uploaded_file(
 
+                filename=filename,
+
+                file_hash=result["file_hash"],
+
+                chunks=result["chunks"]
+            )
         print("AFTER INGEST")
 
         if result.get("status") in ["ok", "uploaded"]:

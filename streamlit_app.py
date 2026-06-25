@@ -2,7 +2,7 @@ import requests
 import os
 import re
 from app.history import load_history, save_history
-
+from app.history import get_uploaded_files
 API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
 from app.history import UPLOAD_HISTORY_FILE
@@ -610,9 +610,71 @@ if st.session_state.get("authenticated", False):
     # ==========================================
 
 
-    history_df = load_history()
+   # history_df = load_history()
+    history_df = get_uploaded_files()
 
+    st.subheader("📚 Knowledge Base Files")
 
+    st.dataframe(
+        history_df,
+        width="stretch"
+    )
+    history_df = get_uploaded_files()
+
+    st.subheader("📚 Knowledge Base Files")
+
+    if history_df.empty:
+
+        st.info("No files found.")
+
+    else:
+
+        for idx, row in history_df.iterrows():
+
+            col1, col2, col3 = st.columns([6, 2, 1])
+
+            with col1:
+
+                st.write(
+                    row["filename"]
+                )
+
+            with col2:
+
+                st.write(
+                    f'{row.get("chunks", 0)} chunks'
+                )
+
+            with col3:
+
+                if st.button(
+                        "🗑",
+                        key=f"delete_{idx}"
+                ):
+
+                    res = requests.delete(
+
+                        f"{API_URL}/delete_file_by_name",
+
+                        params={
+                            "filename":
+                                row["filename"]
+                        }
+                    )
+
+                    if res.status_code == 200:
+
+                        st.success(
+                            f'Deleted {row["filename"]}'
+                        )
+
+                        st.rerun()
+
+                    else:
+
+                        st.error(
+                            "Delete failed"
+                        )
     st.subheader("📜 Upload History")
 
     if len(history_df) > 0:

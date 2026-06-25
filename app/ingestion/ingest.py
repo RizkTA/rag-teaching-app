@@ -350,6 +350,10 @@ def ingest_file(
                 "PDF rawww TEXT LENGTH:",
                 len(raw_text)
             )
+            print("PDF TEXT LENGTH:", len(raw_text))
+
+            if not raw_text.strip():
+                print("🔥 NO TEXT FOUND - OCR SHOULD START")
             text = clean_text(raw_text)
             print(
                 "PDF TEXT LENGTH:",

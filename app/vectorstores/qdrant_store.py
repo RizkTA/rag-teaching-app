@@ -18,7 +18,41 @@ from qdrant_client.models import (
 from app.config import QDRANT_API_KEY
 
 from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import (
+    Filter,
+    FieldCondition,
+    MatchValue
+)
 
+def delete_by_filename(
+    self,
+    filename
+):
+
+    self.client.delete(
+
+        collection_name=self.collection_name,
+
+        points_selector=Filter(
+
+            must=[
+
+                FieldCondition(
+
+                    key="filename",
+
+                    match=MatchValue(
+                        value=filename
+                    )
+                )
+            ]
+        )
+    )
+
+    print(
+        "✅ Deleted:",
+        filename
+    )
 # =========================================
 # CREATE INDEXES
 # =========================================
@@ -64,13 +98,32 @@ class QdrantStore:
 
         # Create collection if missing
         self._ensure_collection()
-
+        self.ensure_uploaded_files_collection()
         # Create indexes
         ensure_indexes(
             self.client,
             self.collection_name
         )
 
+    def ensure_uploaded_files_collection(self):
+
+        try:
+
+            self.client.get_collection(
+                "uploaded_files"
+            )
+
+        except Exception:
+
+            self.client.create_collection(
+
+                collection_name="uploaded_files",
+
+                vectors_config=VectorParams(
+                    size=1,
+                    distance=Distance.COSINE
+                )
+            )
     # =========================================
     # CREATE COLLECTION IF MISSING
     # =========================================
@@ -123,6 +176,7 @@ class QdrantStore:
         print(
             f"✅ Deleted vectors for hash: {file_hash}"
         )
+
     # =========================================
     # UPSERT
     # =========================================

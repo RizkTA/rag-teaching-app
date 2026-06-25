@@ -2,6 +2,102 @@ from datetime import datetime
 
 import os
 import pandas as pd
+# app/history.py
+
+import uuid
+from datetime import datetime
+
+from qdrant_client.models import PointStruct
+
+from app.config import QDRANT_COLLECTION
+from app.ingestion.ingest import get_store
+import pandas as pd
+from qdrant_client.models import (
+    Filter,
+    FieldCondition,
+    MatchValue
+)
+
+def delete_uploaded_file(file_hash):
+
+    store = get_store()
+
+    store.delete_by_file_hash(file_hash)
+
+    store.client.delete(
+
+        collection_name="uploaded_files",
+
+        points_selector=Filter(
+
+            must=[
+
+                FieldCondition(
+
+                    key="file_hash",
+
+                    match=MatchValue(
+                        value=file_hash
+                    )
+                )
+            ]
+        )
+    )
+def get_uploaded_files():
+
+    store = get_store()
+
+    records, _ = store.client.scroll(
+
+        collection_name="uploaded_files",
+
+        limit=10000,
+
+        with_payload=True,
+
+        with_vectors=False
+    )
+
+    rows = []
+
+    for r in records:
+
+        rows.append(r.payload)
+
+    return pd.DataFrame(rows)
+def save_uploaded_file(
+    filename,
+    file_hash,
+    chunks
+):
+
+    store = get_store()
+
+    store.client.upsert(
+        collection_name="uploaded_files",
+
+        points=[
+
+            PointStruct(
+
+                id=str(uuid.uuid4()),
+
+                vector=[0.0],
+
+                payload={
+
+                    "filename": filename,
+
+                    "file_hash": file_hash,
+
+                    "chunks": chunks,
+
+                    "uploaded_at":
+                        datetime.now().isoformat()
+                }
+            )
+        ]
+    )
 
 UPLOAD_HISTORY_FILE = os.path.join(
     os.path.dirname(__file__),
