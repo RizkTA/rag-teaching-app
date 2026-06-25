@@ -7,8 +7,6 @@ import pandas as pd
 import uuid
 from datetime import datetime
 
-from qdrant_client.models import PointStruct
-
 from app.config import QDRANT_COLLECTION
 from app.ingestion.ingest import get_store
 import pandas as pd
@@ -17,28 +15,22 @@ from qdrant_client.models import (
     FieldCondition,
     MatchValue
 )
-
+from qdrant_client.models import PointStruct
 def delete_uploaded_file(file_hash):
 
     store = get_store()
 
+    # delete vectors / embeddings if needed
     store.delete_by_file_hash(file_hash)
 
+    # delete metadata record
     store.client.delete(
-
         collection_name="uploaded_files",
-
         points_selector=Filter(
-
             must=[
-
                 FieldCondition(
-
                     key="file_hash",
-
-                    match=MatchValue(
-                        value=file_hash
-                    )
+                    match=MatchValue(value=file_hash)
                 )
             ]
         )
@@ -48,13 +40,9 @@ def get_uploaded_files():
     store = get_store()
 
     records, _ = store.client.scroll(
-
         collection_name="uploaded_files",
-
         limit=10000,
-
         with_payload=True,
-
         with_vectors=False
     )
 
@@ -62,38 +50,37 @@ def get_uploaded_files():
 
     for r in records:
 
-        rows.append(r.payload)
+        p = r.payload or {}
+
+        rows.append({
+            "filename": p.get("filename", ""),
+            "file_hash": p.get("file_hash", ""),
+            "chunks": p.get("chunks", 0),
+            "date": p.get("date", ""),
+            "time": p.get("time", ""),
+            "status": p.get("status", "")
+        })
 
     return pd.DataFrame(rows)
-def save_uploaded_file(
-    filename,
-    file_hash,
-    chunks
-):
+def save_uploaded_file(filename, file_hash, chunks, status="uploaded"):
 
     store = get_store()
 
+    now = datetime.now()
+
     store.client.upsert(
         collection_name="uploaded_files",
-
         points=[
-
             PointStruct(
-
                 id=str(uuid.uuid4()),
-
-                vector=[0.0],
-
+                vector=[0.0],  # dummy vector (OK since this is metadata-only)
                 payload={
-
                     "filename": filename,
-
                     "file_hash": file_hash,
-
                     "chunks": chunks,
-
-                    "uploaded_at":
-                        datetime.now().isoformat()
+                    "date": now.strftime("%Y-%m-%d"),
+                    "time": now.strftime("%H:%M:%S"),
+                    "status": status
                 }
             )
         ]

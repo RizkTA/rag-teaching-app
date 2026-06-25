@@ -611,126 +611,80 @@ if st.session_state.get("authenticated", False):
     # ==========================================
 
 
-    history_df = load_history()
-   # history_df = get_uploaded_files()
+
+    history_df = get_uploaded_files()
 
     st.subheader("📚 Knowledge Base Files")
 
-    st.dataframe(
-        history_df,
-        width="stretch"
-    )
-
+    # =========================
+    # EMPTY STATE
+    # =========================
     if history_df.empty:
-
         st.info("No files found.")
 
     else:
 
+        # =========================
+        # NORMALIZE DATA SAFELY
+        # =========================
+        required_cols = ["filename", "file_hash", "chunks"]
+
+        for col in required_cols:
+            if col not in history_df.columns:
+                history_df[col] = ""
+
+        # =========================
+        # DISPLAY EACH FILE WITH DELETE
+        # =========================
         for idx, row in history_df.iterrows():
 
             col1, col2, col3 = st.columns([6, 2, 1])
 
             with col1:
-
-                st.write(
-                    row["filename"]
-                )
+                st.write(f"📄 {row['filename']}")
 
             with col2:
-
-                st.write(
-                    f'{row.get("chunks", 0)} chunks'
-                )
+                st.write(f"{row.get('chunks', 0)} chunks")
 
             with col3:
 
-                if st.button(
-                        "🗑",
-                        key=f"delete_{idx}"
-                ):
+                # IMPORTANT: use file_hash (not filename)
+                file_hash = row.get("file_hash", "")
+
+                if st.button("🗑", key=f"delete_{file_hash}_{idx}"):
 
                     res = requests.delete(
-
                         f"{API_URL}/delete_file_by_name",
-
-                        params={
-                            "filename":
-                                row["filename"]
-                        }
+                        params={"file_hash": file_hash}
                     )
 
                     if res.status_code == 200:
-
-                        st.success(
-                            f'Deleted {row["filename"]}'
-                        )
-
+                        st.success(f"Deleted {row['filename']}")
                         st.rerun()
-
                     else:
+                        st.error("Delete failed")
 
-                        st.error(
-                            "Delete failed"
-                        )
-    st.subheader("📜 Upload History")
-
-    if len(history_df) > 0:
-
-        st.dataframe(
-            history_df.sort_values(
-                by=["date", "time"],
-                ascending=False
-            ),
-            use_container_width=True
-        )
-
-    else:
-
-        st.warning(
-            "No upload history found."
-        )
+    # =========================
+    # DOWNLOAD SECTION (OPTIONAL)
+    # =========================
+    st.subheader("📜 Upload History Export")
 
     col1, col2 = st.columns(2)
 
     with col1:
 
         st.download_button(
-            label="📥 Download Upload History",
+            label="📥 Download File List",
             data=history_df.to_csv(index=False),
-            file_name="upload_history.csv",
+            file_name="uploaded_files.csv",
             mime="text/csv",
-            key="download_upload_history"
+            key="download_files"
         )
 
     with col2:
 
-        if st.button(
-                "🗑 Clear History",
-                key="clear_upload_history"
-        ):
-            empty_df = pd.DataFrame(
-                columns=[
-                    "date",
-                    "time",
-                    "filename",
-                    "type",
-                    "status",
-                    "chunks",
-                    "file_hash"
-                ]
-            )
-
-            empty_df.to_csv(
-                UPLOAD_HISTORY_FILE,
-                index=False
-            )
-
-            st.success(
-                "✅ Upload history cleared"
-            )
-
-            st.rerun()
+        if st.button("🗑 Clear All Files", key="clear_files"):
+            st.warning("This should call backend API (not CSV).")
 
 # =================================
 # SIDEBAR
