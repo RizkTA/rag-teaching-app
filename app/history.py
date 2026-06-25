@@ -7,7 +7,7 @@ import pandas as pd
 import uuid
 from datetime import datetime
 
-from app.config import QDRANT_COLLECTION
+
 from app.ingestion.ingest import get_store
 import pandas as pd
 from qdrant_client.models import (

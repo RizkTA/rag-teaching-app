@@ -76,85 +76,121 @@ def ensure_indexes(client, collection_name):
 # =========================================
 # QDRANT STORE
 # =========================================
-class QdrantStore:
+from qdrant_client import QdrantClient
+from qdrant_client.http.exceptions import ResponseHandlingException
+from qdrant_client.models import (
+    VectorParams,
+    Distance,
+    PayloadSchemaType,
+)
 
+UPLOADED_FILES_COLLECTION = "uploaded_files"
+
+
+class QdrantStore:
+    def ensure_indexes(
+            self,
+            collection_name
+    ):
+
+        indexes = [
+
+            ("file_hash", PayloadSchemaType.KEYWORD),
+
+            ("filename", PayloadSchemaType.KEYWORD),
+
+            ("status", PayloadSchemaType.KEYWORD),
+
+            ("date", PayloadSchemaType.KEYWORD),
+        ]
+
+        for field_name, schema in indexes:
+
+            try:
+
+                self.client.create_payload_index(
+                    collection_name=collection_name,
+                    field_name=field_name,
+                    field_schema=schema
+                )
+
+                print(f"✅ Index created: {field_name}")
+
+            except Exception:
+
+                print(f"ℹ️ Index already exists: {field_name}")
+    def _ensure_collection(
+            self,
+            collection_name,
+            vector_size
+    ):
+
+        collections = self.client.get_collections()
+
+        existing = {
+            c.name
+            for c in collections.collections
+        }
+
+        if collection_name in existing:
+            print(f"✅ Collection '{collection_name}' already exists")
+            return
+
+        print(f"🔥 Creating collection '{collection_name}'")
+
+        self.client.create_collection(
+            collection_name=collection_name,
+            vectors_config=VectorParams(
+                size=vector_size,
+                distance=Distance.COSINE
+            )
+        )
+
+        print(f"✅ Collection '{collection_name}' created")
     def __init__(self, url, collection_name, embed_dim):
 
+        print("=" * 70)
         print("🔥 CONNECTING TO QDRANT")
-        print("🔥 URL:", url)
-        print("🔥 API KEY EXISTS:", bool(QDRANT_API_KEY))
+        print("URL:", url)
+        print("API KEY EXISTS:", bool(QDRANT_API_KEY))
+        print("=" * 70)
 
         self.collection_name = collection_name
         self.embed_dim = embed_dim
 
-        # Create client FIRST
-        self.client = QdrantClient(
-            url=url,
-            api_key=QDRANT_API_KEY,
-            timeout=120
-        )
-
-        print("✅ Qdrant client created")
-
-        # Create collection if missing
-        self._ensure_collection()
-        self.ensure_uploaded_files_collection()
-        # Create indexes
-        ensure_indexes(
-            self.client,
-            self.collection_name
-        )
-
-    def ensure_uploaded_files_collection(self):
-
         try:
 
-            self.client.get_collection(
-                "uploaded_files"
+            self.client = QdrantClient(
+                url=url,
+                api_key=QDRANT_API_KEY,
+                timeout=120,
             )
 
-        except Exception:
+            # Verify connection immediately
+            self.client.get_collections()
 
-            self.client.create_collection(
+            print("✅ Connected to Qdrant")
 
-                collection_name="uploaded_files",
+        except ResponseHandlingException as e:
 
-                vectors_config=VectorParams(
-                    size=1,
-                    distance=Distance.COSINE
-                )
-            )
-    # =========================================
-    # CREATE COLLECTION IF MISSING
-    # =========================================
-    def _ensure_collection(self):
+            print("❌ Could not connect to Qdrant")
+            print(e)
+            raise
 
-        print("ENTER _ensure_collection")
+        # Ensure collections exist
+        self._ensure_collection(
+            self.collection_name,
+            self.embed_dim
+        )
 
-        collections = self.client.get_collections()
+        self._ensure_collection(
+            UPLOADED_FILES_COLLECTION,
+            1
+        )
 
-        existing = [
-            c.name
-            for c in collections.collections
-        ]
-
-        if self.collection_name not in existing:
-
-            print("🔥 Creating collection")
-
-            self.client.create_collection(
-                collection_name=self.collection_name,
-                vectors_config=VectorParams(
-                    size=self.embed_dim,
-                    distance=Distance.COSINE
-                )
-            )
-
-            print("✅ Collection created")
-
-        else:
-
-            print("✅ Collection already exists")
+        # Create payload indexes
+        self.ensure_indexes(self.collection_name)
+        self.ensure_indexes(UPLOADED_FILES_COLLECTION)
 
     def delete_by_file_hash(self, file_hash):
 
