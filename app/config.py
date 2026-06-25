@@ -2,7 +2,8 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
+print("CONFIG QDRANT_URL =", os.getenv("QDRANT_URL"))
+print("CONFIG COLLECTION =", os.getenv("QDRANT_COLLECTION"))
 # =========================
 # GROQ
 # =========================

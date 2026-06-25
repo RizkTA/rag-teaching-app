@@ -124,7 +124,7 @@ class QdrantStore:
             collection_name,
             vector_size
     ):
-
+       #nouhad here
         collections = self.client.get_collections()
 
         existing = {
@@ -157,7 +157,10 @@ class QdrantStore:
 
         self.collection_name = collection_name
         self.embed_dim = embed_dim
-
+        print("=" * 80)
+        print("QDRANT URL:", repr(url))
+        print("API KEY EXISTS:", bool(QDRANT_API_KEY))
+        print("=" * 80)
         try:
 
             self.client = QdrantClient(
@@ -167,6 +170,7 @@ class QdrantStore:
             )
 
             # Verify connection immediately
+            #nouhadd
             self.client.get_collections()
 
             print("✅ Connected to Qdrant")

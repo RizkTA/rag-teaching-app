@@ -5,6 +5,7 @@ from app.history import load_history, save_history
 from app.history import get_uploaded_files
 
 API_URL = "https://rag-teaching-app.onrender.com"
+
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
 from app.history import UPLOAD_HISTORY_FILE
 
