@@ -96,7 +96,10 @@ class VectorUpsert:
                 len(batch_texts),
                 "texts"
             )
-
+            print(
+                "BATCH TEXT CHARS:",
+                sum(len(t) for t in batch_texts)
+            )
             vectors = embed_texts(
                 batch_texts
             )

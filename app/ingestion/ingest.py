@@ -113,7 +113,7 @@ def read_pdf(path: str) -> str:
     print("📖 START PDF READ")
 
     doc = fitz.open(path)
-
+    print("PDF PAGES:", len(doc))
     pages = []
 
     MAX_PAGES = 200
@@ -219,6 +219,7 @@ def is_code_chunk(text: str) -> bool:
 # DUPLICATE CHECK
 # ==========================================
 def file_exists(store, file_hash):
+
     try:
 
         records, _ = store.client.scroll(
@@ -226,25 +227,23 @@ def file_exists(store, file_hash):
             collection_name=QDRANT_COLLECTION,
 
             scroll_filter=Filter(
-
                 must=[
-
                     FieldCondition(
-
-                        # MATCH YOUR CURRENT PAYLOAD
                         key="file_hash",
-
-                        match=MatchValue(
-                            value=file_hash
-                        )
+                        match=MatchValue(value=file_hash)
                     )
                 ]
             ),
 
-            limit=1,
-
-            with_payload=False
+            limit=5,
+            with_payload=True
         )
+
+        print("HASH LOOKUP:", file_hash)
+        print("MATCHES FOUND:", len(records))
+
+        for r in records:
+            print("MATCH PAYLOAD:", r.payload)
 
         return len(records) > 0
 
@@ -253,7 +252,6 @@ def file_exists(store, file_hash):
         print("❌ Duplicate check failed:", e)
 
         return False
-
 from datetime import time
 # ==========================================
 # MAIN INGEST
@@ -395,20 +393,26 @@ def ingest_file(
 
         chunks = chunk_text(text)
         print("TOTAL CHUNKS:", len(chunks))
+        print("TOTAL CHUNKS:", len(chunks))
+
+        if chunks:
+            print(
+                "AVG CHUNK SIZE:",
+                sum(len(c) for c in chunks) / len(chunks)
+            )
         mem("After chunking")
 
         print("TOTAL CHUNKS:", len(chunks))
 
         MAX_CHUNKS = 25
 
-       # if len(chunks) > MAX_CHUNKS:
-
-        print(
+        if len(chunks) > MAX_CHUNKS:
+            print(
                 f"⚠ Limiting chunks "
                 f"{len(chunks)} -> {MAX_CHUNKS}"
             )
 
-        chunks = chunks[:MAX_CHUNKS]
+            chunks = chunks[:MAX_CHUNKS]
 
         if not chunks:
 

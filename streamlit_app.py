@@ -120,7 +120,7 @@ st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 # HEADER
 # =================================
 
-st.divider()
+#st.divider()
 #cols = st.columns(11)
 
 #for i, col in enumerate(cols):
@@ -418,7 +418,7 @@ import requests
 # UPLOAD SECTION
 # =================================
 
-st.divider()
+#st.divider()
 
 # =================================
 # ADMIN UPLOAD PANEL
@@ -767,7 +767,7 @@ with st.sidebar:
     # FOOTER
     # =================================
 
-    st.divider()
+   # st.divider()
 
     st.markdown(
         """

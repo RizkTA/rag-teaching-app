@@ -20,6 +20,14 @@ def ingest_pdf(file_path):
 
 
 def chunk_text(text):
+    print("CHUNK_SIZE =", CHUNK_SIZE)
+    print("CHUNK_OVERLAP =", CHUNK_OVERLAP)
+    if CHUNK_OVERLAP >= CHUNK_SIZE:
+            raise ValueError(
+                f"Invalid chunk settings: "
+                f"CHUNK_SIZE={CHUNK_SIZE}, "
+                f"CHUNK_OVERLAP={CHUNK_OVERLAP}"
+            )
 
     text = text.strip()
 
