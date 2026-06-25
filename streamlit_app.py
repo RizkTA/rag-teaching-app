@@ -3,6 +3,7 @@ import os
 import re
 from app.history import load_history, save_history
 from app.history import get_uploaded_files
+
 API_URL = "https://rag-teaching-app.onrender.com"
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
 from app.history import UPLOAD_HISTORY_FILE
@@ -610,8 +611,8 @@ if st.session_state.get("authenticated", False):
     # ==========================================
 
 
-   # history_df = load_history()
-    history_df = get_uploaded_files()
+    history_df = load_history()
+   # history_df = get_uploaded_files()
 
     st.subheader("📚 Knowledge Base Files")
 
@@ -619,9 +620,6 @@ if st.session_state.get("authenticated", False):
         history_df,
         width="stretch"
     )
-    history_df = get_uploaded_files()
-
-    st.subheader("📚 Knowledge Base Files")
 
     if history_df.empty:
 
