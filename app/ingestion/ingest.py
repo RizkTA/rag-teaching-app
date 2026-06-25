@@ -1,7 +1,7 @@
 import os
 import uuid
 import hashlib
-
+from app.ingestion.ocr import run_ocr
 
 print("🔥 INGEST.PY IMPORT START")
 from pypdf import PdfReader
@@ -107,13 +107,17 @@ def clean_text(text):
 import fitz
 import psutil
 
+import fitz
+
 
 def read_pdf(path: str) -> str:
 
     print("📖 START PDF READ")
 
     doc = fitz.open(path)
+
     print("PDF PAGES:", len(doc))
+
     pages = []
 
     MAX_PAGES = 200
@@ -123,18 +127,8 @@ def read_pdf(path: str) -> str:
         MAX_PAGES
     )
 
-    print(
-        f"READING {total_pages} PAGES"
-    )
-    for page_num in range(total_pages):
-        page = doc[page_num]
+    print(f"READING {total_pages} PAGES")
 
-        text = page.get_text("text")
-
-        print(
-            f"PAGE {page_num}:",
-            len(text)
-        )
     for page_num in range(total_pages):
 
         try:
@@ -143,7 +137,12 @@ def read_pdf(path: str) -> str:
 
             text = page.get_text("text")
 
-            if text:
+            print(
+                f"PAGE {page_num}:",
+                len(text)
+            )
+
+            if text.strip():
                 pages.append(text)
 
         except Exception as e:
@@ -346,14 +345,15 @@ def ingest_file(
                 )
             )
             raw_text = read_pdf(path)
-            print(
-                "PDF rawww TEXT LENGTH:",
-                len(raw_text)
-            )
-            print("PDF TEXT LENGTH:", len(raw_text))
+
+
 
             if not raw_text.strip():
-                print("🔥 NO TEXT FOUND - OCR SHOULD START")
+                print("🔥 NO TEXT FOUND - RUNNING OCR")
+                ocr_pdf = run_ocr(path)
+                raw_text = read_pdf(ocr_pdf)
+
+            print("PDF TEXT LENGTH:", len(raw_text))
             text = clean_text(raw_text)
             print(
                 "PDF TEXT LENGTH:",

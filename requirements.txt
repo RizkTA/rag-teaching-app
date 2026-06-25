@@ -13,3 +13,5 @@ requests
 rank-bm25
 pydantic>=2.7.0
 psutil
+ocrmypdf
+Pillow

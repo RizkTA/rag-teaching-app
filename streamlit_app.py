@@ -611,9 +611,8 @@ if st.session_state.get("authenticated", False):
     # Upload History
     # ==========================================
 
-
-
-    history_df = get_uploaded_files()
+    res = requests.get(f"{API_URL}/uploaded_files")
+    history_df = pd.DataFrame(res.json())
 
     st.subheader("📚 Knowledge Base Files")
 
