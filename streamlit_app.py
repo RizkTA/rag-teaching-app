@@ -610,82 +610,100 @@ if st.session_state.get("authenticated", False):
     # ==========================================
     # Upload History
     # ==========================================
-
     res = requests.get(f"{API_URL}/uploaded_files")
-    history_df = pd.DataFrame(res.json())
+
+    if res.status_code == 200:
+        history_df = pd.DataFrame(res.json())
+    else:
+        history_df = pd.DataFrame()
 
     st.subheader("📚 Knowledge Base Files")
 
-    # =========================
-    # EMPTY STATE
-    # =========================
     if history_df.empty:
-        st.info("No files found.")
+
+        st.info("No uploaded files.")
 
     else:
 
-        # =========================
-        # NORMALIZE DATA SAFELY
-        # =========================
-        required_cols = ["filename", "file_hash", "chunks"]
-
-        for col in required_cols:
-            if col not in history_df.columns:
-                history_df[col] = ""
-
-        # =========================
-        # DISPLAY EACH FILE WITH DELETE
-        # =========================
-        for idx, row in history_df.iterrows():
-
-            col1, col2, col3 = st.columns([6, 2, 1])
-
-            with col1:
-                st.write(f"📄 {row['filename']}")
-
-            with col2:
-                st.write(f"{row.get('chunks', 0)} chunks")
-
-            with col3:
-
-                # IMPORTANT: use file_hash (not filename)
-                file_hash = row.get("file_hash", "")
-
-                if st.button("🗑", key=f"delete_{file_hash}_{idx}"):
-
-                    res = requests.delete(
-                        f"{API_URL}/delete_file_by_name",
-                        params={"file_hash": file_hash}
-                    )
-
-                    if res.status_code == 200:
-                        st.success(f"Deleted {row['filename']}")
-                        st.rerun()
-                    else:
-                        st.error("Delete failed")
-
-    # =========================
-    # DOWNLOAD SECTION (OPTIONAL)
-    # =========================
-    st.subheader("📜 Upload History Export")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.download_button(
-            label="📥 Download File List",
-            data=history_df.to_csv(index=False),
-            file_name="uploaded_files.csv",
-            mime="text/csv",
-            key="download_files"
+        # Display the table once
+        st.dataframe(
+            history_df,
+            use_container_width=True,
+            hide_index=True
         )
 
-    with col2:
+        st.markdown("---")
+        st.subheader("Delete File")
 
-        if st.button("🗑 Clear All Files", key="clear_files"):
-            st.warning("This should call backend API (not CSV).")
+        for idx, row in history_df.iterrows():
 
+            col1, col2 = st.columns([8, 1])
+
+            with col1:
+
+                st.write(
+                    f"**{row['filename']}** "
+                    f"({row['chunks']} chunks)"
+                )
+
+            with col2:
+
+                if st.button(
+                        "🗑",
+                        key=f"delete_{idx}"
+                ):
+
+                    delete_res = requests.delete(
+                        f"{API_URL}/delete_file",
+                        params={
+                            "file_hash": row["file_hash"]
+                        }
+                    )
+
+                    if delete_res.status_code == 200:
+
+                        st.success(
+                            f"{row['filename']} deleted."
+                        )
+
+                        st.rerun()
+
+                    else:
+
+                        st.error("Delete failed.")
+
+    # =========================
+    # EXPORT
+    # =========================
+
+    st.subheader("📜 Export")
+
+    st.download_button(
+        label="📥 Download File List",
+        data=history_df.to_csv(index=False),
+        file_name="uploaded_files.csv",
+        mime="text/csv"
+    )
+
+    # =========================
+    # CLEAR ALL
+    # =========================
+
+    if st.button("🗑 Clear All Files"):
+
+        clear_res = requests.delete(
+            f"{API_URL}/delete_all_files"
+        )
+
+        if clear_res.status_code == 200:
+
+            st.success("All files deleted.")
+
+            st.rerun()
+
+        else:
+
+            st.error("Failed to delete files.")
 # =================================
 # SIDEBAR
 # =================================

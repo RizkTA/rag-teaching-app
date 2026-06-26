@@ -30,56 +30,19 @@ except Exception as e:
 app = FastAPI()
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PayloadSchemaType
-@app.delete("/delete_file_by_name")
-async def delete_file_by_name(
-    filename: str = Query(...)
-):
+from app.history import delete_uploaded_file
 
-    try:
-
-        store = get_store()
-
-        store.delete_by_filename(
-            filename
-        )
-
-        return {
-            "status": "deleted",
-            "filename": filename
-        }
-
-    except Exception as e:
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
 @app.delete("/delete_file")
-async def delete_file(
-    file_hash: str = Query(...)
-):
+def delete_file(file_hash: str):
 
-    try:
+    delete_uploaded_file(file_hash)
 
-        store = get_store()
-
-        store.delete_by_file_hash(
-            file_hash
-        )
-
-        return {
+    return {
             "status": "deleted",
             "file_hash": file_hash
         }
 
-    except Exception as e:
-
-        print("DELETE ERROR:", e)
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+   
 def create_qdrant_indexes():
     import os
     QDRANT_URL = os.getenv("QDRANT_URL")
@@ -351,7 +314,14 @@ from app.history import load_history, save_history, save_uploaded_file
 import os
 import tempfile
 import traceback
+from app.history import get_uploaded_files
 
+@app.get("/uploaded_files")
+def uploaded_files():
+
+    df = get_uploaded_files()
+
+    return df.to_dict(orient="records")
 @app.post("/upload_file")
 async def upload_file(
     file: UploadFile = File(...),
