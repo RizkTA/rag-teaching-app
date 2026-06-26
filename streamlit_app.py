@@ -730,7 +730,7 @@ with st.sidebar:
                 st.session_state.messages.pop()
                 st.rerun()
 
-    st.divider()
+   # st.divider()
 
     # =========================
     # LOGO + TITLE

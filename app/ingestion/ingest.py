@@ -144,107 +144,70 @@ def read_pdf(path: str) -> str:
 
     for page_num in range(total_pages):
 
-        print(
-            f"PAGE {page_num + 1}/{total_pages}"
-        )
+        print(f"PAGE {page_num + 1}/{total_pages}")
 
         page = doc.load_page(page_num)
 
-        try:
+        text = page.get_text("text").strip()
 
-            # ----------------------------------
-            # Try normal text extraction first
-            # ----------------------------------
+        print("WORDS FOUND:", len(text.split()))
 
-            text = page.get_text("text").strip()
+        if len(text.split()) > 10:
+            print("✅ Text extracted")
 
-            print(
-                "WORDS FOUND:",
-                len(text.split())
-            )
-
-            # Enough text -> use it
-            if len(text.split()) >= 20:
-
-                print("✅ Text extracted")
-
-                pages.append(text)
-
-                del page
-
-                gc.collect()
-
-                continue
-
-            # ----------------------------------
-            # OCR ONLY THIS PAGE
-            # ----------------------------------
-
-            print("🔍 Running OCR")
-
-            ocr_pages += 1
-
-            mem(f"Before OCR page {page_num + 1}")
-
-            pix = page.get_pixmap(
-
-                matrix=fitz.Matrix(1.25, 1.25),
-
-                alpha=False
-            )
-
-            mem(f"After pixmap page {page_num + 1}")
-
-            image = Image.frombytes(
-
-                "RGB",
-
-                [pix.width, pix.height],
-
-                pix.samples
-            )
-
-            page_text = pytesseract.image_to_string(
-
-                image,
-
-                config="--psm 6"
-            ).strip()
-
-            mem(f"After OCR page {page_num + 1}")
-
-            pages.append(page_text)
-
-        except Exception as e:
-
-            print(
-                f"❌ OCR FAILED PAGE {page_num + 1}:",
-                e
-            )
-
-            pages.append("")
-
-        finally:
-
-            try:
-
-                image.close()
-
-            except:
-
-                pass
-
-            if "image" in locals():
-
-                del image
-
-            if "pix" in locals():
-
-                del pix
+            pages.append(text)
 
             del page
+            del text
 
             gc.collect()
+
+            continue
+
+        print("🔍 Running OCR")
+
+        mem(f"Before OCR page {page_num + 1}")
+
+        pix = page.get_pixmap(
+            matrix=fitz.Matrix(1.5, 1.5),
+            alpha=False
+        )
+
+        mem(f"After pixmap page {page_num + 1}")
+
+        image = Image.frombytes(
+            "RGB",
+            [pix.width, pix.height],
+            pix.samples
+        )
+
+        page_text = pytesseract.image_to_string(
+            image,
+            config="--psm 6"
+        ).strip()
+
+        pages.append(page_text)
+
+        mem(f"After OCR page {page_num + 1}")
+
+        # --------------------------
+        # FREE MEMORY
+        # --------------------------
+        image.close()
+
+        del image
+        del pix
+        del page
+        del text
+        del page_text
+
+        gc.collect()
+
+        try:
+            import ctypes
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:
+            pass
 
     doc.close()
 

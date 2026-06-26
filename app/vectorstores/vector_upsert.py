@@ -58,7 +58,7 @@ class VectorUpsert:
         # =====================
         # BATCH PROCESSING
         # =====================
-        BATCH_SIZE = 8
+        BATCH_SIZE = 4
 
         total_inserted = 0
 
@@ -83,14 +83,10 @@ class VectorUpsert:
                 i:i + BATCH_SIZE
             ]
 
-            batch_texts = []
-
-            for c in batch_chunks:
-
-                batch_texts.append(
-                    str(c["text"]).strip()
-                )
-
+            batch_texts = [
+                str(c["text"]).strip()
+                for c in batch_chunks
+            ]
             print(
                 "Embedding",
                 len(batch_texts),
@@ -128,11 +124,11 @@ class VectorUpsert:
                     "metadata",
                     {}
                 )
-                print("METADATA =", metadata)
+
                 ids.append(
                     chunk["id"]
                 )
-                print("DEBUG file_hash =", metadata.get("file_hash"))
+
                 payloads.append({
 
                     "text":
@@ -200,22 +196,37 @@ class VectorUpsert:
             print(
                 "MEMORY MB:",
                 round(
-                    psutil.Process()
-                    .memory_info()
-                    .rss / 1024 / 1024,
+                    psutil.Process().memory_info().rss / 1024 / 1024,
                     1
                 )
             )
 
+            # ---------------------------------
+            # Free memory immediately
+            # ---------------------------------
+
+            vectors.clear()
+            payloads.clear()
+            ids.clear()
+            batch_texts.clear()
+            batch_chunks.clear()
+
             del vectors
-            del ids
             del payloads
+            del ids
             del batch_texts
             del batch_chunks
-
+            del valid_chunks
             gc.collect()
 
+            try:
+                import ctypes
+                ctypes.CDLL("libc.so.6").malloc_trim(0)
+            except Exception:
+                pass
+
         print("🔥 qdrant complete")
+
 
         return {
 
