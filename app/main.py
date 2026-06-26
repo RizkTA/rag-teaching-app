@@ -31,7 +31,22 @@ app = FastAPI()
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PayloadSchemaType
 from app.history import delete_uploaded_file
+import subprocess
+from fastapi import Fast
 
+@app.get("/ocr_check")
+def ocr_check():
+    def version(cmd):
+        try:
+            return subprocess.check_output(cmd).decode().splitlines()[0]
+        except Exception as e:
+            return str(e)
+
+    return {
+        "tesseract": version(["tesseract", "--version"]),
+        "ghostscript": version(["gs", "--version"]),
+        "ocrmypdf": version(["ocrmypdf", "--version"])
+    }
 @app.delete("/delete_file")
 def delete_file(file_hash: str):
 
@@ -42,7 +57,7 @@ def delete_file(file_hash: str):
             "file_hash": file_hash
         }
 
-   
+
 def create_qdrant_indexes():
     import os
     QDRANT_URL = os.getenv("QDRANT_URL")

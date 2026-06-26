@@ -350,6 +350,11 @@ def ingest_file(
 
             if not raw_text.strip():
                 print("🔥 NO TEXT FOUND - RUNNING OCR")
+                import shutil
+
+                print("OCRMYPDF:", shutil.which("ocrmypdf"))
+                print("TESSERACT:", shutil.which("tesseract"))
+                print("GHOSTSCRIPT:", shutil.which("gs"))
                 ocr_pdf = run_ocr(path)
                 raw_text = read_pdf(ocr_pdf)
 

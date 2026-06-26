@@ -24,10 +24,23 @@ def run_ocr(pdf_path: str) -> str:
     print("RUNNING:")
     print(" ".join(cmd))
 
-    subprocess.run(
+    result = subprocess.run(
         cmd,
-        check=True
+        capture_output=True,
+        text=True
     )
+    print("RETURN CODE:", result.returncode)
+    print("STDOUT:")
+    print(result.stdout)
+    print("STDERR:")
+    print(result.stderr)
+
+    result.check_returncode()
+    print(result.stdout)
+    print(result.stderr)
+
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr)
 
     print("✅ OCR COMPLETE")
 

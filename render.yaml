@@ -1,7 +1,17 @@
- services:
-  - type: web
-    name: rag-teaching-app
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    runtime: python-3.11.11
+  services:
+    - type: web
+      name: rag-backend
+
+      runtime: python
+
+      buildCommand: |
+        apt-get update
+        apt-get install -y \
+          tesseract-ocr \
+          ghostscript \
+          libjpeg-dev \
+          libpng-dev \
+          zlib1g-dev
+        pip install -r requirements.txt
+
+      startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
