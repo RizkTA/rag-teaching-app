@@ -2,7 +2,7 @@ import os
 import subprocess
 
 
-def run_ocr(pdf_path: str) -> str:
+def run_ocr(pdf_path: str, input_pdf=None) -> str:
 
     print("=" * 80)
     print("🔥 STARTING OCR")
@@ -25,10 +25,14 @@ def run_ocr(pdf_path: str) -> str:
     print(" ".join(cmd))
 
     result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True
-    )
+    [
+        "ocrmypdf",
+        "--force-ocr",
+        input_pdf,
+        output_pdf,
+    ],
+    check=True,
+)
     print("RETURN CODE:", result.returncode)
     print("STDOUT:")
     print(result.stdout)

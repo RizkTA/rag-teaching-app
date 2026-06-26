@@ -1,17 +1,26 @@
-  services:
-    - type: web
-      name: rag-backend
+services:
+  - type: web
+    name: rag-backend
+    runtime: python
 
-      runtime: python
+    buildCommand: |
+      apt-get update
+      apt-get install -y \
+        tesseract-ocr \
+        ghostscript \
+        libjpeg-dev \
+        libpng-dev \
+        zlib1g-dev
 
-      buildCommand: |
-        apt-get update
-        apt-get install -y \
-          tesseract-ocr \
-          ghostscript \
-          libjpeg-dev \
-          libpng-dev \
-          zlib1g-dev
-        pip install -r requirements.txt
+      which tesseract || true
+      tesseract --version || true
 
-      startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+      which gs || true
+      gs --version || true
+
+      pip install -r requirements.txt
+
+      which ocrmypdf || true
+      ocrmypdf --version || true
+
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
