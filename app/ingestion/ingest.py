@@ -1,7 +1,7 @@
 import os
 import uuid
 import hashlib
-from .light_ocr import ocr_pdf
+
 
 print("🔥 INGEST.PY IMPORT START")
 from pypdf import PdfReader
@@ -108,17 +108,26 @@ import fitz
 import psutil
 
 import fitz
+import gc
+import fitz
+import pytesseract
+from PIL import Image
+
+import gc
+
+import fitz
+import pytesseract
+
+from PIL import Image
 
 
 def read_pdf(path: str) -> str:
 
-    print("📖 START PDF READ")
+    print("=" * 80)
+    print("📖 READING PDF")
+    print("=" * 80)
 
     doc = fitz.open(path)
-
-    print("PDF PAGES:", len(doc))
-
-    pages = []
 
     MAX_PAGES = 200
 
@@ -127,44 +136,128 @@ def read_pdf(path: str) -> str:
         MAX_PAGES
     )
 
-    print(f"READING {total_pages} PAGES")
+    print("TOTAL PAGES:", total_pages)
+
+    pages = []
+
+    ocr_pages = 0
 
     for page_num in range(total_pages):
 
+        print(
+            f"PAGE {page_num + 1}/{total_pages}"
+        )
+
+        page = doc.load_page(page_num)
+
         try:
 
-            page = doc[page_num]
+            # ----------------------------------
+            # Try normal text extraction first
+            # ----------------------------------
 
-            text = page.get_text("text")
+            text = page.get_text("text").strip()
 
             print(
-                f"PAGE {page_num}:",
-                len(text)
+                "WORDS FOUND:",
+                len(text.split())
             )
 
-            if text.strip():
+            # Enough text -> use it
+            if len(text.split()) >= 20:
+
+                print("✅ Text extracted")
+
                 pages.append(text)
+
+                del page
+
+                gc.collect()
+
+                continue
+
+            # ----------------------------------
+            # OCR ONLY THIS PAGE
+            # ----------------------------------
+
+            print("🔍 Running OCR")
+
+            ocr_pages += 1
+
+            mem(f"Before OCR page {page_num + 1}")
+
+            pix = page.get_pixmap(
+
+                matrix=fitz.Matrix(1.25, 1.25),
+
+                alpha=False
+            )
+
+            mem(f"After pixmap page {page_num + 1}")
+
+            image = Image.frombytes(
+
+                "RGB",
+
+                [pix.width, pix.height],
+
+                pix.samples
+            )
+
+            page_text = pytesseract.image_to_string(
+
+                image,
+
+                config="--psm 6"
+            ).strip()
+
+            mem(f"After OCR page {page_num + 1}")
+
+            pages.append(page_text)
 
         except Exception as e:
 
             print(
-                f"PAGE {page_num} ERROR:",
+                f"❌ OCR FAILED PAGE {page_num + 1}:",
                 e
             )
 
+            pages.append("")
+
+        finally:
+
+            try:
+
+                image.close()
+
+            except:
+
+                pass
+
+            if "image" in locals():
+
+                del image
+
+            if "pix" in locals():
+
+                del pix
+
+            del page
+
+            gc.collect()
+
     doc.close()
 
-    full_text = "\n".join(pages)
+    full_text = "\n\n".join(pages)
 
-    print(
-        "TEXT LENGTH:",
-        len(full_text)
-    )
-
-    print("✅ PDF READ COMPLETE")
+    print("=" * 80)
+    print("✅ PDF COMPLETE")
+    print("TOTAL PAGES:", total_pages)
+    print("OCR PAGES:", ocr_pages)
+    print("TEXT LENGTH:", len(full_text))
+    print("=" * 80)
 
     return full_text
-
 # ==========================================
 # CHUNKING
 # ==========================================
@@ -355,10 +448,10 @@ def ingest_file(
                 print("OCRMYPDF:", shutil.which("ocrmypdf"))
                 print("TESSERACT:", shutil.which("tesseract"))
                 print("GHOSTSCRIPT:", shutil.which("gs"))
-                raw_text = ocr_pdf(path)
+                raw_text = read_pdf(path)
 
-                if not raw_text.strip():
-                    raise RuntimeError("OCR completed but no text was extracted.")
+                text = clean_text(raw_text)
+
 
             print("PDF TEXT LENGTH:", len(raw_text))
             text = clean_text(raw_text)

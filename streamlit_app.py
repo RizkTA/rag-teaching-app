@@ -753,33 +753,29 @@ with st.sidebar:
             st.image("RIZKRED2.png", width=150)
         st.markdown(
             """
-            <div style="text-align:left; line-height:1.6; color:#333;">
+            <h2 style="margin:0;">
+                Dr. Nouhad Rizk
+            </h2>
 
-                <h2 style="margin:0;">
-                    Dr. Nouhad Rizk
-                </h2>
+            <b>Piper Professor & Director of Undergraduate Studies</b><br>
 
-                <b>Piper Professor & Director of Undergraduate Studies</b><br>
+            <i>Computer Science Department</i><br><br>
 
-                <i>Computer Science Department</i><br><br>
+            🏢 <b>Office:</b> PGH 565<br>
 
-                🏢 <b>Office:</b> PGH 565<br>
+            📍 <b>Address:</b><br>
+            3551 Cullen Blvd<br>
+            Houston, TX 77204<br><br>
 
-                📍 <b>Address:</b><br>
-                3551 Cullen Blvd<br>
-                Houston, TX 77204<br><br>
+            📞 <b>Phone:</b>
+            <a href="tel:+17137433710">
+                (713) 743-3710
+            </a><br>
 
-                📞 <b>Phone:</b>
-                <a href="tel:+17137433710">
-                    (713) 743-3710
-                </a><br>
-
-                🌐 <b>Website:</b>
-                <a href="https://www.uh.edu/nouhadrizk" target="_blank">
-                    uh.edu/nouhadrizk
-                </a>
-
-            </div>
+            🌐 <b>Website:</b>
+            <a href="https://www.uh.edu/nouhadrizk" target="_blank">
+                uh.edu/nouhadrizk
+            </a>
             """,
             unsafe_allow_html=True,
         )
