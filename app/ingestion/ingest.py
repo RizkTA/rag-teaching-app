@@ -1,7 +1,7 @@
 import os
 import uuid
 import hashlib
-from ingestion.light_ocr import ocr_pdf
+from .light_ocr import ocr_pdf
 
 print("🔥 INGEST.PY IMPORT START")
 from pypdf import PdfReader
