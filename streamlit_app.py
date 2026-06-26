@@ -709,36 +709,28 @@ if st.session_state.get("authenticated", False):
 # =================================
 
 with st.sidebar:
+    col1, col2 = st.columns(2)
 
-    st.header("⚙️ Controls")
-
-    # =========================
-    # CLEAR CHAT
-    # =========================
-
-    if st.button(
-        "🧹 Clear Chat",
-        key="clear_chat_button"
-    ):
-
-        st.session_state.messages = []
-        st.rerun()
-
-    # =========================
-    # BACK BUTTON
-    # =========================
-
-    if st.button(
-        "⬅️ Back",
-        key="back_button"
-    ):
-
-        if len(st.session_state.messages) > 0:
-
-            st.session_state.messages.pop()
+    with col1:
+        if st.button(
+                "🧹 Clear Chat",
+                key="clear_chat_button",
+                use_container_width=True
+        ):
+            st.session_state.messages = []
             st.rerun()
 
-    st.markdown("---")
+    with col2:
+        if st.button(
+                "⬅️ Back",
+                key="back_button",
+                use_container_width=True
+        ):
+            if st.session_state.messages:
+                st.session_state.messages.pop()
+                st.rerun()
+
+    st.divider()
 
     # =========================
     # LOGO + TITLE
@@ -761,32 +753,35 @@ with st.sidebar:
             st.image("RIZKRED2.png", width=150)
         st.markdown(
             """
-              
-          
-            <h2 style="margin:0;color:#333;">
-                Dr. Nouhad Rizk
-            </h2>
+            <div style="text-align:left; line-height:1.6; color:#333;">
 
-            <b>Piper Professor & Director of Undergraduate Studies</b><br>
-            <i>Computer Science Department</i>
+                <h2 style="margin:0;">
+                    Dr. Nouhad Rizk
+                </h2>
 
-            <hr>
+                <b>Piper Professor & Director of Undergraduate Studies</b><br>
 
-            📍 <b>Address:</b>
-            3551 Cullen Blvd, Houston, TX 77204<br>
+                <i>Computer Science Department</i><br><br>
 
-            📞 <b>Phone:</b>
-            <a href="tel:7137433710">
-                713-743-3710
-            </a><br>
+                🏢 <b>Office:</b> PGH 565<br>
 
-            🌐 <b>Website:</b>
-            <a href="https://www.uh.edu/nouhadrizk"
-               target="_blank">
-               uh.edu/nouhadrizk
-            </a>
+                📍 <b>Address:</b><br>
+                3551 Cullen Blvd<br>
+                Houston, TX 77204<br><br>
+
+                📞 <b>Phone:</b>
+                <a href="tel:+17137433710">
+                    (713) 743-3710
+                </a><br>
+
+                🌐 <b>Website:</b>
+                <a href="https://www.uh.edu/nouhadrizk" target="_blank">
+                    uh.edu/nouhadrizk
+                </a>
+
+            </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
     except Exception:
