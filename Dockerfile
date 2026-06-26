@@ -7,12 +7,6 @@ ENV PIP_NO_CACHE_DIR=1
 # OCR dependencies
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
-    ghostscript \
-    pngquant \
-    unpaper \
-    libjpeg62-turbo \
-    libpng16-16 \
-    zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

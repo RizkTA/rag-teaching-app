@@ -1,7 +1,7 @@
 import os
 import uuid
 import hashlib
-from app.ingestion.ocr import run_ocr
+from ingestion.light_ocr import ocr_pdf
 
 print("🔥 INGEST.PY IMPORT START")
 from pypdf import PdfReader
@@ -355,9 +355,7 @@ def ingest_file(
                 print("OCRMYPDF:", shutil.which("ocrmypdf"))
                 print("TESSERACT:", shutil.which("tesseract"))
                 print("GHOSTSCRIPT:", shutil.which("gs"))
-                ocr_pdf = run_ocr(path)
-                raw_text = read_pdf(ocr_pdf)
-
+                raw_text = ocr_pdf(path)
 
                 if not raw_text.strip():
                     raise RuntimeError("OCR completed but no text was extracted.")
