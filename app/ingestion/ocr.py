@@ -1,8 +1,7 @@
-import os
 import subprocess
 
 
-def run_ocr(pdf_path: str, input_pdf=None) -> str:
+def run_ocr(pdf_path: str) -> str:
 
     print("=" * 80)
     print("🔥 STARTING OCR")
@@ -15,7 +14,6 @@ def run_ocr(pdf_path: str, input_pdf=None) -> str:
 
     cmd = [
         "ocrmypdf",
-        "--skip-text",
         "--force-ocr",
         pdf_path,
         output_pdf
@@ -25,26 +23,20 @@ def run_ocr(pdf_path: str, input_pdf=None) -> str:
     print(" ".join(cmd))
 
     result = subprocess.run(
-    [
-        "ocrmypdf",
-        "--force-ocr",
-        input_pdf,
-        output_pdf,
-    ],
-    check=True,
-)
+        cmd,
+        capture_output=True,
+        text=True
+    )
+
     print("RETURN CODE:", result.returncode)
+
     print("STDOUT:")
     print(result.stdout)
+
     print("STDERR:")
     print(result.stderr)
 
     result.check_returncode()
-    print(result.stdout)
-    print(result.stderr)
-
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr)
 
     print("✅ OCR COMPLETE")
 

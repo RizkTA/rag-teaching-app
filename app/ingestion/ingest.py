@@ -358,6 +358,10 @@ def ingest_file(
                 ocr_pdf = run_ocr(path)
                 raw_text = read_pdf(ocr_pdf)
 
+
+                if not raw_text.strip():
+                    raise RuntimeError("OCR completed but no text was extracted.")
+
             print("PDF TEXT LENGTH:", len(raw_text))
             text = clean_text(raw_text)
             print(
