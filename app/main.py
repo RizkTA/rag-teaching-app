@@ -32,7 +32,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.models import PayloadSchemaType
 from app.history import delete_uploaded_file
 import subprocess
-from fastapi import Fast
+from fastapi import FastAPI
 
 @app.get("/ocr_check")
 def ocr_check():
@@ -97,16 +97,12 @@ def qdrant_count():
 @app.get("/versions")
 def versions():
     import numpy
-    import torch
-    import transformers
-    import sentence_transformers
+
     import huggingface_hub
 
     return {
         "numpy": numpy.__version__,
-        "torch": torch.__version__,
-        "transformers": transformers.__version__,
-        "sentence_transformers": sentence_transformers.__version__,
+
         "huggingface_hub": huggingface_hub.__version__,
     }
 from fastapi import Request
