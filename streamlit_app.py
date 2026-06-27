@@ -125,7 +125,6 @@ Simply ask a question below to begin.
 
 </div>
 """, unsafe_allow_html=True)
-
 st.markdown(
     """
     <div style="
@@ -134,21 +133,22 @@ st.markdown(
         padding:18px;
         border-radius:10px;
         color:#333;
-        line-height:1.9;
     ">
         <h4 style="margin-top:0;color:#C8102E;">
             📚 RIZK AI can help you with
         </h4>
 
-        ✅ Textbooks &amp; Course PDFs<br>
-        ✅ Lecture Notes &amp; Slides<br>
-        ✅ Programming Assignments<br>
-        ✅ Homework Questions<br>
-        ✅ Practice Problems<br>
-        ✅ Code Explanation &amp; Debugging
+        <ul style="margin:0;padding-left:22px;line-height:1.9;">
+            <li>📖 Textbooks &amp; Course PDFs</li>
+            <li>📝 Lecture Notes &amp; Slides</li>
+            <li>💻 Programming Assignments</li>
+            <li>🏠 Homework Questions</li>
+            <li>🧩 Practice Problems</li>
+            <li>🐞 Code Explanation &amp; Debugging</li>
+        </ul>
     </div>
-""",
-    unsafe_allow_html=True
+    """,
+    unsafe_allow_html=True,
 )
 
 
@@ -430,6 +430,17 @@ def load_lottie(url):
         return None
 
 lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsrox.json")
+
+tips = [
+    "📖 Reading your uploaded documents...",
+    "🔍 Searching the most relevant chapters...",
+    "🧠 Understanding the question...",
+    "📚 Comparing multiple sources...",
+    "✍️ Writing a concise answer...",
+    "💡 Checking for the best explanation...",
+]
+import random
+tip = random.choice(tips)
 # =================================
 # CHAT INPUT
 # =================================
@@ -444,17 +455,6 @@ if st.session_state.selected_prompt:
 else:
     query = typed_query
 
-tips = [
-    "📖 Reading your uploaded documents...",
-    "🔍 Searching the most relevant chapters...",
-    "🧠 Understanding the question...",
-    "📚 Comparing multiple sources...",
-    "✍️ Writing a concise answer...",
-    "💡 Checking for the best explanation...",
-]
-import random
-
-tip = random.choice(tips)
 if query:
 
     st.session_state.messages.append(
