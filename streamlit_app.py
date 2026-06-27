@@ -453,8 +453,7 @@ typed_query = st.chat_input(
     "Ask RIZK AI anything...",
     key="main_chat_input"
 )
-st.write("Selected:", st.session_state.selected_prompt)
-st.write("Typed:", typed_query)
+
 if st.session_state.selected_prompt:
     query = st.session_state.selected_prompt
     st.session_state.selected_prompt = None

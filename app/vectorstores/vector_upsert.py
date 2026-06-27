@@ -99,7 +99,9 @@ class VectorUpsert:
             vectors = embed_texts(
                 batch_texts
             )
+            del batch_texts
 
+            gc.collect()
             if vectors is None:
 
                 raise Exception(
@@ -205,33 +207,33 @@ class VectorUpsert:
             # Free memory immediately
             # ---------------------------------
 
-            vectors.clear()
-            payloads.clear()
-            ids.clear()
-            batch_texts.clear()
-            batch_chunks.clear()
-
             del vectors
             del payloads
             del ids
             del batch_texts
             del batch_chunks
-            del valid_chunks
+
             gc.collect()
 
             try:
-                import ctypes
                 ctypes.CDLL("libc.so.6").malloc_trim(0)
             except Exception:
                 pass
 
         print("🔥 qdrant complete")
 
+        print("🔥 qdrant complete")
+
+        del valid_chunks
+
+        gc.collect()
+
+        try:
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:
+            pass
 
         return {
-
             "status": "ok",
-
-            "inserted":
-                total_inserted
+            "inserted": total_inserted
         }
