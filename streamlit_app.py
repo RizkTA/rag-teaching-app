@@ -80,8 +80,6 @@ st.set_page_config(
    page_icon="favicon.ico",   # optional
    layout="wide"
 )
-if "selected_prompt" not in st.session_state:
-    st.session_state.selected_prompt = None
 # ======================================================
 # WELCOME
 # ======================================================
@@ -125,32 +123,31 @@ Simply ask a question below to begin.
 
 </div>
 """, unsafe_allow_html=True)
-st.markdown(
-    """
-    <div style="
-        background:#F7F7F7;
-        border-left:6px solid #C8102E;
-        padding:18px;
-        border-radius:10px;
-        color:#333;
-    ">
-        <h4 style="margin-top:0;color:#C8102E;">
-            📚 RIZK AI can help you with
-        </h4>
+st.markdown("""
+<div style="
+background:#fafafa;
+border-radius:12px;
+padding:20px;
+border:1px solid #ddd;
+">
 
-        <ul style="margin:0;padding-left:22px;line-height:1.9;">
-            <li>📖 Textbooks &amp; Course PDFs</li>
-            <li>📝 Lecture Notes &amp; Slides</li>
-            <li>💻 Programming Assignments</li>
-            <li>🏠 Homework Questions</li>
-            <li>🧩 Practice Problems</li>
-            <li>🐞 Code Explanation &amp; Debugging</li>
-        </ul>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+<h3 style="color:#C8102E;margin-top:0;">
+🚀 RIZK AI can help you with
+</h3>
 
+<p style="font-size:18px;line-height:2;margin-bottom:0;">
+
+📖 Textbooks & Course PDFs<br>
+📝 Lecture Notes & Slides<br>
+💻 Programming Assignments<br>
+🏠 Homework Questions<br>
+🧩 Practice Problems<br>
+🐞 Code Explanation & Debugging
+
+</p>
+
+</div>
+""", unsafe_allow_html=True)
 
 # ==========================================================
 # EXAMPLE QUESTIONS
@@ -198,42 +195,38 @@ exam = random.choice(ds2_examples)
 study = random.choice(study_examples)
 
 st.markdown("## 💡 Try asking one of these questions")
+if "selected_prompt" not in st.session_state:
+    st.session_state.selected_prompt = None
 
+categories = [
+    ("📘 Data Science I", course, "course"),
+    ("💻 Data Structures Programming", programming, "programming"),
+    ("📝 Data Science II", exam, "exam"),
+    ("🎓 Concepts Study", study, "study"),
+]
 
 col1, col2 = st.columns(2)
 
-with col1:
+for i, (title, prompt, key) in enumerate(categories):
 
-    st.markdown("### 📘 Data Science I")
+    with (col1 if i % 2 == 0 else col2):
 
+        st.markdown(f"### {title}")
 
-    if st.button(course, use_container_width=True):
-        st.session_state.selected_prompt = course.split(" ", 1)[1]
-        st.rerun()
-    st.markdown("### 💻 Data Structures Programming")
-
-    if st.button(programming, use_container_width=True):
-        st.session_state.selected_prompt = programming.split(" ", 1)[1]
-        st.rerun()
-
-with col2:
-
-    st.markdown("### 📝 Data Science II")
-
-    if st.button(exam, use_container_width=True):
-        st.session_state.selected_prompt = exam.split(" ", 1)[1]
-        st.rerun()
-    st.markdown("### 🎓 Concepts Study")
-
-    if st.button(study, use_container_width=True):
-        st.session_state.selected_prompt = study.split(" ", 1)[1]
-        st.rerun()
+        if st.button(
+            prompt,
+            key=f"btn_{key}",
+            use_container_width=True
+        ):
+            st.session_state.selected_prompt = prompt
+            st.rerun()
 
 
 
 # =================================
 # SESSION STATE
 # =================================
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -300,10 +293,10 @@ section[data-testid="stSidebar"] > div {
 # =================================
 # PAGE CONFIG
 # =================================
-st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
+#st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 
 # =================================
-# show thinkinking
+# show thinking
 # =================================
 import streamlit as st
 import streamlit.components.v1 as components
@@ -444,11 +437,13 @@ tip = random.choice(tips)
 # =================================
 # CHAT INPUT
 # =================================
+
 typed_query = st.chat_input(
     "Ask RIZK AI anything...",
     key="main_chat_input"
 )
-
+st.write("Selected:", st.session_state.selected_prompt)
+st.write("Typed:", typed_query)
 if st.session_state.selected_prompt:
     query = st.session_state.selected_prompt
     st.session_state.selected_prompt = None
