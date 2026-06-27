@@ -230,7 +230,7 @@ with col2:
         st.rerun()
 st.write("Selected:", st.session_state.selected_prompt)
 
-typed_query = st.chat_input("Ask RIZK AI anything...")
+
 
 st.write("Typed:", typed_query)
 # =================================
@@ -248,8 +248,6 @@ if "authenticated" not in st.session_state:
 if "favorites" not in st.session_state:
     st.session_state.favorites = []
 
-if "selected_prompt" not in st.session_state:
-    st.session_state.selected_prompt = None
 # =================================
 # CSS
 # =================================
@@ -437,8 +435,10 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # =================================
 # CHAT INPUT
 # =================================
-
-typed_query = st.chat_input("Ask RIZK AI anything...")
+typed_query = st.chat_input(
+    "Ask RIZK AI anything...",
+    key="main_chat_input"
+)
 
 if st.session_state.selected_prompt:
     query = st.session_state.selected_prompt
