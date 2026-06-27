@@ -316,9 +316,9 @@ import time
 import streamlit as st
 
 
-def show_thinking():
+def show_thinking(tip):
     placeholder = st.empty()
-
+    placeholder.info(f"🤔 {tip}")
     start = time.time()
 
     placeholder.markdown(
