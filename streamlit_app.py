@@ -228,11 +228,9 @@ with col2:
     if st.button(study, use_container_width=True):
         st.session_state.selected_prompt = study.split(" ", 1)[1]
         st.rerun()
-st.write("Selected:", st.session_state.selected_prompt)
 
 
 
-st.write("Typed:", typed_query)
 # =================================
 # SESSION STATE
 # =================================
