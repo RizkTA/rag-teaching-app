@@ -125,72 +125,75 @@ Simply ask a question below to begin.
 </div>
 """, unsafe_allow_html=True)
 
+st.markdown(
+    """
+    <div style="
+        background:#F7F7F7;
+        border-left:6px solid #C8102E;
+        padding:18px;
+        border-radius:10px;
+        color:#333;
+        line-height:1.9;
+    ">
+        <h4 style="margin-top:0;color:#C8102E;">
+            📚 RIZK AI can help you with
+        </h4>
 
-st.info("""
-
-### 📚 RIZK AI can help you with
-
-✅ Textbooks & Course PDFs
-
-✅ Lecture Notes & Slides
-
-✅ Programming Assignments
-
-✅ Research Papers
-
-✅ Homework Questions
-
-✅ Practice Problems
-
-✅ Exam Preparation
-
-✅ Code Explanation & Debugging
-
-""")
+        ✅ Textbooks &amp; Course PDFs<br>
+        ✅ Lecture Notes &amp; Slides<br>
+        ✅ Programming Assignments<br>
+        ✅ Homework Questions<br>
+        ✅ Practice Problems<br>
+        ✅ Code Explanation &amp; Debugging
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ==========================================================
 # EXAMPLE QUESTIONS
 # ==========================================================
 
-course_examples = [
-    "📘 Explain pointers in C++ with examples.",
-    "📚 Which lecture discusses recursion?",
-    "📄 Summarize Chapter 5 of the textbook.",
-    "🧠 Explain binary search trees in simple terms.",
-    "🔍 Compare DFS and BFS."
+ds1_examples = [
+    "📘 Summarize supervised and unsupervised Learning.",
+    "📚 What is confusion matrix?",
+    "📄 Summarize supervised and unsupervised Learning.",
+    "🧠 Explain K-Means algorithm.",
+    "🔍 What is cluster Validity."
 ]
 
 programming_examples = [
-    "💻 Explain this C++ code line by line.",
-    "🐞 Help me debug this program.",
-    "⚙️ Explain Big-O notation with examples.",
+    "💻 Explain C++ queue code.",
+    "🐞 Help me understand recursion using C++.",
+    "⚙️ Explain binary search in C++ with examples.",
     "🌳 Compare arrays and linked lists.",
     "💾 Explain dynamic memory allocation."
+    "🔍 Compare DFS and BFS."
 ]
 
-exam_examples = [
-    "📝 Generate five practice exam questions.",
-    "🎯 Give me a quiz on stacks and queues.",
-    "📖 Create a short quiz about recursion.",
-    "🏆 Ask me interview questions on C++.",
-    "📑 What topics should I study for the exam?"
+ds2_examples = [
+    "📝 Explain neural network step by step.",
+    "🎯 Give me a definition of convolutional neural network.",
+    "📖 What is logistic regression.",
+    "🏆 What is gradient descent.",
+    "📑 Explain LSTM."
 ]
 
 study_examples = [
-    "📚 Summarize today's lecture.",
+    "📚 Summarize the benefits of heap sort.",
     "💡 Explain recursion like I'm a beginner.",
     "📈 Compare Merge Sort and Quick Sort.",
-    "🧠 Give a real-world example of linked lists.",
-    "📋 Explain this concept step by step."
+    "🧠 Give an example of linked lists.",
+    "📋 Explain Dijkestra algorithm."
 ]
 
 
 # Randomize every page refresh
 
-course = random.choice(course_examples)
+course = random.choice(ds1_examples)
 programming = random.choice(programming_examples)
-exam = random.choice(exam_examples)
+exam = random.choice(ds2_examples)
 study = random.choice(study_examples)
 
 st.markdown("## 💡 Try asking one of these questions")
@@ -201,13 +204,13 @@ col1, col2 = st.columns(2)
 
 with col1:
 
-    st.markdown("### 📘 Course Concepts")
+    st.markdown("### 📘 Data Science I")
 
 
     if st.button(course, use_container_width=True):
         st.session_state.selected_prompt = course.split(" ", 1)[1]
         st.rerun()
-    st.markdown("### 💻 Programming")
+    st.markdown("### 💻 Data Structures Programming")
 
     if st.button(programming, use_container_width=True):
         st.session_state.selected_prompt = programming.split(" ", 1)[1]
@@ -215,12 +218,12 @@ with col1:
 
 with col2:
 
-    st.markdown("### 📝 Exam Preparation")
+    st.markdown("### 📝 Data Science II")
 
     if st.button(exam, use_container_width=True):
         st.session_state.selected_prompt = exam.split(" ", 1)[1]
         st.rerun()
-    st.markdown("### 🎓 Study Help")
+    st.markdown("### 🎓 Concepts Study")
 
     if st.button(study, use_container_width=True):
         st.session_state.selected_prompt = study.split(" ", 1)[1]
