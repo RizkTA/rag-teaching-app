@@ -80,7 +80,8 @@ st.set_page_config(
    page_icon="favicon.ico",   # optional
    layout="wide"
 )
-
+if "selected_prompt" not in st.session_state:
+    st.session_state.selected_prompt = None
 # ======================================================
 # WELCOME
 # ======================================================
@@ -146,8 +147,8 @@ st.markdown(
         ✅ Practice Problems<br>
         ✅ Code Explanation &amp; Debugging
     </div>
-    """,
-    unsafe_allow_html=True,
+""",
+    unsafe_allow_html=True
 )
 
 
@@ -198,7 +199,6 @@ study = random.choice(study_examples)
 
 st.markdown("## 💡 Try asking one of these questions")
 
-selected_prompt = None
 
 col1, col2 = st.columns(2)
 
@@ -228,7 +228,11 @@ with col2:
     if st.button(study, use_container_width=True):
         st.session_state.selected_prompt = study.split(" ", 1)[1]
         st.rerun()
+st.write("Selected:", st.session_state.selected_prompt)
 
+typed_query = st.chat_input("Ask RIZK AI anything...")
+
+st.write("Typed:", typed_query)
 # =================================
 # SESSION STATE
 # =================================
@@ -433,6 +437,7 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # =================================
 # CHAT INPUT
 # =================================
+
 typed_query = st.chat_input("Ask RIZK AI anything...")
 
 if st.session_state.selected_prompt:
