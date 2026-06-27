@@ -125,30 +125,41 @@ Simply ask a question below to begin.
 """, unsafe_allow_html=True)
 st.markdown("""
 <div style="
-background:#fafafa;
-border-radius:12px;
-padding:20px;
-border:1px solid #ddd;
+    background:#fafafa;
+    border-left:5px solid #C8102E;
+    border-radius:12px;
+    padding:22px 28px;
+    margin-bottom:20px;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
 ">
 
-<h3 style="color:#C8102E;margin-top:0;">
-🚀 RIZK AI can help you with
+<h3 style="
+    color:#C8102E;
+    margin-top:0;
+    margin-bottom:15px;
+">
+📚 RIZK AI can help you with
 </h3>
 
-<p style="font-size:18px;line-height:2;margin-bottom:0;">
+<ul style="
+    margin:0;
+    padding-left:25px;
+    line-height:2;
+    font-size:18px;
+    color:#333;
+">
 
-📖 Textbooks & Course PDFs<br>
-📝 Lecture Notes & Slides<br>
-💻 Programming Assignments<br>
-🏠 Homework Questions<br>
-🧩 Practice Problems<br>
-🐞 Code Explanation & Debugging
+<li>📖 Textbooks &amp; Course PDFs</li>
+<li>📝 Lecture Notes &amp; Slides</li>
+<li>💻 Programming Assignments</li>
+<li>🏠 Homework Questions</li>
+<li>🧩 Practice Problems</li>
+<li>🐞 Code Explanation &amp; Debugging</li>
 
-</p>
+</ul>
 
 </div>
 """, unsafe_allow_html=True)
-
 # ==========================================================
 # EXAMPLE QUESTIONS
 # ==========================================================
@@ -166,7 +177,7 @@ programming_examples = [
     "🐞 Help me understand recursion using C++.",
     "⚙️ Explain binary search in C++ with examples.",
     "🌳 Compare arrays and linked lists.",
-    "💾 Explain dynamic memory allocation."
+    "💾 Explain dynamic memory allocation.",
     "🔍 Compare DFS and BFS."
 ]
 
