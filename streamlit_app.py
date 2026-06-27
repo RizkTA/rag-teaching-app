@@ -6,7 +6,7 @@ import time
 import random
 import threading
 from app.history import get_uploaded_files
-from main import query
+
 
 API_URL = "https://learning-app-t2bz.onrender.com"
 def thinking_animation(stop_event):
