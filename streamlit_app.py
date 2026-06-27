@@ -620,7 +620,7 @@ if st.session_state.pinned:
         st.markdown("---")
 
     st.markdown("</div>", unsafe_allow_html=True )
-    st.markdown()
+
 
 # =================================
 # CHAT HISTORY (CLEAN)
