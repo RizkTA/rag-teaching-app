@@ -81,19 +81,6 @@ st.set_page_config(
    layout="wide"
 )
 
-#st.title("RIZK AI ASSISTANT")
-st.markdown("""
-<div style="
-    padding:20px;
-    border-radius:10px;
-    background:#f8f9fa;
-    border-left:6px solid #d90429;">
-    <h1 style="margin:0;">🎓 RIZK AI ASSISTANT</h1>
-    <p style="margin:0;color:gray;">
-        AI-Powered Learning, Research, and Academic Support
-    </p>
-</div>
-""", unsafe_allow_html=True)
 # ======================================================
 # WELCOME
 # ======================================================
@@ -216,25 +203,28 @@ with col1:
 
     st.markdown("### 📘 Course Concepts")
 
-    if st.button(course, use_container_width=True):
-        selected_prompt = course.split(" ",1)[1]
 
+    if st.button(course, use_container_width=True):
+        st.session_state.selected_prompt = course.split(" ", 1)[1]
+        st.rerun()
     st.markdown("### 💻 Programming")
 
     if st.button(programming, use_container_width=True):
-        selected_prompt = programming.split(" ",1)[1]
+        st.session_state.selected_prompt = programming.split(" ", 1)[1]
+        st.rerun()
 
 with col2:
 
     st.markdown("### 📝 Exam Preparation")
 
     if st.button(exam, use_container_width=True):
-        selected_prompt = exam.split(" ",1)[1]
-
+        st.session_state.selected_prompt = exam.split(" ", 1)[1]
+        st.rerun()
     st.markdown("### 🎓 Study Help")
 
     if st.button(study, use_container_width=True):
-        selected_prompt = study.split(" ",1)[1]
+        st.session_state.selected_prompt = study.split(" ", 1)[1]
+        st.rerun()
 
 # =================================
 # SESSION STATE
@@ -250,6 +240,9 @@ if "authenticated" not in st.session_state:
 
 if "favorites" not in st.session_state:
     st.session_state.favorites = []
+
+if "selected_prompt" not in st.session_state:
+    st.session_state.selected_prompt = None
 # =================================
 # CSS
 # =================================
@@ -437,9 +430,13 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # =================================
 # CHAT INPUT
 # =================================
-query = selected_prompt if selected_prompt else st.chat_input(
-    "Ask RIZK AI anything..."
-)
+typed_query = st.chat_input("Ask RIZK AI anything...")
+
+if st.session_state.selected_prompt:
+    query = st.session_state.selected_prompt
+    st.session_state.selected_prompt = None
+else:
+    query = typed_query
 
 tips = [
     "📖 Reading your uploaded documents...",
