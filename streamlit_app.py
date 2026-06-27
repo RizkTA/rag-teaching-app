@@ -2,10 +2,83 @@ import requests
 import os
 import re
 from app.history import load_history, save_history
+import time
+import random
+import threading
 from app.history import get_uploaded_files
+from main import query
 
 API_URL = "https://learning-app-t2bz.onrender.com"
+def thinking_animation(stop_event):
 
+    books = [
+        "📕",
+        "📗",
+        "📘",
+        "📙",
+        "📚"
+    ]
+
+    messages = [
+
+        "Searching your course materials...",
+        "Reading lecture notes...",
+        "Checking textbooks...",
+        "Finding the best answer...",
+        "Ranking relevant documents...",
+        "Building your answer...",
+        "Almost finished..."
+    ]
+
+    progress = st.empty()
+    message = st.empty()
+
+    p = 0
+
+    while not stop_event.is_set():
+
+        icon = random.choice(books)
+
+        progress.markdown(
+            f"""
+<div style="font-size:38px;text-align:center;">
+{icon} {"🟩"*int(p/10)}
+</div>
+""",
+            unsafe_allow_html=True
+        )
+
+        message.markdown(
+            f"""
+<div style="
+text-align:center;
+font-size:18px;
+font-weight:600;
+color:#555;">
+🧠 <span style="color:#C8102E;">Thinking...</span><br><br>
+
+<span style="font-size:16px;">
+{random.choice(messages)}
+</span><br><br>
+
+<span style="color:#777;">
+Please wait while I search your documents.
+</span>
+
+</div>
+""",
+            unsafe_allow_html=True
+        )
+
+        p += random.randint(3, 10)
+
+        if p > 98:
+            p = 98
+
+        time.sleep(0.7)
+
+    progress.empty()
+    message.empty()
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
 from app.history import UPLOAD_HISTORY_FILE
 
@@ -143,63 +216,64 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # =================================
 # CHAT INPUT
 # =================================
-#<link rel="icon" href="favicon.ico" type="image/x-icon">
-
-query = st.chat_input("Ask RIZK AI anything.....")
-
-# =================================
-# CALL BACKEND
-# =================================
+query = st.chat_input("Ask RIZK AI anything...")
 if query:
 
-    st.session_state.messages.append({
-        "role": "user",
-        "content": query
-    })
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": query
+        }
+    )
 
-    with st.spinner("🧠 Thinking..."):
+    stop_event = threading.Event()
 
-        try:
-            res = requests.post(
-                f"{API_URL}/query",
-                json={"q": query},
-                timeout=120
-            )
-            #to delet by nouhad
-            st.write("Status Code:", res.status_code)
+    animation = threading.Thread(
+        target=thinking_animation,
+        args=(stop_event,),
+        daemon=True
+    )
 
-            try:
-                st.json(res.json())
-            except Exception:
-                st.code(res.text)
-            #to delete by nouhad
-            if res.status_code != 200:
-                st.error("Backend error")
-                st.code(res.text)
-                st.stop()
+    animation.start()
 
-            data = res.json()
+    try:
 
-            answer = data.get("answer", "")
-            sources = data.get("sources", [])
+        res = requests.post(
+            f"{API_URL}/query",
+            json={"q": query},
+            timeout=120
+        )
 
-            answer = re.sub(
-                r"dlab\d+_\d+",
-                "",
-                answer
-            ).strip()
+    finally:
 
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": answer,
-                "citations": sources
-            })
+        stop_event.set()
+        animation.join()
 
-        except Exception as e:
-            st.error(str(e))
+    if res.status_code != 200:
+
+        st.error("Backend error")
+        st.code(res.text)
+        st.stop()
+
+    data = res.json()
+
+    answer = re.sub(
+        r"dlab\d+_\d+",
+        "",
+        data.get("answer", "")
+    ).strip()
+
+    sources = data.get("sources", [])
+
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": answer,
+            "citations": sources
+        }
+    )
 
     st.rerun()
-
 #==================
 # PINNED NOTEBOOK V2
 # =================================
