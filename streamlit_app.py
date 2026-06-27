@@ -19,16 +19,7 @@ def thinking_animation(stop_event):
         "📚"
     ]
 
-    messages = [
-
-        "Searching your course materials...",
-        "Reading lecture notes...",
-        "Checking textbooks...",
-        "Finding the best answer...",
-        "Ranking relevant documents...",
-        "Building your answer...",
-        "Almost finished..."
-    ]
+    messages = {tip}
 
     progress = st.empty()
     message = st.empty()
@@ -103,23 +94,147 @@ st.markdown("""
     </p>
 </div>
 """, unsafe_allow_html=True)
-col1, col2 = st.columns([3,1])
+# ======================================================
+# WELCOME
+# ======================================================
+import random
+import streamlit as st
+
+# ==========================================================
+# WELCOME
+# ==========================================================
+
+st.markdown("""
+<div style="text-align:center;padding:20px 10px;">
+
+<h1 style="
+color:#C8102E;
+margin-bottom:8px;
+font-size:42px;">
+🎓 Welcome to RIZK AI
+</h1>
+
+<h3 style="
+color:#444;
+margin-top:0;">
+Your AI-Powered Academic Assistant
+</h3>
+
+<p style="
+font-size:18px;
+max-width:900px;
+margin:auto;
+color:#666;
+line-height:1.7;">
+
+RIZK AI searches across your instructor-approved course materials to provide
+accurate, context-aware answers, explanations, programming assistance,
+summaries, and personalized learning support.
+
+Simply ask a question below to begin.
+
+</p>
+
+</div>
+""", unsafe_allow_html=True)
+
+
+st.info("""
+
+### 📚 RIZK AI can help you with
+
+✅ Textbooks & Course PDFs
+
+✅ Lecture Notes & Slides
+
+✅ Programming Assignments
+
+✅ Research Papers
+
+✅ Homework Questions
+
+✅ Practice Problems
+
+✅ Exam Preparation
+
+✅ Code Explanation & Debugging
+
+""")
+
+
+# ==========================================================
+# EXAMPLE QUESTIONS
+# ==========================================================
+
+course_examples = [
+    "📘 Explain pointers in C++ with examples.",
+    "📚 Which lecture discusses recursion?",
+    "📄 Summarize Chapter 5 of the textbook.",
+    "🧠 Explain binary search trees in simple terms.",
+    "🔍 Compare DFS and BFS."
+]
+
+programming_examples = [
+    "💻 Explain this C++ code line by line.",
+    "🐞 Help me debug this program.",
+    "⚙️ Explain Big-O notation with examples.",
+    "🌳 Compare arrays and linked lists.",
+    "💾 Explain dynamic memory allocation."
+]
+
+exam_examples = [
+    "📝 Generate five practice exam questions.",
+    "🎯 Give me a quiz on stacks and queues.",
+    "📖 Create a short quiz about recursion.",
+    "🏆 Ask me interview questions on C++.",
+    "📑 What topics should I study for the exam?"
+]
+
+study_examples = [
+    "📚 Summarize today's lecture.",
+    "💡 Explain recursion like I'm a beginner.",
+    "📈 Compare Merge Sort and Quick Sort.",
+    "🧠 Give a real-world example of linked lists.",
+    "📋 Explain this concept step by step."
+]
+
+
+# Randomize every page refresh
+
+course = random.choice(course_examples)
+programming = random.choice(programming_examples)
+exam = random.choice(exam_examples)
+study = random.choice(study_examples)
+
+st.markdown("## 💡 Try asking one of these questions")
+
+selected_prompt = None
+
+col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown("""
-    ### Welcome to RIZK AI
 
-    Ask questions from:
-    - PDFs
-    - Lecture Notes
-    - Textbooks
-    - Research Papers
-    - Coding Assignments
-     
-    """)
+    st.markdown("### 📘 Course Concepts")
+
+    if st.button(course, use_container_width=True):
+        selected_prompt = course.split(" ",1)[1]
+
+    st.markdown("### 💻 Programming")
+
+    if st.button(programming, use_container_width=True):
+        selected_prompt = programming.split(" ",1)[1]
 
 with col2:
-    st.markdown("")
+
+    st.markdown("### 📝 Exam Preparation")
+
+    if st.button(exam, use_container_width=True):
+        selected_prompt = exam.split(" ",1)[1]
+
+    st.markdown("### 🎓 Study Help")
+
+    if st.button(study, use_container_width=True):
+        selected_prompt = study.split(" ",1)[1]
 
 # =================================
 # SESSION STATE
@@ -192,9 +307,115 @@ section[data-testid="stSidebar"] > div {
 st.set_page_config(page_title="RIZK AI", page_icon="📕", layout="wide")
 
 # =================================
-# HEADER
+# show thinkinking
 # =================================
+import streamlit as st
+import streamlit.components.v1 as components
 
+import time
+import streamlit as st
+
+
+def show_thinking():
+    placeholder = st.empty()
+
+    start = time.time()
+
+    placeholder.markdown(
+        f"""
+<style>
+
+@keyframes pulse {{
+    0% {{transform:scale(1);}}
+    50% {{transform:scale(1.18);}}
+    100% {{transform:scale(1);}}
+}}
+
+@keyframes slideBooks {{
+
+    0%   {{transform:translateX(-40px);opacity:0.3;}}
+
+    25%  {{opacity:1;}}
+
+    50%  {{transform:translateX(40px);}}
+
+    75%  {{opacity:1;}}
+
+    100% {{transform:translateX(-40px);opacity:0.3;}}
+}}
+
+@keyframes rainbow {{
+
+0%{{color:#C8102E;}}
+20%{{color:#0072CE;}}
+40%{{color:#00843D;}}
+60%{{color:#F6BE00;}}
+80%{{color:#7C3AED;}}
+100%{{color:#C8102E;}}
+
+}}
+
+.thinking-box{{
+    text-align:center;
+    padding:25px;
+}}
+
+.brain{{
+    font-size:70px;
+    animation:pulse 1.2s infinite;
+}}
+
+.books{{
+    font-size::34px;
+
+animation:
+slideBooks 3s infinite,
+rainbow 4s infinite;
+
+margin-top:15px;
+
+}}
+
+.message{{
+    font-size:22px;
+    color:#444444;
+    margin-top:18px;
+    font-weight:600;
+}}
+
+.tip{{
+    color:#888;
+    margin-top:12px;
+    font-size:16px;
+}}
+
+</style>
+
+<div class="thinking-box">
+
+<div class="brain" style="color:#C8102E;">
+🧠
+</div>
+
+<div class="books">
+📕 📗 📘 📙 📚
+</div>
+
+<div class="message">
+RIZK AI is thinking...
+</div>
+
+<div class="tip">
+Searching your course materials and generating the best answer.
+</div>
+
+</div>
+
+""",
+        unsafe_allow_html=True,
+    )
+
+    return placeholder, start
 #st.divider()
 #cols = st.columns(11)
 
@@ -216,7 +437,21 @@ lottie_bulb = load_lottie("https://assets10.lottiefiles.com/packages/lf20_6wutsr
 # =================================
 # CHAT INPUT
 # =================================
-query = st.chat_input("Ask RIZK AI anything...")
+query = selected_prompt if selected_prompt else st.chat_input(
+    "Ask RIZK AI anything..."
+)
+
+tips = [
+    "📖 Reading your uploaded documents...",
+    "🔍 Searching the most relevant chapters...",
+    "🧠 Understanding the question...",
+    "📚 Comparing multiple sources...",
+    "✍️ Writing a concise answer...",
+    "💡 Checking for the best explanation...",
+]
+import random
+
+tip = random.choice(tips)
 if query:
 
     st.session_state.messages.append(
@@ -226,28 +461,21 @@ if query:
         }
     )
 
-    stop_event = threading.Event()
+    thinking, start = show_thinking(tip)
 
-    animation = threading.Thread(
-        target=thinking_animation,
-        args=(stop_event,),
-        daemon=True
+    res = requests.post(
+        f"{API_URL}/query",
+        json={"q": query},
+        timeout=300
     )
 
-    animation.start()
+    thinking.empty()
+    elapsed = round(time.time() - start, 1)
 
-    try:
+    st.caption(
+        f"⏱ Response generated in {elapsed} seconds"
+    )
 
-        res = requests.post(
-            f"{API_URL}/query",
-            json={"q": query},
-            timeout=120
-        )
-
-    finally:
-
-        stop_event.set()
-        animation.join()
 
     if res.status_code != 200:
 
