@@ -320,22 +320,34 @@ from datetime import time
 # ==========================================
 # MAIN INGEST
 # ==========================================
+from app.utils.progress import update_job
 def ingest_file(
     path: str,
     filename: str,
-    replace_existing=True
+    replace_existing=True,
+    job_id=None
 ):
 
     print("=" * 80)
     print("🔥 INGEST START:", filename)
     print("=" * 80)
-
+    if job_id:
+        update_job(
+            job_id,
+            progress=1,
+            stage="Initializing upload..."
+        )
     try:
 
         store = get_store()
 
         file_hash = get_file_hash(path)
-
+        if job_id:
+            update_job(
+                job_id,
+                progress=5,
+                stage="Checking for duplicates..."
+            )
         if not file_hash:
             raise Exception("Failed to generate file hash")
 
@@ -353,7 +365,12 @@ def ingest_file(
         if exists:
 
             if replace_existing:
-
+                if job_id:
+                    update_job(
+                        job_id,
+                        progress=8,
+                        stage="Removing previous version..."
+                    )
                 print("♻ Removing existing vectors")
 
                 store.delete_by_file_hash(file_hash)
@@ -382,7 +399,12 @@ def ingest_file(
         # ==================================================
 
         if suffix == ".pdf":
-
+            if job_id:
+                update_job(
+                    job_id,
+                    progress=10,
+                    stage="Reading PDF..."
+                )
             print("📄 Streaming PDF")
 
             chunk_id = 0
@@ -391,7 +413,21 @@ def ingest_file(
                     stream_pdf_pages(path),
                     start=1
             ):
+                if job_id:
+                    progress = min(
+                        10 + page_num * 2,
+                        40
+                    )
 
+                    update_job(
+
+                        job_id,
+
+                        progress=progress,
+
+                        stage=f"Processing page {page_num}"
+
+                    )
                 print("=" * 60)
                 print(f"PAGE {page_num}")
                 print("=" * 60)
@@ -401,7 +437,21 @@ def ingest_file(
                 if not page_text:
                     print("Empty page")
                     continue
+                if job_id:
+                    progress = min(
+                        10 + page_num * 2,
+                        40
+                    )
 
+                    update_job(
+
+                        job_id,
+
+                        progress=progress,
+
+                        stage=f"Processing page {page_num}"
+
+                    )
                 page_chunks = chunk_text(page_text)
 
                 if not page_chunks:
@@ -451,7 +501,24 @@ def ingest_file(
                     print(
                         f"Uploading {len(structured)} chunks"
                     )
+                    if job_id:
+                        update_job(
 
+                            job_id,
+
+                            progress=55,
+
+                            stage=f"Embedding page {page_num}"
+
+                        )
+
+                    get_upserter().upsert_chunks(
+
+                        structured,
+
+                        job_id=job_id
+
+                    )
                     get_upserter().upsert_chunks(
                         structured
                     )
@@ -559,7 +626,16 @@ def ingest_file(
         print("INGEST COMPLETE")
         print("TOTAL CHUNKS:", total_chunks)
         print("=" * 80)
+        if job_id:
+            update_job(
 
+                job_id,
+
+                progress=100,
+
+                stage="Completed"
+
+            )
         return {
 
             "status": "ok",
@@ -578,7 +654,16 @@ def ingest_file(
 
         import traceback
         traceback.print_exc()
+        if job_id:
+            update_job(
 
+                job_id,
+
+                progress=100,
+
+                stage=f"Failed: {e}"
+
+            )
         return {
 
             "status": "error",

@@ -1,15 +1,21 @@
 from app.embeddings.embedder import embed_texts
+from app.utils.progress import update_job
+
 import gc
 import psutil
+import ctypes
+
 
 class VectorUpsert:
 
     def __init__(self, store):
-
         self.store = store
 
-    def upsert_chunks(self, chunks):
-
+    def upsert_chunks(
+        self,
+        chunks,
+        job_id=None
+    ):
         print("=" * 80)
         print("🔥 UPSERT START")
         print("=" * 80)
@@ -69,15 +75,30 @@ class VectorUpsert:
                 EMBED_BATCH
         ):
 
+            batch_number = batch_index // EMBED_BATCH + 1
+
             batch = valid_chunks[
                 batch_index:
                 batch_index + EMBED_BATCH
             ]
 
+            if job_id:
+                progress = 55 + int(
+                    batch_number / total_batches * 40
+                )
+
+                update_job(
+
+                    job_id,
+
+                    progress=progress,
+
+                    stage=f"Embedding batch {batch_number}/{total_batches}"
+
+                )
+
             print(
-                f"\nBatch "
-                f"{batch_index // EMBED_BATCH + 1}"
-                f"/{total_batches}"
+                f"\nBatch {batch_number}/{total_batches}"
             )
 
             texts = [
@@ -218,11 +239,33 @@ class VectorUpsert:
             ).malloc_trim(0)
         except Exception:
             pass
+        if job_id:
+            update_job(
 
+                job_id,
+
+                progress=98,
+
+                stage="Saving vectors..."
+
+            )
         print("=" * 80)
         print("✅ UPSERT COMPLETE")
         print("=" * 80)
+        if job_id:
+            update_job(
 
+                job_id,
+
+                progress=100,
+
+                stage="Completed"
+
+            )
+        try:
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:
+            pass
         return {
 
             "status": "ok",

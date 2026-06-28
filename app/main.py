@@ -3,7 +3,13 @@ from pydantic import BaseModel
 from fastapi import Query
 import psutil
 import os
-
+import threading
+from app.utils.progress import get_job
+from app.utils.progress import (
+    create_job,
+    finish_job,
+    fail_job
+)
 print(
     "MEMORY MB:",
     psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
@@ -33,7 +39,19 @@ from qdrant_client.http.models import PayloadSchemaType
 from app.history import delete_uploaded_file
 import subprocess
 from fastapi import FastAPI
+@app.get("/upload_progress/{job_id}")
+def upload_progress(job_id: str):
 
+    job = get_job(job_id)
+
+    if not job:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found"
+        )
+
+    return job
 @app.get("/ocr_check")
 def ocr_check():
     def version(cmd):
@@ -326,13 +344,98 @@ import os
 import tempfile
 import traceback
 from app.history import get_uploaded_files
-
+import threading
 @app.get("/uploaded_files")
 def uploaded_files():
 
     df = get_uploaded_files()
 
     return df.to_dict(orient="records")
+def background_ingest(
+    temp_path,
+    filename,
+    replace_existing,
+    job_id
+):
+
+    try:
+
+        result = ingest_file(
+
+            temp_path,
+
+            filename,
+
+            replace_existing,
+
+            job_id=job_id
+
+        )
+
+        if result["status"] == "ok":
+
+            save_uploaded_file(
+
+                filename=filename,
+
+                file_hash=result["file_hash"],
+
+                chunks=result["chunks"]
+
+            )
+
+            save_history(
+
+                filename=filename,
+
+                status="uploaded",
+
+                filetype=filename.split(".")[-1].lower(),
+
+                chunks=result["chunks"],
+
+                file_hash=result["file_hash"]
+
+            )
+
+            finish_job(job_id)
+
+        else:
+
+            fail_job(
+
+                job_id,
+
+                result.get("message", "Upload failed")
+
+            )
+
+    except Exception as e:
+
+        traceback.print_exc()
+
+        fail_job(job_id, str(e))
+
+    finally:
+
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
+@app.get("/job/{job_id}")
+async def job_status(job_id: str):
+
+    job = JOBS.get(job_id)
+
+    if not job:
+
+        raise H
+        TTPException(
+            status_code=404,
+            detail="Job not found"
+        )
+
+    return job
 @app.post("/upload_file")
 async def upload_file(
     file: UploadFile = File(...),
@@ -341,26 +444,19 @@ async def upload_file(
 
     print("UPLOAD STEP 1")
 
-    temp_path = None
-
     try:
 
         print("UPLOAD STEP 2")
 
-        suffix = os.path.splitext(
-            file.filename
-        )[1]
+        suffix = os.path.splitext(file.filename)[1]
 
         filename = file.filename
 
-        print(
-            "UPLOAD FILENAME:",
-            filename
-        )
+        print("UPLOAD FILENAME:", filename)
 
         with tempfile.NamedTemporaryFile(
-                delete=False,
-                suffix=suffix
+            delete=False,
+            suffix=suffix
         ) as tmp:
 
             total_size = 0
@@ -376,90 +472,110 @@ async def upload_file(
 
                 tmp.write(chunk)
 
-            size_mb = total_size / 1024 / 1024
-
-            print(
-                "UPLOAD SIZE MB:",
-                round(size_mb, 2)
-            )
-
-
             temp_path = tmp.name
 
-        print("UPLOAD STEP 3")
+        print("UPLOAD SIZE MB:", round(total_size / 1024 / 1024, 2))
+
         print("TEMP PATH:", temp_path)
 
-        print("BEFORE INGEST")
+        # -----------------------------------------
+        # Create background job
+        # -----------------------------------------
 
-        result = ingest_file(
-            temp_path,
-            filename,
-            replace_existing
-        )
-        if result.get("status") == "ok":
-            save_uploaded_file(
+        job_id = create_job(filename)
 
-                filename=filename,
+        def worker():
 
-                file_hash=result["file_hash"],
+            try:
 
-                chunks=result["chunks"]
-            )
-        print("AFTER INGEST")
+                result = ingest_file(
 
-        if result.get("status") in ["ok", "uploaded"]:
-            save_history(
-                filename=filename,
-                status="uploaded",
-                filetype=filename.split(".")[-1].lower(),
-                chunks=result.get("chunks", 0),
-                file_hash=result.get("file_hash", "")
-            )
+                    temp_path,
 
-        if result.get("status") == "skipped":
-            return {
-                "status": "skipped",
-                "message": result.get("message", "")
-            }
+                    filename,
 
-        return result
+                    replace_existing,
 
-    except HTTPException:
+                    job_id
 
-        raise
+                )
+
+                if result["status"] == "ok":
+
+                    save_uploaded_file(
+
+                        filename=filename,
+
+                        file_hash=result["file_hash"],
+
+                        chunks=result["chunks"]
+
+                    )
+
+                    save_history(
+
+                        filename=filename,
+
+                        status="uploaded",
+
+                        filetype=filename.split(".")[-1],
+
+                        chunks=result["chunks"],
+
+                        file_hash=result["file_hash"]
+
+                    )
+
+                    finish_job(job_id)
+
+                else:
+
+                    fail_job(
+
+                        job_id,
+
+                        result.get("message", "Unknown error")
+
+                    )
+
+            except Exception as e:
+
+                fail_job(job_id, str(e))
+
+            finally:
+
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+
+        threading.Thread(
+            target=worker,
+            daemon=True
+        ).start()
+
+        print("✅ Background ingestion started")
+
+        # -----------------------------------------
+        # Return immediately
+        # -----------------------------------------
+
+        return {
+
+            "status": "started",
+
+            "job_id": job_id
+
+        }
 
     except Exception as e:
-
-        print("UPLOAD ERROR")
 
         traceback.print_exc()
 
         raise HTTPException(
+
             status_code=500,
+
             detail=str(e)
+
         )
-
-    finally:
-
-        print("UPLOAD STEP 5")
-
-        if (
-                temp_path
-                and
-                os.path.exists(temp_path)
-        ):
-
-            try:
-
-                os.remove(temp_path)
-
-                print(
-                    "TEMP FILE REMOVED"
-                )
-
-            except Exception as cleanup_error:
-
-                print(
-                    "TEMP FILE CLEANUP ERROR:",
-                    cleanup_error
-                )

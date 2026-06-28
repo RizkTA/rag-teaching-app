@@ -9,6 +9,150 @@ from app.history import get_uploaded_files
 
 
 API_URL = "https://learning-app-t2bz.onrender.com"
+def upload_animation():
+
+    st.markdown("""
+
+<style>
+
+@keyframes pulse {
+
+0%{transform:scale(1);}
+50%{transform:scale(1.18);}
+100%{transform:scale(1);}
+
+}
+
+@keyframes books {
+
+0%{
+transform:translateX(-40px);
+opacity:.2;
+}
+
+25%{
+opacity:1;
+}
+
+50%{
+transform:translateX(20px);
+}
+
+75%{
+opacity:1;
+}
+
+100%{
+transform:translateX(80px);
+opacity:.2;
+}
+
+}
+
+@keyframes rainbow {
+
+0%{color:#C8102E;}
+20%{color:#D2691E;}
+40%{color:#228B22;}
+60%{color:#1E90FF;}
+80%{color:#800080;}
+100%{color:#C8102E;}
+
+}
+
+.brain{
+
+font-size:54px;
+
+animation:pulse 1.6s infinite;
+
+color:#C8102E;
+
+}
+
+.books{
+
+font-size:34px;
+
+animation:
+books 2.5s linear infinite,
+rainbow 4s linear infinite;
+
+letter-spacing:8px;
+
+}
+
+.title{
+
+font-size:28px;
+
+font-weight:700;
+
+color:#C8102E;
+
+}
+
+.subtitle{
+
+font-size:18px;
+
+color:#555;
+
+}
+
+.card{
+
+padding:25px;
+
+background:white;
+
+border-radius:18px;
+
+box-shadow:0 4px 18px rgba(0,0,0,.12);
+
+border-left:8px solid #C8102E;
+
+margin-bottom:15px;
+
+}
+
+</style>
+
+<div class="card">
+
+<center>
+
+<div class="brain">🧠</div>
+
+<div class="title">
+
+RIZK AI is Building Your Knowledge Base
+
+</div>
+
+<br>
+
+<div class="books">
+
+📕📗📘📙📚
+
+</div>
+
+<br>
+
+<div class="subtitle">
+
+Please wait while your document is processed.
+
+</div>
+
+</center>
+
+</div>
+
+""",unsafe_allow_html=True)
+
+
 def thinking_animation(stop_event):
 
     books = [
@@ -70,6 +214,23 @@ Please wait while I search your documents.
 
     progress.empty()
     message.empty()
+stage_icons = {
+
+"Queued":"⏳",
+
+"Reading":"📖",
+
+"OCR":"🔍",
+
+"Chunk":"✂️",
+
+"Embedding":"🧠",
+
+"Saving":"☁️",
+
+"Completed":"🎉"
+
+}
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
 from app.history import UPLOAD_HISTORY_FILE
 
@@ -819,98 +980,250 @@ if st.session_state.get("authenticated", False):
         if st.button("🚀 Upload & Ingest All"):
 
             overall_progress = st.progress(0)
+
             total_files = len(uploaded_files)
 
             for idx, uploaded_file in enumerate(uploaded_files):
 
+                st.markdown(f"## 📄 {uploaded_file.name}")
+
                 progress = st.progress(0)
 
+                percent = st.empty()
+
+                stage = st.empty()
+
+                stats = st.empty()
+
                 try:
-                    file_bytes = uploaded_file.getvalue()
 
                     files = {
+
                         "file": (
+
                             uploaded_file.name,
-                            file_bytes,
+
+                            uploaded_file.getvalue(),
+
                             "application/octet-stream"
+
                         )
+
                     }
 
                     data = {
+
                         "replace_existing": str(
                             replace_existing
                         )
+
                     }
 
-                    progress.progress(25)
+                    # ---------------------------------
+                    # Start upload
+                    # ---------------------------------
 
-                    res = requests.post(
+                    response = requests.post(
+
                         f"{API_URL}/upload_file",
+
                         files=files,
+
                         data=data,
-                        timeout=300
+
+                        timeout=30
+
                     )
 
-                    st.write(
-                        f"{uploaded_file.name}: HTTP {res.status_code}"
-                    )
-
-                    progress.progress(50)
-
-                    if res.status_code != 200:
-
+                    if response.status_code != 200:
                         st.error(
-                            f"❌ Upload failed for {uploaded_file.name}"
+                            f"❌ Failed to upload {uploaded_file.name}"
                         )
+
                         continue
 
-                    result = res.json()
+                    job = response.json()
 
-                    save_history(
-                        filename=uploaded_file.name,
-                        status=result.get("status", "unknown"),
-                        filetype=uploaded_file.name.split(".")[-1].lower(),
-                        chunks=result.get("chunks", 0),
-                        file_hash=result.get("file_hash", "")
+                    job_id = job["job_id"]
+                    upload_animation()
+                    # ---------------------------------
+                    # Poll backend
+                    # ---------------------------------
+
+                    while True:
+
+                        r = requests.get(
+
+                            f"{API_URL}/upload_progress/{job_id}"
+
+                        )
+
+                        if r.status_code != 200:
+                            st.error("Lost connection.")
+
+                            break
+
+                        job = r.json()
+
+                        p = int(job["progress"])
+
+                        progress.progress(p)
+
+                        percent.markdown(f"""
+
+                        <center>
+
+                        <h1 style="
+
+                        color:#C8102E;
+
+                        margin-bottom:0;
+
+                        ">
+
+                        {p}%
+
+                        </h1>
+
+                        </center>
+
+                        """,
+
+                                         unsafe_allow_html=True)
+                        icon = "📚"
+
+                        for key, value in stage_icons.items():
+
+                            if key.lower() in job["stage"].lower():
+                                icon = value
+                        stage.markdown(f"""
+
+                        <div style="
+
+                        padding:18px;
+
+                        background:#FAFAFA;
+
+                        border-left:7px solid #C8102E;
+
+                        border-radius:15px;
+
+                        font-size:22px;
+
+                        ">
+
+                        {icon}
+
+                        <b>{job["stage"]}</b>
+
+                        </div>
+
+                        """, unsafe_allow_html=True)
+
+                        stats.markdown(f"""
+
+                        <div style="
+
+                        padding:18px;
+
+                        background:#FCFCFC;
+
+                        border-radius:15px;
+
+                        font-size:18px;
+
+                        line-height:2;
+
+                        border:1px solid #EEE;
+
+                        ">
+
+                        📖 <b>Pages</b>
+
+                        &nbsp;&nbsp;&nbsp;
+
+                        {job.get("pages", 0)}
+
+                        /
+
+                        {job.get("total_pages", 0)}
+
+                        <br>
+
+                        🧩 <b>Chunks</b>
+
+                        &nbsp;&nbsp;
+
+                        {job.get("chunks", 0)}
+
+                        <br>
+
+                        🧠 <b>Embeddings</b>
+
+                        &nbsp;&nbsp;
+
+                        {job.get("batch", 0)}
+
+                        /
+
+                        {job.get("total_batches", 0)}
+
+                        <br>
+
+                        💾 <b>Memory</b>
+
+                        &nbsp;&nbsp;
+
+                        {job.get("memory", 0)} MB
+
+                        <br>
+
+                        ⏱ <b>Elapsed</b>
+
+                        &nbsp;&nbsp;
+
+                        {job.get("elapsed", 0)} sec
+
+                        </div>
+
+                        """, unsafe_allow_html=True)
+                        if job["status"] == "completed":
+                            progress.progress(100)
+
+                            st.success(
+                                f"✅ {uploaded_file.name} uploaded successfully!"
+                            )
+
+                            break
+
+                        if job["status"] == "failed":
+                            st.error(job["stage"])
+
+                            break
+
+                        time.sleep(1)
+
+                    overall_progress.progress(
+
+                        int(
+
+                            ((idx + 1) / total_files)
+
+                            * 100
+
+                        )
+
                     )
-
-                    status = result.get(
-                        "status",
-                        "unknown"
-                    )
-                    if status == "skipped":
-
-                        st.warning(
-                            f"⚠️ {uploaded_file.name} already exists"
-                        )
-
-                    elif status in ["ok", "uploaded"]:
-
-                        chunks = result.get(
-                            "chunks",
-                            0
-                        )
-
-                        st.success(
-                            f"✅ {uploaded_file.name} uploaded successfully ({chunks} chunks)"
-                        )
-
-                    else:
-
-                        st.error(
-                            f"❌ Upload failed for {uploaded_file.name}"
-                        )
-
-                    progress.progress(100)
 
                 except Exception as e:
 
                     st.error(
-                        f"❌ Upload failed for {uploaded_file.name}"
+
+                        f"❌ {uploaded_file.name}"
+
                     )
 
                     st.code(str(e))
-
                 overall_progress.progress(
                     int(
                         ((idx + 1) / total_files) * 100
