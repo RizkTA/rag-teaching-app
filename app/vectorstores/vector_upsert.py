@@ -1,5 +1,5 @@
 from app.embeddings.embedder import embed_texts
-from app.utils.progress import update_job
+from app.jobs import get_job, list_jobs, update_job, create_job, finish_job,delete_job
 
 import gc
 import psutil
