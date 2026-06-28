@@ -1069,124 +1069,88 @@ if st.session_state.get("authenticated", False):
 
                         progress.progress(p)
 
-                        percent.markdown(f"""
-
-                        <center>
-
-                        <h1 style="
-
-                        color:#C8102E;
-
-                        margin-bottom:0;
-
-                        ">
-
-                        {p}%
-
-                        </h1>
-
-                        </center>
-
-                        """,
-
-                                         unsafe_allow_html=True)
+                        percent.markdown(
+                            f"""
+                            <div style="text-align:center; margin-bottom:10px;">
+                                <h1 style="
+                                    color:#C8102E;
+                                    font-size:48px;
+                                    margin:0;
+                                ">
+                                    {p}%
+                                </h1>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
                         icon = "📚"
 
                         for key, value in stage_icons.items():
 
                             if key.lower() in job["stage"].lower():
                                 icon = value
-                        stage.markdown(f"""
+                        stage.markdown(
+                            f"""
+                            <div style="
+                                padding:18px;
+                                background:#FAFAFA;
+                                border-left:7px solid #C8102E;
+                                border-radius:15px;
+                                font-size:22px;
+                                margin-bottom:12px;
+                                box-shadow:0 2px 8px rgba(0,0,0,.08);
+                            ">
 
-                        <div style="
+                                🧠 <b>{job["stage"]}</b>
 
-                        padding:18px;
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
 
-                        background:#FAFAFA;
+                        stats.markdown(
+                            f"""
+                            <div style="
+                                padding:20px;
+                                background:#FCFCFC;
+                                border-radius:15px;
+                                font-size:18px;
+                                line-height:2;
+                                border:1px solid #E6E6E6;
+                                box-shadow:0 2px 8px rgba(0,0,0,.05);
+                            ">
 
-                        border-left:7px solid #C8102E;
+                                📖 <b>Pages:</b>
+                                {job.get("pages", 0)}
+                                /
+                                {job.get("total_pages", 0)}
 
-                        border-radius:15px;
+                                <br>
 
-                        font-size:22px;
+                                🧩 <b>Chunks:</b>
+                                {job.get("chunks", 0)}
 
-                        ">
+                                <br>
 
-                        {icon}
+                                🧠 <b>Embedding:</b>
+                                {job.get("batch", 0)}
+                                /
+                                {job.get("total_batches", 0)}
 
-                        <b>{job["stage"]}</b>
+                                <br>
 
-                        </div>
+                                💾 <b>Memory:</b>
+                                {job.get("memory", 0)} MB
 
-                        """, unsafe_allow_html=True)
+                                <br>
 
-                        stats.markdown(f"""
+                                ⏱ <b>Elapsed:</b>
+                                {job.get("elapsed", 0)} sec
 
-                        <div style="
-
-                        padding:18px;
-
-                        background:#FCFCFC;
-
-                        border-radius:15px;
-
-                        font-size:18px;
-
-                        line-height:2;
-
-                        border:1px solid #EEE;
-
-                        ">
-
-                        📖 <b>Pages</b>
-
-                        &nbsp;&nbsp;&nbsp;
-
-                        {job.get("pages", 0)}
-
-                        /
-
-                        {job.get("total_pages", 0)}
-
-                        <br>
-
-                        🧩 <b>Chunks</b>
-
-                        &nbsp;&nbsp;
-
-                        {job.get("chunks", 0)}
-
-                        <br>
-
-                        🧠 <b>Embeddings</b>
-
-                        &nbsp;&nbsp;
-
-                        {job.get("batch", 0)}
-
-                        /
-
-                        {job.get("total_batches", 0)}
-
-                        <br>
-
-                        💾 <b>Memory</b>
-
-                        &nbsp;&nbsp;
-
-                        {job.get("memory", 0)} MB
-
-                        <br>
-
-                        ⏱ <b>Elapsed</b>
-
-                        &nbsp;&nbsp;
-
-                        {job.get("elapsed", 0)} sec
-
-                        </div>
-
-                        """, unsafe_allow_html=True)
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
                         if job["status"] == "completed":
                             progress.progress(100)
 

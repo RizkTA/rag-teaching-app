@@ -1,9 +1,11 @@
 import os
 import uuid
 import hashlib
-
+from app.ingestion.chunker import (
+    chunk_text,
+    stream_chunks
+)
 from .pdf_stream import stream_pdf_pages
-
 print("🔥 INGEST.PY IMPORT START")
 from pypdf import PdfReader
 
@@ -18,7 +20,7 @@ from app.config import (
     QDRANT_COLLECTION,
     EMBED_DIM
 )
-
+from app.jobs import update_job
 from app.vectorstores.qdrant_store import QdrantStore
 from app.vectorstores.vector_upsert import VectorUpsert
 import psutil
@@ -105,12 +107,12 @@ def clean_text(text):
 # ==========================================
 # PDF
 # ==========================================
-import fitz
+
 import psutil
 
-import fitz
+
 import gc
-import fitz
+
 import pytesseract
 from PIL import Image
 
@@ -122,137 +124,11 @@ import pytesseract
 from PIL import Image
 
 
-def read_pdf(path: str) -> str:
 
-    print("=" * 80)
-    print("📖 READING PDF")
-    print("=" * 80)
-
-    doc = fitz.open(path)
-
-    MAX_PAGES = 200
-
-    total_pages = min(
-        len(doc),
-        MAX_PAGES
-    )
-
-    print("TOTAL PAGES:", total_pages)
-
-    pages = []
-
-    ocr_pages = 0
-
-    for page_num in range(total_pages):
-
-        print(f"PAGE {page_num + 1}/{total_pages}")
-
-        page = doc.load_page(page_num)
-
-        text = page.get_text("text").strip()
-
-        print("WORDS FOUND:", len(text.split()))
-
-        if len(text.split()) > 10:
-            print("✅ Text extracted")
-
-            pages.append(text)
-
-            del page
-            del text
-
-            gc.collect()
-
-            continue
-
-        print("🔍 Running OCR")
-
-        mem(f"Before OCR page {page_num + 1}")
-
-        pix = page.get_pixmap(
-            matrix=fitz.Matrix(1.5, 1.5),
-            alpha=False
-        )
-
-        mem(f"After pixmap page {page_num + 1}")
-
-        image = Image.frombytes(
-            "RGB",
-            [pix.width, pix.height],
-            pix.samples
-        )
-
-        page_text = pytesseract.image_to_string(
-            image,
-            config="--psm 6"
-        ).strip()
-
-        pages.append(page_text)
-
-        mem(f"After OCR page {page_num + 1}")
-
-        # --------------------------
-        # FREE MEMORY
-        # --------------------------
-        image.close()
-
-        del image
-        del pix
-        del page
-        del text
-        del page_text
-
-        gc.collect()
-
-        try:
-            import ctypes
-            ctypes.CDLL("libc.so.6").malloc_trim(0)
-        except Exception:
-            pass
-
-    doc.close()
-
-    full_text = "\n\n".join(pages)
-
-    print("=" * 80)
-    print("✅ PDF COMPLETE")
-    print("TOTAL PAGES:", total_pages)
-    print("OCR PAGES:", ocr_pages)
-    print("TEXT LENGTH:", len(full_text))
-    print("=" * 80)
-
-    return full_text
 # ==========================================
 # CHUNKING
 # ==========================================
-def chunk_text(text):
 
-    if not text:
-        return []
-
-    chunk_size = 1200
-    overlap = 250
-
-    chunks = []
-
-    start = 0
-
-    while start < len(text):
-
-        end = min(start + chunk_size, len(text))
-
-        chunk = text[start:end].strip()
-
-        if chunk:
-            chunks.append(chunk)
-
-        start += chunk_size - overlap
-
-    print(
-        f"🔥 chunked into {len(chunks)} chunks"
-    )
-
-    return chunks
 # ==========================================
 # CODE DETECTION
 # ==========================================
@@ -442,26 +318,24 @@ def ingest_file(
                         10 + page_num * 2,
                         40
                     )
-
-                    update_job(
-
-                        job_id,
-
-                        progress=progress,
-
-                        stage=f"Processing page {page_num}"
-
-                    )
-                page_chunks = chunk_text(page_text)
-
-                if not page_chunks:
-                    continue
-
                 structured = []
+                estimated_chunks = 0
 
-                for chunk in page_chunks:
+                for chunk in stream_chunks(
+                        page_text,
+                        job_id=job_id
+                ):
 
-                    chunk = chunk.strip()
+                    estimated_chunks += 1
+
+                    if job_id:
+                        update_job(
+                            job_id,
+                            stage=f"Embedding page {page_num}",
+                            chunks=chunk_id,
+                            progress=min(80, 55 + estimated_chunks)
+                        )
+
 
                     if not chunk:
                         continue
@@ -519,9 +393,7 @@ def ingest_file(
                         job_id=job_id
 
                     )
-                    get_upserter().upsert_chunks(
-                        structured
-                    )
+
 
                     total_chunks += len(structured)
 
@@ -530,7 +402,7 @@ def ingest_file(
                 # -------------------------
 
                 del structured
-                del page_chunks
+
                 del page_text
 
                 import gc
@@ -543,8 +415,8 @@ def ingest_file(
                     ).malloc_trim(0)
                 except Exception:
                     pass
-
-                mem(f"After page {page_num}")
+                if page_num % 10 == 0:
+                    mem(f"After page {page_num}")
 
         # ==================================================
         # TXT / MD
@@ -561,7 +433,10 @@ def ingest_file(
 
                 text = clean_text(f.read())
 
-            chunks = chunk_text(text)
+            chunks = chunk_text(
+                text,
+                job_id=job_id
+            )
 
             structured = []
 
@@ -608,8 +483,11 @@ def ingest_file(
 
                 }
 
-            get_upserter().upsert_chunks(structured)
 
+            get_upserter().upsert_chunks(
+                structured,
+                job_id=job_id
+            )
             total_chunks = len(structured)
 
         else:

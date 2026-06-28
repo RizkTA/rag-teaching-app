@@ -4,7 +4,9 @@ from fastapi import Query
 import psutil
 import os
 import threading
-from app.utils.progress import get_job
+
+from app.jobs import get_job, list_jobs
+from app.ingestion.chunker import stream_chunks
 from app.utils.progress import (
     create_job,
     finish_job,
@@ -38,7 +40,24 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.models import PayloadSchemaType
 from app.history import delete_uploaded_file
 import subprocess
-from fastapi import FastAPI
+
+@app.get("/job/{job_id}")
+def job_status(job_id: str):
+
+    job = get_job(job_id)
+
+    if job is None:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found"
+        )
+
+    return job
+@app.get("/jobs")
+def jobs():
+
+    return list_jobs()
 @app.get("/upload_progress/{job_id}")
 def upload_progress(job_id: str):
 

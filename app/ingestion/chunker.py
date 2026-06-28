@@ -1,43 +1,74 @@
-# app/ingestion/chunker.py
+import gc
 
-def is_code(text):
-
-    code_patterns = [
-        "#include",
-        "cout <<",
-        "cin >>",
-        "int main(",
-        "def ",
-        "print(",
-        "class ",
-        "{",
-        "};"
-    ]
-
-    for p in code_patterns:
-        if p in text:
-            return True
-
-    return False
+from app.jobs import update_job
 
 
-def chunk_text(text):
+# ==========================================================
+# Return a list of chunks
+# ==========================================================
+def chunk_text(
+    text,
+    chunk_size=1200,
+    overlap=250,
+    job_id=None
+):
+    """
+    Returns a list of chunks.
+    """
 
-    chunk_size = 500
-    overlap = 100
+    return list(
+        stream_chunks(
+            text,
+            chunk_size,
+            overlap,
+            job_id
+        )
+    )
 
-    chunks = []
+
+# ==========================================================
+# Generator version
+# ==========================================================
+def stream_chunks(
+    text,
+    chunk_size=1200,
+    overlap=250,
+    job_id=None
+):
+    """
+    Yields one chunk at a time.
+    """
+
+    if not text:
+        return
+
+    text = str(text).strip()
+
+    if not text:
+        return
 
     start = 0
 
-    while start < len(text):
+    chunk_id = 0
 
-        end = start + chunk_size
+    total_length = len(text)
 
-        chunk = text[start:end]
+    while start < total_length:
 
-        chunks.append(chunk)
+        end = min(
+            start + chunk_size,
+            total_length
+        )
+
+        chunk = text[start:end].strip()
+
+        if chunk:
+
+            chunk_id += 1
+
+
+            yield chunk
 
         start += chunk_size - overlap
 
-    return chunks
+    gc.collect()

@@ -1,19 +1,44 @@
 import gc
 import fitz
 import pytesseract
+import psutil
 
 from PIL import Image
 
+from app.jobs import update_job
 
-def stream_pdf_pages(path):
 
+# ==========================================================
+# Memory helper
+# ==========================================================
+
+def memory_mb():
+
+    return round(
+
+        psutil.Process().memory_info().rss
+        / 1024 / 1024,
+
+        1
+
+    )
+
+
+# ==========================================================
+# Stream PDF pages
+# ==========================================================
+
+def stream_pdf_pages(path: str, job_id=None):
     """
-    Yield one page of text at a time.
+    Streams one page at a time.
 
-    If a page has selectable text,
-    use it.
+    Returns
 
-    Otherwise OCR only that page.
+        page_number
+        page_text
+        total_pages
+
+    Memory usage stays nearly constant.
     """
 
     print("=" * 80)
@@ -26,36 +51,22 @@ def stream_pdf_pages(path):
 
     print("TOTAL PAGES:", total_pages)
 
-    for page_num in range(total_pages):
+    for page_number in range(total_pages):
 
-        print(f"PAGE {page_num + 1}/{total_pages}")
-
-        page = doc.load_page(page_num)
-
-        # -------------------------
-        # Try normal PDF extraction
-        # -------------------------
+        page = doc.load_page(page_number)
 
         text = page.get_text("text").strip()
 
-        words = len(text.split())
+        # ---------------------------------------------
+        # OCR if needed
+        # ---------------------------------------------
 
-        print("WORDS FOUND:", words)
+        if len(text.split()) < 10:
 
-        if words > 10:
-
-            print("✅ Text extracted")
-
-            yield text
-
-        else:
-
-            print("🔍 Running OCR")
+            print(f"🔍 OCR page {page_number + 1}")
 
             pix = page.get_pixmap(
-
                 matrix=fitz.Matrix(1.5, 1.5),
-
                 alpha=False
             )
 
@@ -66,29 +77,87 @@ def stream_pdf_pages(path):
                 [pix.width, pix.height],
 
                 pix.samples
+
             )
 
-            page_text = pytesseract.image_to_string(
+            text = pytesseract.image_to_string(
 
                 image,
 
                 config="--psm 6"
-            ).strip()
 
-            yield page_text
+            ).strip()
 
             image.close()
 
             del image
             del pix
 
+        # ---------------------------------------------
+        # Update progress
+        # ---------------------------------------------
+
+        if job_id:
+
+            progress = int(
+
+                (page_number + 1)
+
+                / total_pages
+
+                * 35
+
+            )
+
+            update_job(
+
+                job_id,
+
+                stage=f"📖 Reading page {page_number+1}/{total_pages}",
+
+                pages=page_number + 1,
+
+                total_pages=total_pages,
+
+                progress=min(progress, 35),
+
+                memory=memory_mb()
+
+            )
+
+        yield (
+
+            page_number + 1,
+
+            text,
+
+            total_pages
+
+        )
+
+        # ---------------------------------------------
+        # Free memory
+        # ---------------------------------------------
+
         del page
         del text
 
         gc.collect()
 
+        try:
+
+            import ctypes
+
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+
+        except Exception:
+
+            pass
+
     doc.close()
 
+    gc.collect()
+
     print("=" * 80)
-    print("✅ PDF STREAM COMPLETE")
+    print("✅ PDF COMPLETE")
     print("=" * 80)

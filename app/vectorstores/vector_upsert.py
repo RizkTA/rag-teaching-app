@@ -16,6 +16,7 @@ class VectorUpsert:
         chunks,
         job_id=None
     ):
+
         print("=" * 80)
         print("🔥 UPSERT START")
         print("=" * 80)
@@ -26,9 +27,9 @@ class VectorUpsert:
                 "inserted": 0
             }
 
-        # ---------------------------------------
+        # --------------------------------------------------
         # Validate chunks
-        # ---------------------------------------
+        # --------------------------------------------------
 
         valid_chunks = []
 
@@ -49,33 +50,37 @@ class VectorUpsert:
             valid_chunks.append(chunk)
 
         if not valid_chunks:
+
             return {
                 "status": "empty_text",
                 "inserted": 0
             }
 
-        print(
-            "Valid chunks:",
-            len(valid_chunks)
-        )
+        print("Valid chunks:", len(valid_chunks))
 
         EMBED_BATCH = 8
 
         inserted = 0
 
         total_batches = (
-                                len(valid_chunks)
-                                + EMBED_BATCH
-                                - 1
-                        ) // EMBED_BATCH
+            len(valid_chunks)
+            + EMBED_BATCH
+            - 1
+        ) // EMBED_BATCH
+
+        # --------------------------------------------------
+        # Process batches
+        # --------------------------------------------------
 
         for batch_index in range(
-                0,
-                len(valid_chunks),
-                EMBED_BATCH
+            0,
+            len(valid_chunks),
+            EMBED_BATCH
         ):
 
-            batch_number = batch_index // EMBED_BATCH + 1
+            batch_number = (
+                batch_index // EMBED_BATCH
+            ) + 1
 
             batch = valid_chunks[
                 batch_index:
@@ -83,189 +88,248 @@ class VectorUpsert:
             ]
 
             if job_id:
-                progress = 55 + int(
-                    batch_number / total_batches * 40
+
+                progress = min(
+                    95,
+                    55 + int(
+                        batch_number * 40 / total_batches
+                    )
                 )
 
                 update_job(
-
                     job_id,
-
                     progress=progress,
-
-                    stage=f"Embedding batch {batch_number}/{total_batches}"
-
+                    stage=f"🧠 Embedding batch {batch_number}/{total_batches}"
                 )
 
             print(
-                f"\nBatch {batch_number}/{total_batches}"
+                f"\n🔥 Batch {batch_number}/{total_batches}"
             )
 
-            texts = [
-                c["text"]
-                for c in batch
-            ]
+            texts = None
+            vectors = None
+            ids = None
+            payloads = None
 
-            vectors = embed_texts(texts)
+            try:
 
-            if vectors is None:
-                raise RuntimeError(
-                    "Embedding failed."
-                )
+                texts = [
+                    c["text"]
+                    for c in batch
+                ]
 
-            ids = []
+                vectors = embed_texts(texts)
 
-            payloads = []
+                if not vectors:
+                    raise RuntimeError(
+                        "Embedding failed."
+                    )
 
-            for vector, chunk in zip(
+                if len(vectors) != len(texts):
+
+                    raise RuntimeError(
+
+                        f"Embedding count mismatch "
+
+                        f"{len(vectors)} != {len(texts)}"
+
+                    )
+
+                ids = []
+
+                payloads = []
+
+                for vector, chunk in zip(
                     vectors,
                     batch
-            ):
-                metadata = chunk.get(
-                    "metadata",
-                    {}
-                )
+                ):
 
-                ids.append(
-                    chunk["id"]
-                )
+                    metadata = chunk.get(
+                        "metadata",
+                        {}
+                    )
 
-                payloads.append({
+                    ids.append(
+                        chunk["id"]
+                    )
 
-                    "text":
-                        chunk["text"],
+                    payloads.append({
 
-                    "source":
-                        chunk.get(
-                            "source",
-                            "unknown"
-                        ),
+                        "text":
+                            chunk["text"],
 
-                    "filename":
-                        metadata.get(
-                            "filename",
+                        "source":
                             chunk.get(
                                 "source",
                                 "unknown"
+                            ),
+
+                        "filename":
+                            metadata.get(
+                                "filename",
+                                chunk.get(
+                                    "source",
+                                    "unknown"
+                                )
+                            ),
+
+                        "chunk_id":
+                            chunk.get(
+                                "chunk_id",
+                                0
+                            ),
+
+                        "language":
+                            chunk.get(
+                                "language",
+                                "text"
+                            ),
+
+                        "topic":
+                            chunk.get(
+                                "topic",
+                                "general"
+                            ),
+
+                        "page":
+                            metadata.get(
+                                "page"
+                            ),
+
+                        "file_hash":
+                            metadata.get(
+                                "file_hash"
+                            ),
+
+                        "is_code":
+                            metadata.get(
+                                "is_code",
+                                False
                             )
-                        ),
 
-                    "chunk_id":
-                        chunk.get(
-                            "chunk_id",
-                            0
-                        ),
+                    })
 
-                    "language":
-                        chunk.get(
-                            "language",
-                            "text"
-                        ),
+                print(
+                    "Uploading",
+                    len(ids),
+                    "vectors"
+                )
 
-                    "topic":
-                        chunk.get(
-                            "topic",
-                            "general"
-                        ),
+                self.store.upsert(
 
-                    "page":
-                        metadata.get(
-                            "page"
-                        ),
+                    ids,
 
-                    "file_hash":
-                        metadata.get(
-                            "file_hash"
-                        ),
+                    vectors,
 
-                    "is_code":
-                        metadata.get(
-                            "is_code",
-                            False
-                        )
+                    payloads
 
-                })
+                )
 
-            print(
-                "Uploading",
-                len(ids),
-                "vectors"
-            )
+                inserted += len(ids)
 
-            self.store.upsert(
-                ids,
-                vectors,
-                payloads
-            )
+                print(
 
-            inserted += len(ids)
+                    "Memory:",
 
-            print(
-                "Memory:",
-                round(
-                    psutil.Process().memory_info().rss
-                    / 1024 / 1024,
-                    1
-                ),
-                "MB"
-            )
+                    round(
 
-            # --------------------------
-            # Free everything
-            # --------------------------
+                        psutil.Process()
 
-            del texts
-            del vectors
-            del ids
-            del payloads
-            del batch
+                        .memory_info()
 
-            gc.collect()
+                        .rss
 
-            try:
-                ctypes.CDLL(
-                    "libc.so.6"
-                ).malloc_trim(0)
-            except Exception:
-                pass
+                        / 1024 / 1024,
 
-        del valid_chunks
+                        1
+
+                    ),
+
+                    "MB"
+
+                )
+
+            finally:
+
+                try:
+                    del metadata
+                except:
+                    pass
+
+                try:
+                    del texts
+                except:
+                    pass
+
+                try:
+                    del vectors
+                except:
+                    pass
+
+                try:
+                    del ids
+                except:
+                    pass
+
+                try:
+                    del payloads
+                except:
+                    pass
+
+                try:
+                    del batch
+                except:
+                    pass
+
+                gc.collect()
+
+                try:
+
+                    ctypes.CDLL(
+                        "libc.so.6"
+                    ).malloc_trim(0)
+
+                except Exception:
+
+                    pass
+
+        # --------------------------------------------------
+        # Final cleanup
+        # --------------------------------------------------
+
+        try:
+            del valid_chunks
+        except:
+            pass
 
         gc.collect()
 
         try:
+
             ctypes.CDLL(
                 "libc.so.6"
             ).malloc_trim(0)
+
         except Exception:
+
             pass
+
         if job_id:
+
             update_job(
 
                 job_id,
 
                 progress=98,
 
-                stage="Saving vectors..."
+                stage="💾 Saving vectors..."
 
             )
+
         print("=" * 80)
         print("✅ UPSERT COMPLETE")
         print("=" * 80)
-        if job_id:
-            update_job(
 
-                job_id,
-
-                progress=100,
-
-                stage="Completed"
-
-            )
-        try:
-            ctypes.CDLL("libc.so.6").malloc_trim(0)
-        except Exception:
-            pass
         return {
 
             "status": "ok",
