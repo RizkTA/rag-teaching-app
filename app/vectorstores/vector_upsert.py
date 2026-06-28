@@ -10,41 +10,39 @@ class VectorUpsert:
 
     def upsert_chunks(self, chunks):
 
-        print("🔥 upsert_chunks start")
+        print("=" * 80)
+        print("🔥 UPSERT START")
+        print("=" * 80)
 
         if not chunks:
-
             return {
                 "status": "empty",
                 "inserted": 0
             }
 
-        # =====================
-        # CLEAN CHUNKS
-        # =====================
+        # ---------------------------------------
+        # Validate chunks
+        # ---------------------------------------
+
         valid_chunks = []
 
-        for c in chunks:
+        for chunk in chunks:
 
-            text = c.get("text")
+            text = chunk.get("text")
 
             if text is None:
                 continue
-
-            if isinstance(text, list):
-                text = " ".join(
-                    map(str, text)
-                )
 
             text = str(text).strip()
 
             if not text:
                 continue
 
-            valid_chunks.append(c)
+            chunk["text"] = text
+
+            valid_chunks.append(chunk)
 
         if not valid_chunks:
-
             return {
                 "status": "empty_text",
                 "inserted": 0
@@ -55,73 +53,53 @@ class VectorUpsert:
             len(valid_chunks)
         )
 
-        # =====================
-        # BATCH PROCESSING
-        # =====================
-        BATCH_SIZE = 4
+        EMBED_BATCH = 8
 
-        total_inserted = 0
+        inserted = 0
 
         total_batches = (
-            len(valid_chunks) + BATCH_SIZE - 1
-        ) // BATCH_SIZE
+                                len(valid_chunks)
+                                + EMBED_BATCH
+                                - 1
+                        ) // EMBED_BATCH
 
-        for i in range(
+        for batch_index in range(
                 0,
                 len(valid_chunks),
-                BATCH_SIZE
+                EMBED_BATCH
         ):
 
-            batch_num = i // BATCH_SIZE + 1
-
-            print(
-                f"🔥 Processing batch "
-                f"{batch_num}/{total_batches}"
-            )
-
-            batch_chunks = valid_chunks[
-                i:i + BATCH_SIZE
+            batch = valid_chunks[
+                batch_index:
+                batch_index + EMBED_BATCH
             ]
 
-            batch_texts = [
-                str(c["text"]).strip()
-                for c in batch_chunks
-            ]
             print(
-                "Embedding",
-                len(batch_texts),
-                "texts"
+                f"\nBatch "
+                f"{batch_index // EMBED_BATCH + 1}"
+                f"/{total_batches}"
             )
-            print(
-                "BATCH TEXT CHARS:",
-                sum(len(t) for t in batch_texts)
-            )
-            vectors = embed_texts(
-                batch_texts
-            )
-            del batch_texts
 
-            gc.collect()
+            texts = [
+                c["text"]
+                for c in batch
+            ]
+
+            vectors = embed_texts(texts)
+
             if vectors is None:
-
-                raise Exception(
-                    "embed_texts returned None"
-                )
-
-            if len(vectors) != len(batch_chunks):
-
-                raise Exception(
-                    f"Vector mismatch "
-                    f"{len(vectors)} vs "
-                    f"{len(batch_chunks)}"
+                raise RuntimeError(
+                    "Embedding failed."
                 )
 
             ids = []
 
             payloads = []
 
-            for j, chunk in enumerate(batch_chunks):
-
+            for vector, chunk in zip(
+                    vectors,
+                    batch
+            ):
                 metadata = chunk.get(
                     "metadata",
                     {}
@@ -134,7 +112,7 @@ class VectorUpsert:
                 payloads.append({
 
                     "text":
-                        batch_texts[j],
+                        chunk["text"],
 
                     "source":
                         chunk.get(
@@ -154,7 +132,7 @@ class VectorUpsert:
                     "chunk_id":
                         chunk.get(
                             "chunk_id",
-                            i + j
+                            0
                         ),
 
                     "language":
@@ -169,6 +147,11 @@ class VectorUpsert:
                             "general"
                         ),
 
+                    "page":
+                        metadata.get(
+                            "page"
+                        ),
+
                     "file_hash":
                         metadata.get(
                             "file_hash"
@@ -179,10 +162,11 @@ class VectorUpsert:
                             "is_code",
                             False
                         )
+
                 })
 
             print(
-                "Upserting",
+                "Uploading",
                 len(ids),
                 "vectors"
             )
@@ -193,47 +177,56 @@ class VectorUpsert:
                 payloads
             )
 
-            total_inserted += len(ids)
+            inserted += len(ids)
 
             print(
-                "MEMORY MB:",
+                "Memory:",
                 round(
-                    psutil.Process().memory_info().rss / 1024 / 1024,
+                    psutil.Process().memory_info().rss
+                    / 1024 / 1024,
                     1
-                )
+                ),
+                "MB"
             )
 
-            # ---------------------------------
-            # Free memory immediately
-            # ---------------------------------
+            # --------------------------
+            # Free everything
+            # --------------------------
 
+            del texts
             del vectors
-            del payloads
             del ids
-            del batch_texts
-            del batch_chunks
+            del payloads
+            del batch
 
             gc.collect()
 
             try:
-                ctypes.CDLL("libc.so.6").malloc_trim(0)
+                ctypes.CDLL(
+                    "libc.so.6"
+                ).malloc_trim(0)
             except Exception:
                 pass
-
-        print("🔥 qdrant complete")
-
-        print("🔥 qdrant complete")
 
         del valid_chunks
 
         gc.collect()
 
         try:
-            ctypes.CDLL("libc.so.6").malloc_trim(0)
+            ctypes.CDLL(
+                "libc.so.6"
+            ).malloc_trim(0)
         except Exception:
             pass
 
+        print("=" * 80)
+        print("✅ UPSERT COMPLETE")
+        print("=" * 80)
+
         return {
+
             "status": "ok",
-            "inserted": total_inserted
+
+            "inserted": inserted
+
         }

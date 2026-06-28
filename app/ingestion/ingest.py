@@ -2,6 +2,7 @@ import os
 import uuid
 import hashlib
 
+from ingestion.pdf_stream import stream_pdf_pages
 
 print("🔥 INGEST.PY IMPORT START")
 from pypdf import PdfReader
@@ -324,17 +325,6 @@ def ingest_file(
     filename: str,
     replace_existing=True
 ):
-    """
-    Ingest a file into Qdrant.
-
-    Features:
-    - Deduplication using file hash
-    - Optional replacement of existing vectors
-    - PDF/TXT/MD support
-    - Chunk limiting
-    - Validation
-    - Detailed logging
-    """
 
     print("=" * 80)
     print("🔥 INGEST START:", filename)
@@ -352,14 +342,13 @@ def ingest_file(
         print("FILE HASH:", file_hash)
 
         # --------------------------------------------------
-        # Existing file handling
+        # Duplicate handling
         # --------------------------------------------------
-        print("Generated hash:", file_hash)
+
         exists = file_exists(store, file_hash)
-        print("FILE EXISTS:", exists)
-        print("REPLACE EXISTING:", replace_existing)
 
         print("FILE EXISTS:", exists)
+        print("REPLACE EXISTING:", replace_existing)
 
         if exists:
 
@@ -372,210 +361,204 @@ def ingest_file(
                 import time
                 time.sleep(1)
 
-                print("✅ Old vectors removed")
-
             else:
 
                 return {
+
                     "status": "skipped",
+
                     "message": f"{filename} already exists",
+
                     "file_hash": file_hash
+
                 }
-        # --------------------------------------------------
-        # Read file
-        # --------------------------------------------------
 
         suffix = os.path.splitext(filename)[1].lower()
 
+        total_chunks = 0
+
+        # ==================================================
+        # PDF
+        # ==================================================
+
         if suffix == ".pdf":
 
-            print("📄 Reading PDF")
-            import psutil
+            print("📄 Streaming PDF")
 
-            print(
-                "MEMORY MB:",
-                round(
-                    psutil.Process().memory_info().rss
-                    / 1024 / 1024,
-                    1
-                )
-            )
-            raw_text = read_pdf(path)
+            chunk_id = 0
 
+            for page_num, page_text in enumerate(
+                    stream_pdf_pages(path),
+                    start=1
+            ):
 
+                print("=" * 60)
+                print(f"PAGE {page_num}")
+                print("=" * 60)
 
-            if not raw_text.strip():
-                print("🔥 NO TEXT FOUND - RUNNING OCR")
-                import shutil
+                page_text = clean_text(page_text)
 
-                print("OCRMYPDF:", shutil.which("ocrmypdf"))
-                print("TESSERACT:", shutil.which("tesseract"))
-                print("GHOSTSCRIPT:", shutil.which("gs"))
-                raw_text = read_pdf(path)
+                if not page_text:
+                    print("Empty page")
+                    continue
 
-                text = clean_text(raw_text)
+                page_chunks = chunk_text(page_text)
 
+                if not page_chunks:
+                    continue
 
-            print("PDF TEXT LENGTH:", len(raw_text))
-            text = clean_text(raw_text)
-            print(
-                "PDF TEXT LENGTH:",
-                len(text)
-            )
-            print("UPLOAD SIZE MB:",
-                  round(len(raw_text) / 1024 / 1024, 2))
+                structured = []
+
+                for chunk in page_chunks:
+
+                    chunk = chunk.strip()
+
+                    if not chunk:
+                        continue
+
+                    structured.append({
+
+                        "id": str(uuid.uuid4()),
+
+                        "text": chunk,
+
+                        "source": filename,
+
+                        "chunk_id": chunk_id,
+
+                        "language": "text",
+
+                        "topic": "general",
+
+                        "metadata": {
+
+                            "file_hash": file_hash,
+
+                            "filename": filename,
+
+                            "page": page_num,
+
+                            "is_code": is_code_chunk(chunk)
+
+                        }
+
+                    })
+
+                    chunk_id += 1
+
+                if structured:
+
+                    print(
+                        f"Uploading {len(structured)} chunks"
+                    )
+
+                    get_upserter().upsert_chunks(
+                        structured
+                    )
+
+                    total_chunks += len(structured)
+
+                # -------------------------
+                # FREE MEMORY
+                # -------------------------
+
+                del structured
+                del page_chunks
+                del page_text
+
+                import gc
+                gc.collect()
+
+                try:
+                    import ctypes
+                    ctypes.CDLL(
+                        "libc.so.6"
+                    ).malloc_trim(0)
+                except Exception:
+                    pass
+
+                mem(f"After page {page_num}")
+
+        # ==================================================
+        # TXT / MD
+        # ==================================================
 
         elif suffix in [".txt", ".md"]:
 
-            print("📄 Reading text file")
-
             with open(
-                path,
-                "r",
-                encoding="utf-8",
-                errors="ignore"
+                    path,
+                    "r",
+                    encoding="utf-8",
+                    errors="ignore"
             ) as f:
 
-                raw_text = f.read()
+                text = clean_text(f.read())
 
-            text = clean_text(raw_text)
+            chunks = chunk_text(text)
+
+            structured = []
+
+            for i, chunk in enumerate(chunks):
+
+                chunk = chunk.strip()
+
+                if not chunk:
+                    continue
+
+                structured.append({
+
+                    "id": str(uuid.uuid4()),
+
+                    "text": chunk,
+
+                    "source": filename,
+
+                    "chunk_id": i,
+
+                    "language": "text",
+
+                    "topic": "general",
+
+                    "metadata": {
+
+                        "file_hash": file_hash,
+
+                        "filename": filename,
+
+                        "is_code": is_code_chunk(chunk)
+
+                    }
+
+                })
+
+            if not structured:
+
+                return {
+
+                    "status": "error",
+
+                    "message": "No valid chunks generated"
+
+                }
+
+            get_upserter().upsert_chunks(structured)
+
+            total_chunks = len(structured)
 
         else:
 
             return {
+
                 "status": "error",
+
                 "message": f"Unsupported file type: {suffix}"
+
             }
 
-        # --------------------------------------------------
-        # Validate content
-        # --------------------------------------------------
-
-        if not text:
-
-            return {
-                "status": "error",
-                "message": "File contains no text"
-            }
-
-        print("TEXT LENGTH:", len(text))
-
-        # --------------------------------------------------
-        # Chunking
-        # --------------------------------------------------
-
-        mem("Before chunking")
-
-        chunks = chunk_text(text)
-        print("TOTAL CHUNKS:", len(chunks))
-        print("TOTAL CHUNKS:", len(chunks))
-
-        if chunks:
-            print(
-                "AVG CHUNK SIZE:",
-                sum(len(c) for c in chunks) / len(chunks)
-            )
-        mem("After chunking")
-
-        print("TOTAL CHUNKS:", len(chunks))
-
-        MAX_CHUNKS = 25
-
-        if len(chunks) > MAX_CHUNKS:
-            print(
-                f"⚠ Limiting chunks "
-                f"{len(chunks)} -> {MAX_CHUNKS}"
-            )
-
-            chunks = chunks[:MAX_CHUNKS]
-
-        if not chunks:
-
-            return {
-                "status": "error",
-                "message": "No chunks generated"
-            }
-
-        # --------------------------------------------------
-        # Build chunk objects
-        # --------------------------------------------------
-
-        structured = []
-
-        for i, chunk in enumerate(chunks):
-
-            if not chunk:
-                continue
-
-            chunk = str(chunk).strip()
-
-            if not chunk:
-                continue
-
-            structured.append({
-
-                "id": str(uuid.uuid4()),
-
-                "text": chunk,
-
-                "source": filename,
-
-                "chunk_id": i,
-
-                "language": "text",
-
-                "topic": "general",
-
-                "metadata": {
-
-                    "file_hash": file_hash,
-
-                    "filename": filename,
-
-                    "is_code": is_code_chunk(chunk)
-
-                }
-            })
-
-        print(
-            "STRUCTURED CHUNKS:",
-            len(structured)
-        )
-
-        if not structured:
-
-            return {
-                "status": "error",
-                "message": "No valid chunks after processing"
-            }
-
-        # --------------------------------------------------
-        # Upsert
-        # --------------------------------------------------
-
-        import time
-
-        mem("Before upsert")
-
-        start = time.time()
-
-        result = get_upserter().upsert_chunks(
-            structured
-        )
-
-        elapsed = round(
-            time.time() - start,
-            2
-        )
-
-        mem("After upsert")
-
-        print("UPSERT RESULT:", result)
-        print("UPSERT TIME:", elapsed, "sec")
-
-        # --------------------------------------------------
-        # Success
-        # --------------------------------------------------
+        print("=" * 80)
+        print("INGEST COMPLETE")
+        print("TOTAL CHUNKS:", total_chunks)
+        print("=" * 80)
 
         return {
 
@@ -585,11 +568,8 @@ def ingest_file(
 
             "file_hash": file_hash,
 
-            "chunks": len(structured),
+            "chunks": total_chunks
 
-            "upsert_time": elapsed,
-
-            "qdrant": result
         }
 
     except Exception as e:
@@ -604,4 +584,5 @@ def ingest_file(
             "status": "error",
 
             "message": str(e)
+
         }
