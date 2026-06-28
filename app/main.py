@@ -5,13 +5,9 @@ import psutil
 import os
 import threading
 
-from app.jobs import get_job, list_jobs
+from app.jobs import get_job, list_jobs, update_job, create_job, finish_job,delete_job
 from app.ingestion.chunker import stream_chunks
-from app.utils.progress import (
-    create_job,
-    finish_job,
-    fail_job
-)
+
 print(
     "MEMORY MB:",
     psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024

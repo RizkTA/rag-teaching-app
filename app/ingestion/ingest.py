@@ -196,7 +196,7 @@ from datetime import time
 # ==========================================
 # MAIN INGEST
 # ==========================================
-from app.utils.progress import update_job
+from app.jobs import update_job
 def ingest_file(
     path: str,
     filename: str,
