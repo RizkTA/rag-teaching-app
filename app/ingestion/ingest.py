@@ -2,7 +2,7 @@ import os
 import uuid
 import hashlib
 
-from ingestion.pdf_stream import stream_pdf_pages
+from .pdf_stream import stream_pdf_pages
 
 print("🔥 INGEST.PY IMPORT START")
 from pypdf import PdfReader
