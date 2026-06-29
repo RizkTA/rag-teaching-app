@@ -1117,7 +1117,7 @@ if st.session_state.get("authenticated", False):
                         chunks = job.get("chunks", 0)
                         elapsed = job.get("elapsed", 0)
 
-                        st.success(f"✅ {uploaded_file.name} uploaded successfully!")
+                    #    st.success(f"✅ {uploaded_file.name} uploaded successfully!")
                     #    animation.success("🎉 Knowledge Base Updated")
                         animation.empty()
                         summary_card.markdown(
