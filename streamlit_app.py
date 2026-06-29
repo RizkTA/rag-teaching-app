@@ -1049,7 +1049,20 @@ if st.session_state.get("authenticated", False):
                     # ---------------------------------
                     # Poll backend
                     # ---------------------------------
+                    stage_map = {
+                        "reading": "📖 Reading document...",
+                        "ocr": "🔍 Extracting text...",
+                        "chunk": "🧩 Organizing knowledge...",
+                        "embedding": "🧠 Understanding content...",
+                        "upload": "💾 Saving to knowledge base...",
+                        "completed": "✅ Finalizing..."
+                    }
 
+                    stage = stage_map.get(
+                        job["stage"].lower(),
+                        job["stage"]
+                    )
+                    st.info(stage)
                     while True:
 
                         r = requests.get(
@@ -1083,54 +1096,10 @@ if st.session_state.get("authenticated", False):
                             """,
                             unsafe_allow_html=True
                         )
-                        col1, col2, col3 = st.columns(3)
+                        pages = job.get("pages", 0)
+                        chunks = job.get("chunks", 0)
+                        elapsed = job.get("elapsed", 0)
 
-                        metric_style = """
-                        background:#F7F7F7;
-                        border:1px solid #DDD;
-                        border-radius:10px;
-                        padding:12px;
-                        text-align:center;
-                        """
-
-                        with col1:
-                            st.markdown(
-                                f"""
-                                <div style="{metric_style}">
-                                    <div style="font-size:15px;">📄 Pages</div>
-                                    <div style="font-size:22px;font-weight:bold;">
-                                       {job.get("pages", 0)}/{job.get("total_pages", 0)}
-                                    </div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
-
-                        with col2:
-                            st.markdown(
-                                f"""
-                                <div style="{metric_style}">
-                                    <div style="font-size:15px;">🧩 Chunks</div>
-                                    <div style="font-size:22px;font-weight:bold;">
-                                        {job.get("chunks", 0)}
-                                    </div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
-
-                        with col3:
-                            st.markdown(
-                                f"""
-                                <div style="{metric_style}">
-                                    <div style="font-size:15px;">⏱ Elapsed</div>
-                                    <div style="font-size:22px;font-weight:bold;">
-                                        {job.get("elapsed", 0)} sec
-                                    </div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
 
                         if job["status"] == "completed":
                             progress.progress(100)
@@ -1142,7 +1111,84 @@ if st.session_state.get("authenticated", False):
                             st.session_state.current_job = None
                             st.rerun()
 
+                        st.markdown(
+                            f"""
+                        <div style="
+                        background:#F7F7F7;
+                        border-left:6px solid #C8102E;
+                        padding:20px;
+                        border-radius:10px;
+                        margin-top:10px;
+                        ">
 
+                        <h3 style="
+                        margin-top:0;
+                        color:#C8102E;
+                        ">
+                        ✅ Knowledge Base Updated
+                        </h3>
+
+                        <p style="margin-bottom:18px;">
+                        Your document has been indexed and is now ready for search and question answering.
+                        </p>
+
+                        <div style="
+                        display:flex;
+                        justify-content:space-around;
+                        text-align:center;
+                        ">
+
+                        <div>
+                        <div style="font-size:14px;color:#777;">
+                        📄 Pages
+                        </div>
+
+                        <div style="
+                        font-size:30px;
+                        font-weight:bold;
+                        color:#333;
+                        ">
+                        {pages}
+                        </div>
+                        </div>
+
+                        <div>
+                        <div style="font-size:14px;color:#777;">
+                        🧩 Chunks
+                        </div>
+
+                        <div style="
+                        font-size:30px;
+                        font-weight:bold;
+                        color:#333;
+                        ">
+                        {chunks}
+                        </div>
+                        </div>
+
+                        <div>
+                        <div style="font-size:14px;color:#777;">
+                        ⏱ Time
+                        </div>
+
+                        <div style="
+                        font-size:30px;
+                        font-weight:bold;
+                        color:#333;
+                        ">
+                        {elapsed:.1f}s
+                        </div>
+                        </div>
+
+                        </div>
+
+                        </div>
+                        """,
+                            unsafe_allow_html=True
+                        )
+                        st.success(
+                            f"🎉 RIZK AI is now ready to answer questions from **{uploaded_file.name}**."
+                        )
                         if job["status"] == "failed":
                             st.error(job["stage"])
 
