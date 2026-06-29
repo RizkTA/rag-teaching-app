@@ -197,12 +197,20 @@ from datetime import time
 # MAIN INGEST
 # ==========================================
 from app.jobs import update_job
+
 def ingest_file(
     path: str,
     filename: str,
     replace_existing=True,
     job_id=None
 ):
+    import time
+
+    start = time.time()
+
+    total_chunks = 0
+    pages_processed = 0
+
 
     print("=" * 80)
     print("🔥 INGEST START:", filename)
@@ -256,14 +264,15 @@ def ingest_file(
 
             else:
 
+                elapsed = round(time.time() - start, 1)
+
                 return {
-
-                    "status": "skipped",
-
-                    "message": f"{filename} already exists",
-
-                    "file_hash": file_hash
-
+                    "status": "ok",
+                    "filename": filename,
+                    "file_hash": file_hash,
+                    "chunks": total_chunks,
+                    "pages": pages_processed,
+                    "elapsed": elapsed
                 }
 
         suffix = os.path.splitext(filename)[1].lower()
@@ -289,6 +298,7 @@ def ingest_file(
                     stream_pdf_pages(path),
                     start=1
             ):
+                pages_processed = page_num
                 if job_id:
                     progress = min(
                         10 + page_num * 2,
@@ -375,16 +385,7 @@ def ingest_file(
                     print(
                         f"Uploading {len(structured)} chunks"
                     )
-                    if job_id:
-                        update_job(
 
-                            job_id,
-
-                            progress=55,
-
-                            stage=f"Embedding page {page_num}"
-
-                        )
 
                     get_upserter().upsert_chunks(
 
@@ -423,7 +424,7 @@ def ingest_file(
         # ==================================================
 
         elif suffix in [".txt", ".md"]:
-
+            pages_processed = 1
             with open(
                     path,
                     "r",
@@ -504,26 +505,26 @@ def ingest_file(
         print("INGEST COMPLETE")
         print("TOTAL CHUNKS:", total_chunks)
         print("=" * 80)
+
+        elapsed = round(time.time() - start, 1)
+
         if job_id:
             update_job(
-
                 job_id,
-
                 progress=100,
-
-                stage="Completed"
-
+                stage="Completed",
+                pages=pages_processed,
+                chunks=total_chunks,
+                elapsed=elapsed
             )
+
         return {
-
             "status": "ok",
-
             "filename": filename,
-
             "file_hash": file_hash,
-
-            "chunks": total_chunks
-
+            "chunks": total_chunks,
+            "pages": pages_processed,
+            "elapsed": elapsed
         }
 
     except Exception as e:
@@ -532,20 +533,15 @@ def ingest_file(
 
         import traceback
         traceback.print_exc()
+
         if job_id:
             update_job(
-
                 job_id,
-
                 progress=100,
-
                 stage=f"Failed: {e}"
-
             )
+
         return {
-
             "status": "error",
-
             "message": str(e)
-
         }

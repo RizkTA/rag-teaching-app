@@ -449,6 +449,7 @@ async def job_status(job_id: str):
         )
 
     return job
+
 @app.post("/upload_file")
 async def upload_file(
     file: UploadFile = File(...),
@@ -502,56 +503,63 @@ async def upload_file(
             try:
 
                 result = ingest_file(
-
                     temp_path,
-
                     filename,
-
                     replace_existing,
-
                     job_id
-
                 )
 
-                if result["status"] == "ok":
+                status = result.get("status")
 
-                    save_uploaded_file(
+                # -------------------------------
+                # Successful upload
+                # -------------------------------
 
-                        filename=filename,
+                if status == "ok":
 
-                        file_hash=result["file_hash"],
+                    if result.get("duplicate", False):
 
-                        chunks=result["chunks"]
+                        save_history(
+                            filename=filename,
+                            status="duplicate",
+                            filetype=filename.split(".")[-1],
+                            chunks=0,
+                            file_hash=result["file_hash"]
+                        )
 
-                    )
+                    else:
 
-                    save_history(
+                        save_uploaded_file(
+                            filename=filename,
+                            file_hash=result["file_hash"],
+                            chunks=result["chunks"]
+                        )
 
-                        filename=filename,
-
-                        status="uploaded",
-
-                        filetype=filename.split(".")[-1],
-
-                        chunks=result["chunks"],
-
-                        file_hash=result["file_hash"]
-
-                    )
+                        save_history(
+                            filename=filename,
+                            status="uploaded",
+                            filetype=filename.split(".")[-1],
+                            chunks=result["chunks"],
+                            file_hash=result["file_hash"]
+                        )
 
                     finish_job(job_id)
+
+                # -------------------------------
+                # Failure
+                # -------------------------------
 
                 else:
 
                     fail_job(
-
                         job_id,
-
                         result.get("message", "Unknown error")
-
                     )
 
             except Exception as e:
+
+                import traceback
+                traceback.print_exc()
 
                 fail_job(job_id, str(e))
 
@@ -559,7 +567,7 @@ async def upload_file(
 
                 try:
                     os.remove(temp_path)
-                except:
+                except Exception:
                     pass
 
         threading.Thread(
@@ -569,16 +577,9 @@ async def upload_file(
 
         print("✅ Background ingestion started")
 
-        # -----------------------------------------
-        # Return immediately
-        # -----------------------------------------
-
         return {
-
             "status": "started",
-
             "job_id": job_id
-
         }
 
     except Exception as e:
