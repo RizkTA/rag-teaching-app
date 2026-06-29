@@ -232,9 +232,17 @@ stage_icons = {
 
 }
 UPLOAD_PASSWORD = os.getenv("UPLOAD_PASSWORD", "supersecret123")
-from app.history import UPLOAD_HISTORY_FILE
-
 import streamlit as st
+from app.history import UPLOAD_HISTORY_FILE
+if "upload_job_id" not in st.session_state:
+    st.session_state.upload_job_id = None
+
+if "upload_filename" not in st.session_state:
+    st.session_state.upload_filename = None
+
+if "upload_running" not in st.session_state:
+    st.session_state.upload_running = False
+
 
 st.set_page_config(
    page_title="RIZK AI ASSISTANT",
@@ -976,26 +984,43 @@ if st.session_state.get("authenticated", False):
             "♻ Replace existing files if duplicates found"
         )
 
-        if st.button(
-            "🚀 Upload & Ingest All",
-            use_container_width=True
-        ):
+        if st.button("🚀 Upload & Ingest All"):
 
-            overall_progress = st.progress(0)
+            uploaded_file = uploaded_files[0]
 
-            total_files = len(uploaded_files)
+            files = {
+                "file": (
+                    uploaded_file.name,
+                    uploaded_file.getvalue(),
+                    "application/octet-stream"
+                )
+            }
 
-            for idx, uploaded_file in enumerate(uploaded_files):
+            data = {
+                "replace_existing": str(replace_existing)
+            }
 
-                #################################################################
-                # ONE CONTAINER FOR THIS FILE
-                #################################################################
+            response = requests.post(
+                f"{API_URL}/upload_file",
+                files=files,
+                data=data,
+                timeout=30
+            )
 
-                file_box = st.container()
+            if response.status_code == 200:
 
-                with file_box:
+                job = response.json()
 
-                    st.markdown(f"## 📄 {uploaded_file.name}")
+                st.session_state.upload_job_id = job["job_id"]
+                st.session_state.upload_filename = uploaded_file.name
+                st.session_state.upload_running = True
+
+                st.rerun()
+
+            else:
+
+                st.error("Upload failed.")
+                if st.session_state.upload_running:
 
                     progress = st.progress(0)
 
@@ -1004,264 +1029,92 @@ if st.session_state.get("authenticated", False):
                     metrics = st.empty()
 
                     summary = st.empty()
+############################################################
+# LIVE PROGRESS
+                    #################################################################
 
-                #################################################################
-                # UPLOAD
-                #################################################################
-
-                try:
-
-                    files = {
-                        "file": (
-                            uploaded_file.name,
-                            uploaded_file.getvalue(),
-                            "application/octet-stream"
-                        )
-                    }
-
-                    data = {
-                        "replace_existing": str(replace_existing)
-                    }
-
-                    response = requests.post(
-                        f"{API_URL}/upload_file",
-                        files=files,
-                        data=data,
-                        timeout=30
+                    r = requests.get(
+                        f"{API_URL}/upload_progress/{st.session_state.upload_job_id}"
                     )
 
-                    if response.status_code != 200:
-
-                        stage.error("Upload failed.")
-
-                        continue
-
-                    job_id = response.json()["job_id"]
-
-                    stage_map = {
-
-                        "reading":
-                            "📖 Reading document...",
-
-                        "ocr":
-                            "🔍 Running OCR...",
-
-                        "chunk":
-                            "🧩 Building knowledge chunks...",
-
-                        "embedding":
-                            "🧠 Creating embeddings...",
-
-                        "upload":
-                            "💾 Saving into Knowledge Base...",
-
-                        "completed":
-                            "✅ Finalizing..."
-                    }
-
-                    #################################################################
-                    # LIVE PROGRESS
-                    #################################################################
-
-                    while True:
-
-                        r = requests.get(
-                            f"{API_URL}/upload_progress/{job_id}"
-                        )
-
-                        if r.status_code != 200:
-
-                            stage.error("Connection lost.")
-
-                            break
-
+                    if r.status_code == 200:
                         job = r.json()
 
-                        percent = int(job.get("progress", 0))
+                        p = job.get("progress", 0)
 
-                        progress.progress(percent)
+                        progress.progress(p)
+                    stage_map = {
 
-                        stage.info(
+                        "reading": "📖 Reading",
 
-                            stage_map.get(
+                        "ocr": "🔍 OCR",
 
-                                job.get("stage", "").lower(),
+                        "chunk": "🧩 Chunking",
 
-                                job.get("stage", "")
-                            )
+                        "embedding": "🧠 Embedding",
+
+                        "upload": "💾 Uploading",
+
+                        "completed": "✅ Finalizing"
+                    }
+
+                    stage.info(
+
+                        stage_map.get(
+
+                            job["stage"].lower(),
+
+                            job["stage"]
+
                         )
 
-                        pages = job.get("pages", 0)
+                    )
+                    metrics.metric(
 
-                        total_pages = job.get("total_pages", 0)
+                        "📄 Pages",
 
-                        chunks = job.get("chunks", 0)
+                        f'{job["pages"]}/{job["total_pages"]}'
 
-                        elapsed = job.get("elapsed", 0)
+                    )
 
-                        metrics.markdown(
-                            f"""
-                            <div style="
-                                display:flex;
-                                justify-content:space-between;
-                                gap:12px;
-                                margin-top:15px;
-                            ">
+                    metrics.metric(
 
-                                <div style="
-                                    flex:1;
-                                    background:#F7F7F7;
-                                    padding:15px;
-                                    border-radius:10px;
-                                    text-align:center;
-                                ">
-                                    <div style="font-size:15px;color:#777;">
-                                        📄 Pages
-                                    </div>
+                        "🧩 Chunks",
 
-                                    <div style="
-                                        font-size:30px;
-                                        font-weight:bold;
-                                    ">
-                                        {pages}/{total_pages}
-                                    </div>
-                                </div>
+                        job["chunks"]
 
-                                <div style="
-                                    flex:1;
-                                    background:#F7F7F7;
-                                    padding:15px;
-                                    border-radius:10px;
-                                    text-align:center;
-                                ">
-                                    <div style="font-size:15px;color:#777;">
-                                        🧩 Chunks
-                                    </div>
+                    )
 
-                                    <div style="
-                                        font-size:30px;
-                                        font-weight:bold;
-                                    ">
-                                        {chunks}
-                                    </div>
-                                </div>
+                    metrics.metric(
 
-                                <div style="
-                                    flex:1;
-                                    background:#F7F7F7;
-                                    padding:15px;
-                                    border-radius:10px;
-                                    text-align:center;
-                                ">
-                                    <div style="font-size:15px;color:#777;">
-                                        ⏱ Elapsed
-                                    </div>
+                        "⏱ Time",
 
-                                    <div style="
-                                        font-size:30px;
-                                        font-weight:bold;
-                                    ">
-                                        {elapsed:.1f}s
-                                    </div>
-                                </div>
+                        f'{job["elapsed"]:.1f}s'
 
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-
-                        if job["status"] == "completed":
-                            break
-
-                        if job["status"] == "failed":
-                            break
-
-                        time.sleep(0.5)
-
-                    #################################################################
-                    # FINISHED
-                    #################################################################
-
-                    progress.empty()
-
-                    stage.empty()
-
-                    metrics.empty()
-
+                    )
                     if job["status"] == "completed":
+                        progress.empty()
 
-                        summary.markdown(
-                            f"""
-                            <div style="
-                                background:#FAFAFA;
-                                border-left:7px solid #C8102E;
-                                padding:22px;
-                                border-radius:12px;
-                                margin-top:15px;
-                            ">
+                        stage.empty()
 
-                            <h3 style="
-                                margin-top:0;
-                                color:#C8102E;
-                            ">
-                            📚 Knowledge Base Updated
-                            </h3>
+                        metrics.empty()
 
-                            <b>{uploaded_file.name}</b>
-
-                            <br><br>
-
-                            Your document has been successfully indexed
-                            and is now searchable by
-                            <b>RIZK AI</b>.
-
-                            <hr>
-
-                            <div style="
-                                display:flex;
-                                justify-content:space-around;
-                                text-align:center;
-                            ">
-
-                                <div>
-                                    <div>📄 Pages</div>
-                                    <h2>{pages}</h2>
-                                </div>
-
-                                <div>
-                                    <div>🧩 Chunks</div>
-                                    <h2>{chunks}</h2>
-                                </div>
-
-                                <div>
-                                    <div>⏱ Time</div>
-                                    <h2>{elapsed:.1f}s</h2>
-                                </div>
-
-                            </div>
-
-                            </div>
-                            """,
-                            unsafe_allow_html=True
+                        summary.success(
+                            "Knowledge Base Updated!"
                         )
+
+                        st.session_state.upload_running = False
+
+                        st.session_state.upload_job_id = None
+
+                        st.session_state.upload_filename = None
 
                     else:
 
-                        summary.error(job.get("stage"))
+                        time.sleep(0.5)
 
-                except Exception as e:
+                        st.rerun()
 
-                    st.error(str(e))
-
-                overall_progress.progress(
-                    int(((idx + 1) / total_files) * 100)
-                )
-
-            overall_progress.empty()
-
-            st.success(
-                "🎉 All selected files have been added to the RIZK AI Knowledge Base."
-            )
     # ==========================================
     # Upload History
     # ==========================================
