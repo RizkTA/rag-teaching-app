@@ -1045,10 +1045,16 @@ if st.session_state.get("authenticated", False):
                     job = response.json()
 
                     job_id = job["job_id"]
+
+
+                #    with animation.container():
+                #       upload_animation()
                     animation = st.empty()
 
-                    with animation.container():
-                        upload_animation()
+                    animation.markdown(
+                        "<h2>🧠 RIZK AI is Building Your Knowledge Base...</h2>",
+                        unsafe_allow_html=True
+                    )
                     # ---------------------------------
                     # Poll backend
                     # ---------------------------------
@@ -1112,7 +1118,8 @@ if st.session_state.get("authenticated", False):
                         elapsed = job.get("elapsed", 0)
 
                         st.success(f"✅ {uploaded_file.name} uploaded successfully!")
-                        animation.success("🎉 Knowledge Base Updated")
+                    #    animation.success("🎉 Knowledge Base Updated")
+                        animation.empty()
                         summary_card.markdown(
                             f"""
                             <div style="
@@ -1166,7 +1173,7 @@ if st.session_state.get("authenticated", False):
                             """,
                             unsafe_allow_html=True,
                         )
-                        
+
 
                     elif job.get("status") == "failed":
 
