@@ -104,7 +104,6 @@ def update_job(job_id: str, **kwargs):
 # ==========================================================
 # Complete Job
 # ==========================================================
-
 def finish_job(
     job_id: str,
     success=True,
@@ -122,18 +121,20 @@ def finish_job(
 
         job["progress"] = 100
 
+        job["stage"] = (
+            "Completed"
+            if success
+            else "Failed"
+        )
+
         job["message"] = message
 
         job["finished"] = time.time()
 
         job["elapsed"] = round(
-
             job["finished"] - job["started"],
-
             1
-
         )
-
 
 # ==========================================================
 # Read Job

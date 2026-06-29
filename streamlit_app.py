@@ -1058,33 +1058,29 @@ if st.session_state.get("authenticated", False):
                         "completed": "✅ Finalizing..."
                     }
 
-                    stage = stage_map.get(
-                        job["stage"].lower(),
-                        job["stage"]
-                    )
-                    st.info(stage)
                     while True:
 
-                        r = requests.get(
-
-                            f"{API_URL}/upload_progress/{job_id}"
-
-                        )
+                        r = requests.get(f"{API_URL}/upload_progress/{job_id}")
 
                         if r.status_code != 200:
                             st.error("Lost connection.")
-
                             break
 
                         job = r.json()
 
-                        p = int(job["progress"])
-
+                        p = int(job.get("progress", 0))
                         progress.progress(p)
+
+                        current_stage = stage_map.get(
+                            job.get("stage", "").lower(),
+                            job.get("stage", "")
+                        )
+
+                        stage.info(current_stage)
 
                         percent.markdown(
                             f"""
-                            <div style="text-align:center; margin-bottom:10px;">
+                            <div style="text-align:center;margin-bottom:10px;">
                                 <h1 style="
                                     color:#C8102E;
                                     font-size:48px;
@@ -1096,105 +1092,85 @@ if st.session_state.get("authenticated", False):
                             """,
                             unsafe_allow_html=True
                         )
+
+                        if job.get("status") == "completed":
+                            progress.progress(100)
+                            break
+
+                        if job.get("status") == "failed":
+                            st.error(job.get("stage", "Upload failed"))
+                            break
+
+                        time.sleep(1)
+                    if job.get("status") == "completed":
+
                         pages = job.get("pages", 0)
                         chunks = job.get("chunks", 0)
                         elapsed = job.get("elapsed", 0)
 
-
-                        if job["status"] == "completed":
-                            progress.progress(100)
-
-                            st.success(
-                                f"✅ {uploaded_file.name} uploaded successfully!"
-                            )
-                            st.session_state.uploading = False
-                            st.session_state.current_job = None
-                            st.rerun()
+                        st.success(f"✅ {uploaded_file.name} uploaded successfully!")
 
                         st.markdown(
                             f"""
-                        <div style="
-                        background:#F7F7F7;
-                        border-left:6px solid #C8102E;
-                        padding:20px;
-                        border-radius:10px;
-                        margin-top:10px;
-                        ">
+                            <div style="
+                                background:#F8F8F8;
+                                border-left:8px solid #C8102E;
+                                border-radius:15px;
+                                padding:25px;
+                                margin-top:15px;
+                                margin-bottom:20px;
+                            ">
 
-                        <h3 style="
-                        margin-top:0;
-                        color:#C8102E;
-                        ">
-                        ✅ Knowledge Base Updated
-                        </h3>
+                            <h2 style="
+                                color:#C8102E;
+                                margin-top:0;
+                            ">
+                            📚 Knowledge Base Updated
+                            </h2>
 
-                        <p style="margin-bottom:18px;">
-                        Your document has been indexed and is now ready for search and question answering.
-                        </p>
+                            <p>
+                            Your document has been completely indexed and is now available for
+                            RIZK AI.
+                            </p>
 
-                        <div style="
-                        display:flex;
-                        justify-content:space-around;
-                        text-align:center;
-                        ">
+                            <div style="
+                                display:flex;
+                                justify-content:space-around;
+                                text-align:center;
+                                margin-top:20px;
+                            ">
 
-                        <div>
-                        <div style="font-size:14px;color:#777;">
-                        📄 Pages
-                        </div>
+                                <div>
+                                    <div style="font-size:15px;color:#888;">📄 Pages</div>
+                                    <div style="font-size:36px;font-weight:bold;">
+                                        {pages}
+                                    </div>
+                                </div>
 
-                        <div style="
-                        font-size:30px;
-                        font-weight:bold;
-                        color:#333;
-                        ">
-                        {pages}
-                        </div>
-                        </div>
+                                <div>
+                                    <div style="font-size:15px;color:#888;">🧩 Chunks</div>
+                                    <div style="font-size:36px;font-weight:bold;">
+                                        {chunks}
+                                    </div>
+                                </div>
 
-                        <div>
-                        <div style="font-size:14px;color:#777;">
-                        🧩 Chunks
-                        </div>
+                                <div>
+                                    <div style="font-size:15px;color:#888;">⏱ Time</div>
+                                    <div style="font-size:36px;font-weight:bold;">
+                                        {elapsed:.1f}s
+                                    </div>
+                                </div>
 
-                        <div style="
-                        font-size:30px;
-                        font-weight:bold;
-                        color:#333;
-                        ">
-                        {chunks}
-                        </div>
-                        </div>
+                            </div>
 
-                        <div>
-                        <div style="font-size:14px;color:#777;">
-                        ⏱ Time
-                        </div>
-
-                        <div style="
-                        font-size:30px;
-                        font-weight:bold;
-                        color:#333;
-                        ">
-                        {elapsed:.1f}s
-                        </div>
-                        </div>
-
-                        </div>
-
-                        </div>
-                        """,
+                            </div>
+                            """,
                             unsafe_allow_html=True
                         )
-                        st.success(
-                            f"🎉 RIZK AI is now ready to answer questions from **{uploaded_file.name}**."
-                        )
-                        if job["status"] == "failed":
-                            st.error(job["stage"])
 
-                            break
+                    elif job.get("status") == "failed":
 
-                        time.sleep(1)
+                        st.error(job.get("stage"))
 
                     overall_progress.progress(
 
@@ -1222,7 +1198,7 @@ if st.session_state.get("authenticated", False):
                         ((idx + 1) / total_files) * 100
                     )
                 )
-
+           
     # ==========================================
     # Upload History
     # ==========================================
