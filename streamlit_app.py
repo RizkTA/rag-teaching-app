@@ -962,57 +962,88 @@ def compute_hash(file_bytes):
 # =================================
 # MAIN UPLOAD UI
 # =================================
+########################################################################
+# KNOWLEDGE BASE UPLOAD
+########################################################################
+
 if st.session_state.get("authenticated", False):
 
-    uploaded_files = st.file_uploader(
-        "Drag & Drop files here",
-        type=["pdf", "md", "txt"],
-        accept_multiple_files=True,
+    uploaded_file = st.file_uploader(
+        "Drag & Drop a document",
+        type=["pdf", "txt", "md"],
+        accept_multiple_files=False,
         key="knowledge_upload"
     )
 
-    if uploaded_files:
+    if uploaded_file:
 
-        st.markdown("### 📦 Files Ready")
+        ext = uploaded_file.name.split(".")[-1].lower()
 
-        for file in uploaded_files:
-            ext = file.name.split(".")[-1].lower()
-            icon = file_icon.get(ext, "📄")
-            st.info(f"{icon} {file.name}")
+        icon = file_icon.get(ext, "📄")
+
+        st.info(f"{icon} {uploaded_file.name}")
 
         replace_existing = st.checkbox(
-            "♻ Replace existing files if duplicates found"
+            "♻ Replace existing document if already uploaded"
         )
 
-        if st.button("🚀 Upload & Ingest All"):
+        ####################################################################
+        # START UPLOAD
+        ####################################################################
 
-            uploaded_file = uploaded_files[0]
+        if (
+            not st.session_state.upload_running
+            and
+            st.button(
+                "🚀 Upload & Ingest",
+                use_container_width=True
+            )
+        ):
 
             files = {
+
                 "file": (
+
                     uploaded_file.name,
+
                     uploaded_file.getvalue(),
+
                     "application/octet-stream"
+
                 )
+
             }
 
             data = {
-                "replace_existing": str(replace_existing)
+
+                "replace_existing": str(
+                    replace_existing
+                )
+
             }
 
-            response = requests.post(
-                f"{API_URL}/upload_file",
-                files=files,
-                data=data,
-                timeout=30
-            )
+            with st.spinner("Uploading document..."):
+
+                response = requests.post(
+
+                    f"{API_URL}/upload_file",
+
+                    files=files,
+
+                    data=data,
+
+                    timeout=30
+
+                )
 
             if response.status_code == 200:
 
                 job = response.json()
 
                 st.session_state.upload_job_id = job["job_id"]
+
                 st.session_state.upload_filename = uploaded_file.name
+
                 st.session_state.upload_running = True
 
                 st.rerun()
@@ -1020,100 +1051,208 @@ if st.session_state.get("authenticated", False):
             else:
 
                 st.error("Upload failed.")
-                if st.session_state.upload_running:
 
-                    progress = st.progress(0)
+########################################################################
+# PROGRESS MONITOR
+########################################################################
 
-                    stage = st.empty()
+if st.session_state.upload_running:
 
-                    metrics = st.empty()
+    st.markdown(
+        f"## 📄 {st.session_state.upload_filename}"
+    )
 
-                    summary = st.empty()
-############################################################
-# LIVE PROGRESS
-                    #################################################################
+    progress = st.progress(0)
 
-                    r = requests.get(
-                        f"{API_URL}/upload_progress/{st.session_state.upload_job_id}"
-                    )
+    stage = st.empty()
 
-                    if r.status_code == 200:
-                        job = r.json()
+    metrics = st.empty()
 
-                        p = job.get("progress", 0)
+    summary = st.empty()
 
-                        progress.progress(p)
-                    stage_map = {
+    r = requests.get(
+        f"{API_URL}/upload_progress/{st.session_state.upload_job_id}"
+    )
 
-                        "reading": "📖 Reading",
+    if r.status_code != 200:
 
-                        "ocr": "🔍 OCR",
+        st.error("Lost connection to server.")
 
-                        "chunk": "🧩 Chunking",
+        st.session_state.upload_running = False
 
-                        "embedding": "🧠 Embedding",
+    else:
 
-                        "upload": "💾 Uploading",
+        job = r.json()
 
-                        "completed": "✅ Finalizing"
-                    }
+        progress.progress(
+            int(job.get("progress", 0))
+        )
 
-                    stage.info(
+        stage_map = {
 
-                        stage_map.get(
+            "reading":
+                "📖 Reading document",
 
-                            job["stage"].lower(),
+            "ocr":
+                "🔍 OCR",
 
-                            job["stage"]
+            "chunk":
+                "🧩 Chunking",
 
-                        )
+            "embedding":
+                "🧠 Creating embeddings",
 
-                    )
-                    metrics.metric(
+            "upload":
+                "💾 Uploading to Knowledge Base",
 
-                        "📄 Pages",
+            "completed":
+                "✅ Finalizing"
 
-                        f'{job["pages"]}/{job["total_pages"]}'
+        }
 
-                    )
+        stage.info(
 
-                    metrics.metric(
+            stage_map.get(
 
-                        "🧩 Chunks",
+                job.get("stage", "").lower(),
 
-                        job["chunks"]
+                job.get("stage", "")
 
-                    )
+            )
 
-                    metrics.metric(
+        )
 
-                        "⏱ Time",
+        col1, col2, col3 = metrics.columns(3)
 
-                        f'{job["elapsed"]:.1f}s'
+        with col1:
 
-                    )
-                    if job["status"] == "completed":
-                        progress.empty()
+            st.metric(
 
-                        stage.empty()
+                "📄 Pages",
 
-                        metrics.empty()
+                f'{job.get("pages",0)}/{job.get("total_pages",0)}'
 
-                        summary.success(
-                            "Knowledge Base Updated!"
-                        )
+            )
 
-                        st.session_state.upload_running = False
+        with col2:
 
-                        st.session_state.upload_job_id = None
+            st.metric(
 
-                        st.session_state.upload_filename = None
+                "🧩 Chunks",
 
-                    else:
+                job.get("chunks",0)
 
-                        time.sleep(0.5)
+            )
 
-                        st.rerun()
+        with col3:
+
+            st.metric(
+
+                "⏱ Time",
+
+                f'{job.get("elapsed",0):.1f}s'
+
+            )
+
+        ####################################################################
+        # STILL RUNNING
+        ####################################################################
+
+        if job["status"] != "completed":
+
+            time.sleep(1)
+
+            st.rerun()
+
+        ####################################################################
+        # FINISHED
+        ####################################################################
+
+        else:
+
+            progress.empty()
+
+            stage.empty()
+
+            metrics.empty()
+
+            summary.markdown(
+
+                f"""
+<div style="
+background:#FAFAFA;
+border-left:7px solid #C8102E;
+padding:25px;
+border-radius:15px;
+margin-top:15px;
+">
+
+<h3 style="margin-top:0;color:#C8102E;">
+📚 Knowledge Base Updated
+</h3>
+
+<p>
+<b>{st.session_state.upload_filename}</b>
+has been successfully indexed and is now available to RIZK AI.
+</p>
+
+<div style="
+display:flex;
+justify-content:space-around;
+margin-top:20px;
+text-align:center;
+">
+
+<div>
+
+<div style="font-size:14px;color:#777;">
+📄 Pages
+</div>
+
+<div style="font-size:34px;font-weight:bold;">
+{job.get("pages",0)}
+</div>
+
+</div>
+
+<div>
+
+<div style="font-size:14px;color:#777;">
+🧩 Chunks
+</div>
+
+<div style="font-size:34px;font-weight:bold;">
+{job.get("chunks",0)}
+</div>
+
+</div>
+
+<div>
+
+<div style="font-size:14px;color:#777;">
+⏱ Time
+</div>
+
+<div style="font-size:34px;font-weight:bold;">
+{job.get("elapsed",0):.1f}s
+</div>
+
+</div>
+
+</div>
+
+</div>
+                """,
+
+                unsafe_allow_html=True
+
+            )
+
+            st.session_state.upload_running = False
+
+            st.session_state.upload_job_id = None
+
+            st.session_state.upload_filename = None
 
     # ==========================================
     # Upload History
