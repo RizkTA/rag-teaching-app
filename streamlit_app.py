@@ -1083,82 +1083,65 @@ if st.session_state.get("authenticated", False):
                             """,
                             unsafe_allow_html=True
                         )
-                        icon = "📚"
+                        col1, col2, col3 = st.columns(3)
 
-                        for key, value in stage_icons.items():
+                        metric_style = """
+                        background:#F7F7F7;
+                        border:1px solid #DDD;
+                        border-radius:10px;
+                        padding:12px;
+                        text-align:center;
+                        """
 
-                            if key.lower() in job["stage"].lower():
-                                icon = value
-                        stage.markdown(
-                            f"""
-                            <div style="
-                                padding:18px;
-                                background:#FAFAFA;
-                                border-left:7px solid #C8102E;
-                                border-radius:15px;
-                                font-size:22px;
-                                margin-bottom:12px;
-                                box-shadow:0 2px 8px rgba(0,0,0,.08);
-                            ">
+                        with col1:
+                            st.markdown(
+                                f"""
+                                <div style="{metric_style}">
+                                    <div style="font-size:15px;">📄 Pages</div>
+                                    <div style="font-size:22px;font-weight:bold;">
+                                       {job.get("pages", 0)}/{job.get("total_pages", 0)}
+                                    </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
 
-                                🧠 <b>{job["stage"]}</b>
+                        with col2:
+                            st.markdown(
+                                f"""
+                                <div style="{metric_style}">
+                                    <div style="font-size:15px;">🧩 Chunks</div>
+                                    <div style="font-size:22px;font-weight:bold;">
+                                        {job.get("chunks", 0)}
+                                    </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
 
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                        with col3:
+                            st.markdown(
+                                f"""
+                                <div style="{metric_style}">
+                                    <div style="font-size:15px;">⏱ Elapsed</div>
+                                    <div style="font-size:22px;font-weight:bold;">
+                                        {job.get("elapsed", 0)} sec
+                                    </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
 
-                        stats.markdown(
-                            f"""
-                            <div style="
-                                padding:20px;
-                                background:#FCFCFC;
-                                border-radius:15px;
-                                font-size:18px;
-                                line-height:2;
-                                border:1px solid #E6E6E6;
-                                box-shadow:0 2px 8px rgba(0,0,0,.05);
-                            ">
-
-                                📖 <b>Pages:</b>
-                                {job.get("pages", 0)}
-                                /
-                                {job.get("total_pages", 0)}
-
-                                <br>
-
-                                🧩 <b>Chunks:</b>
-                                {job.get("chunks", 0)}
-
-                                <br>
-
-                                🧠 <b>Embedding:</b>
-                                {job.get("batch", 0)}
-                                /
-                                {job.get("total_batches", 0)}
-
-                                <br>
-
-                                💾 <b>Memory:</b>
-                                {job.get("memory", 0)} MB
-
-                                <br>
-
-                                ⏱ <b>Elapsed:</b>
-                                {job.get("elapsed", 0)} sec
-
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
                         if job["status"] == "completed":
                             progress.progress(100)
 
                             st.success(
                                 f"✅ {uploaded_file.name} uploaded successfully!"
                             )
+                            st.session_state.uploading = False
+                            st.session_state.current_job = None
+                            st.rerun()
 
-                            break
 
                         if job["status"] == "failed":
                             st.error(job["stage"])
