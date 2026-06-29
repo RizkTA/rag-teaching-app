@@ -5,7 +5,7 @@ import psutil
 import os
 import threading
 
-from app.jobs import get_job, list_jobs, update_job, create_job, finish_job,delete_job
+from app.jobs import get_job, list_jobs, update_job, create_job, finish_job,delete_job,fail_job
 from app.ingestion.chunker import stream_chunks
 
 print(
@@ -440,12 +440,10 @@ def background_ingest(
 @app.get("/job/{job_id}")
 async def job_status(job_id: str):
 
-    job = JOBS.get(job_id)
+    job = get_job(job_id)
 
-    if not job:
-
-        raise H
-        TTPException(
+    if job is None:
+        raise HTTPException(
             status_code=404,
             detail="Job not found"
         )

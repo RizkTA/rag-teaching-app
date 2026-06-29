@@ -1045,7 +1045,10 @@ if st.session_state.get("authenticated", False):
                     job = response.json()
 
                     job_id = job["job_id"]
-                    upload_animation()
+                    animation = st.empty()
+
+                    with animation.container():
+                        upload_animation()
                     # ---------------------------------
                     # Poll backend
                     # ---------------------------------
@@ -1057,7 +1060,7 @@ if st.session_state.get("authenticated", False):
                         "upload": "💾 Saving to knowledge base...",
                         "completed": "✅ Finalizing..."
                     }
-
+                    summary_card = st.empty()
                     while True:
 
                         r = requests.get(f"{API_URL}/upload_progress/{job_id}")
@@ -1109,28 +1112,24 @@ if st.session_state.get("authenticated", False):
                         elapsed = job.get("elapsed", 0)
 
                         st.success(f"✅ {uploaded_file.name} uploaded successfully!")
-
-                        st.markdown(
+                        animation.success("🎉 Knowledge Base Updated")
+                        summary_card.markdown(
                             f"""
                             <div style="
-                                background:#F8F8F8;
-                                border-left:8px solid #C8102E;
-                                border-radius:15px;
-                                padding:25px;
-                                margin-top:15px;
-                                margin-bottom:20px;
+                                padding:22px;
+                                background:#FAFAFA;
+                                border-radius:16px;
+                                border-left:7px solid #C8102E;
+                                margin-top:20px;
                             ">
 
-                            <h2 style="
-                                color:#C8102E;
-                                margin-top:0;
-                            ">
+                            <h3 style="color:#C8102E;margin-top:0;">
                             📚 Knowledge Base Updated
-                            </h2>
+                            </h3>
 
                             <p>
                             Your document has been completely indexed and is now available for
-                            RIZK AI.
+                            <b>RIZK AI</b>.
                             </p>
 
                             <div style="
@@ -1165,8 +1164,9 @@ if st.session_state.get("authenticated", False):
 
                             </div>
                             """,
-                            unsafe_allow_html=True
+                            unsafe_allow_html=True,
                         )
+                        
 
                     elif job.get("status") == "failed":
 
@@ -1198,7 +1198,7 @@ if st.session_state.get("authenticated", False):
                         ((idx + 1) / total_files) * 100
                     )
                 )
-           
+
     # ==========================================
     # Upload History
     # ==========================================

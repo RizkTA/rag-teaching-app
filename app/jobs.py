@@ -163,7 +163,36 @@ def delete_job(job_id: str):
 # ==========================================================
 # List Jobs
 # ==========================================================
+# ==========================================================
+# Fail Job
+# ==========================================================
 
+def fail_job(job_id: str, message: str = "Upload failed"):
+
+    with _lock:
+
+        job = _jobs.get(job_id)
+
+        if job is None:
+            return
+
+        job["status"] = "failed"
+
+        job["progress"] = 100
+
+        job["stage"] = "Failed"
+
+        job["message"] = message
+
+        job["finished"] = time.time()
+
+        job["elapsed"] = round(
+
+            job["finished"] - job["started"],
+
+            1
+
+        )
 def list_jobs():
 
     with _lock:
